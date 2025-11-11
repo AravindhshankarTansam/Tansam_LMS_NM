@@ -1,0 +1,135 @@
+.leftbar {
+  width: 72px;
+  background: #fff;
+  border-right: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 8px;
+  gap: 12px;
+}
+
+.leftbar .brand {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #a78bfa);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.leftnav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.leftnav .lnk {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  color: #6b7280; /* neutral gray for inactive icons */
+  transition: all 0.25s ease;
+}
+
+/* Hover effect */
+.leftnav .lnk:hover {
+  background: #eef2ff; /* light indigo tint */
+  color: #4f46e5; /* indigo-600 */
+}
+
+/* ✅ Active link color */
+.leftnav .lnk.active {
+  background: linear-gradient(135deg, #6366f1, #a78bfa); /* same as brand gradient */
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
+  transform: scale(1.05);
+}
+
+.left-bottom {
+  margin-top: auto;
+  background: #fde68a;
+  padding: 6px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: #111;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.leftbar {
+  width: 72px;
+  background: #fff;
+  border-right: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 8px;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.leftnav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* ✅ Group logout + BF close together */
+.left-bottom-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px; /* small gap between logout & BF */
+  margin-top: auto;
+}
+
+/* Logout button styling */
+.logout-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+  font-size: 18px;
+}
+
+.logout-btn:hover {
+  /* background: #ef4444; */
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.left-bottom {
+  background: #fde68a;
+  padding: 6px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: #111;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

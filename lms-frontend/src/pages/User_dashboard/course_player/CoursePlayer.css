@@ -1,0 +1,305 @@
+/* -------------------------------------------------
+   COURSE PLAYER – FULLY SCOPED DASHBOARD
+   ------------------------------------------------- */
+.learning-dashboard *,
+.learning-dashboard *::before,
+.learning-dashboard *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---- Layout ------------------------------------------------- */
+.learning-dashboard .app-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+.learning-dashboard .section {
+  margin-bottom: 3rem;
+}
+.learning-dashboard .section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+/* ---- Continue Learning -------------------------------------- */
+.learning-dashboard .continue-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+.learning-dashboard .continue-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 1.25rem;
+  display: flex;
+  gap: 1rem;
+}
+.learning-dashboard .continue-icon {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.learning-dashboard .continue-icon.orange {
+  background: linear-gradient(to bottom right, #fef3c7, #fde68a);
+}
+.learning-dashboard .continue-icon.purple {
+  background: linear-gradient(to bottom right, #f3e8ff, #e9d5ff);
+}
+.learning-dashboard .icon-inner {
+  background: #fff;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  color: #4b5563;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+.learning-dashboard .icon-svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #6b7280;
+}
+.learning-dashboard .continue-body {
+  flex: 1;
+}
+.learning-dashboard .continue-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+}
+.learning-dashboard .progress-wrapper {
+  margin: 0.75rem 0;
+}
+.learning-dashboard .progress-label {
+  font-size: 0.75rem;
+  color: #4b5563;
+  margin-bottom: 0.25rem;
+}
+.learning-dashboard .progress-bar-bg {
+  background: #e5e7eb;
+  height: 0.5rem;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.learning-dashboard .progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, #34d399, #10b981);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+.learning-dashboard .continue-btn {
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.375rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.learning-dashboard .continue-btn:hover {
+  background: #e5e7eb;
+}
+.learning-dashboard .continue-next {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.75rem;
+}
+.learning-dashboard .arrow {
+  color: #2563eb;
+  margin-right: 0.25rem;
+}
+
+/* ---- All Materials – Header & Filters ----------------------- */
+.learning-dashboard .materials-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.learning-dashboard .header-right select {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+.learning-dashboard .filters-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+.learning-dashboard .filter-btn {
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 0.875rem;
+  padding: 0.375rem 1rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.learning-dashboard .filter-btn.active,
+.learning-dashboard .filter-btn:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+.learning-dashboard .search-input {
+  padding: 0.375rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  min-width: 12rem;
+}
+.learning-dashboard .icon-btn {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.learning-dashboard .view-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+.learning-dashboard .view-btn {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+.learning-dashboard .view-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ---- Material cards grid ----------------------------------- */
+.learning-dashboard .materials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+.learning-dashboard .material-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+.learning-dashboard .card-header {
+  margin-bottom: 0.75rem;
+}
+.learning-dashboard .badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+}
+.learning-dashboard .badge.quiz        { background:#fed7aa; color:#c2410c; }
+.learning-dashboard .badge.page        { background:#bfdbfe; color:#1e40af; }
+.learning-dashboard .badge.learning-path { background:#fbcfe8; color:#be185d; }
+.learning-dashboard .badge.course      { background:#a7f3d0; color:#065f46; }
+.learning-dashboard .badge.assignment  { background:#e9d5ff; color:#6b21a8; }
+
+.learning-dashboard .card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+}
+.learning-dashboard .card-tag,
+.learning-dashboard .card-urgency {
+  font-size: 0.75rem;
+  color: #4b5563;
+  margin-bottom: 0.25rem;
+}
+.learning-dashboard .card-points {
+  font-size: 0.75rem;
+  color: #4b5563;
+}
+.learning-dashboard .points-value {
+  color: #ea580c;
+  font-weight: 600;
+}
+.learning-dashboard .card-passing {
+  font-size: 0.75rem;
+  color: #6b21a8;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.learning-dashboard .check-icon {
+  width: 1rem;
+  height: 1rem;
+}
+.learning-dashboard .progress-wrapper.small .progress-label {
+  margin-bottom: 0.125rem;
+}
+.learning-dashboard .progress-wrapper.small .progress-bar-bg {
+  height: 0.375rem;
+}
+.learning-dashboard .action-btn {
+  margin-top: auto;
+  padding: 0.375rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+}
+.learning-dashboard .action-btn.start {
+  background: #f3f4f6;
+  color: #374151;
+}
+.learning-dashboard .action-btn.start:hover {
+  background: #e5e7eb;
+}
+.learning-dashboard .action-btn.continue {
+  background: #ecfdf5;
+  color: #065f46;
+}
+.learning-dashboard .action-btn.continue:hover {
+  background: #d1fae5;
+}
+
+/* ---- SVG icons (list / grid) ------------------------------- */
+.learning-dashboard .view-btn.list svg {
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.learning-dashboard .view-btn.grid svg {
+  fill: currentColor;
+}
+
+.learning-dashboard .dashboard-content {
+  margin-left: 90px; /* width of your fixed sidebar */
+  padding: 2rem 1.5rem;
+  transition: margin 0.3s ease;
+}

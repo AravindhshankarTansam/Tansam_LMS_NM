@@ -1,0 +1,64 @@
+// src/components/Sidebar.jsx
+import React from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { FaSignOutAlt } from "react-icons/fa";
+import "./sidebar.css";
+
+export default function Sidebar() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    navigate("/"); // Redirect to landing page
+  };
+
+  return (
+    <aside className="leftbar">
+      <nav className="leftnav">
+        <NavLink
+          to="/dashboard"
+          className={({ isActive }) => (isActive ? "lnk active" : "lnk")}
+          title="Dashboard"
+        >
+          🏠
+        </NavLink>
+
+        <NavLink
+          to="/add-user"
+          className={({ isActive }) => (isActive ? "lnk active" : "lnk")}
+          title="Add User"
+        >
+          👥
+        </NavLink>
+
+        <NavLink
+          to="/create-course"
+          className={({ isActive }) => (isActive ? "lnk active" : "lnk")}
+          title="Create Course"
+        >
+          📚
+        </NavLink>
+
+        <NavLink
+          to="/add-category"
+          className={({ isActive }) => (isActive ? "lnk active" : "lnk")}
+          title="Add Category"
+        >
+          🔍
+        </NavLink>
+
+        {/* <button className="lnk" title="Images">
+          🖼
+        </button> */}
+      </nav>
+
+      {/* ===== Bottom Section ===== */}
+      <div className="left-bottom-section">
+        <button className="lnk logout-btn" onClick={handleLogout} title="Logout">
+          <FaSignOutAlt />
+        </button>
+
+        <div className="left-bottom">BF</div>
+      </div>
+    </aside>
+  );
+}

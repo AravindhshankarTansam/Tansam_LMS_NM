@@ -1,0 +1,389 @@
+.main-layout {
+  display: flex;
+  justify-content: center;
+  background-color: #f8fafc;
+}
+
+/* Dashboard Container */
+.dashboard2-container {
+  background: #f8fafc;
+  font-family: "Inter", sans-serif;
+  padding: 1.5rem 2rem;
+  min-height: 100vh;
+  margin: 0 auto;
+  max-width: 1200px;
+}
+
+/* Header */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.add-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.add-btn:hover {
+  background: #1e4fc4;
+}
+
+/* Grid Layout */
+.main-grid {
+  display: flex;
+  margin-top: 1.5rem;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.left-section {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 320px;
+}
+
+.profile-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 280px;
+}
+
+/* Cards */
+.chart-card,
+.table-card,
+.chat-card,
+.logs-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.data-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.bottom-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Profile */
+.profile-card {
+  background: #fff;
+  border-radius: 12px;
+  text-align: center;
+  padding: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.profile-img {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+
+.info-list {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.2rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Edit Button & Form */
+.edit-btn {
+  background-color: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 10px;
+  width: 100%;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+.edit-btn:hover {
+  background-color: #1e4fc4;
+}
+
+.edit-profile {
+  background: #fff;
+  border-radius: 12px;
+  margin-top: 1rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.edit-profile input {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  outline: none;
+}
+
+.edit-profile input:focus {
+  border-color: #2563eb;
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.edit-actions button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.edit-actions button:first-child {
+  background: #e5e7eb;
+}
+
+.edit-actions button:last-child {
+  background: #2563eb;
+  color: #fff;
+}
+
+/* Attendance */
+.attendance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.course-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  margin-bottom: 8px;
+  width: 100%;
+  outline: none;
+}
+
+.no-results {
+  color: #ff6b6b;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .main-grid {
+    flex-direction: column;
+  }
+  .left-section,
+  .profile-section {
+    width: 100%;
+  }
+  .data-section,
+  .bottom-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard2-container {
+    padding: 1rem;
+  }
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .attendance-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .add-btn {
+    width: 100%;
+  }
+}
+/* === Edit Profile Enhancements === */
+
+/* Center the Edit button */
+.info-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: left;
+  gap: 6px;
+}
+
+.edit-btn {
+  display: block;
+  margin: 12px auto 0 auto;
+  width: auto;
+  padding: 0.6rem 1.2rem;
+}
+
+/* Table-style edit box */
+.edit-profile {
+  background: #f9fafb;
+  border-radius: 12px;
+  margin-top: 1.2rem;
+  padding: 1.25rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.edit-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.edit-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+}
+
+.edit-table .label {
+  font-weight: 600;
+  color: #333;
+  width: 35%;
+}
+
+.edit-table input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.edit-table input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+
+/* Edit box buttons */
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.edit-actions button {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.edit-actions button:first-child {
+  background: #e5e7eb;
+  color: #333;
+}
+
+.edit-actions button:last-child {
+  background: #2563eb;
+  color: #fff;
+}
+
+.edit-actions button:last-child:hover {
+  background: #1e4fc4;
+}
+/* === Popup Modal Styling === */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5000;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.2);
+  animation: scaleIn 0.3s ease-in-out;
+}
+
+.modal-content h3 {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #111;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Optional Blur Background (Optional but nice) */
+body.modal-open {
+  overflow: hidden;
+  backdrop-filter: blur(5px);
+}
