@@ -61,7 +61,6 @@ export default function Dashboard() {
       <Sidebar />
       <div className="dashboard-main">
         <Header userName="Dr. Bagus" />
-
         <div className="dashboard-content">
           {/* Top Greeting & Quick Actions */}
           <div className="top-actions">

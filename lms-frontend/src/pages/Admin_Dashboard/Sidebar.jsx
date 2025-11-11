@@ -57,7 +57,7 @@ export default function Sidebar() {
           <FaSignOutAlt />
         </button>
 
-        <div className="left-bottom">BF</div>
+        {/* <div className="left-bottom">BF</div> */}
       </div>
     </aside>
   );

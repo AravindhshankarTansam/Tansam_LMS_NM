@@ -45,6 +45,7 @@ export default function Header() {
 
   return (
     <header className="topbar">
+      <h1>TANSAM - LMS</h1>
       <div className="top-left"></div>
       <div className="top-right">
         <div className="search-placeholder"></div>

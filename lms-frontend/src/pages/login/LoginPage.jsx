@@ -3,8 +3,8 @@ import "./LoginPage.css";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AUTH_API } from "../../config/apiConfig";
-import doctorImage from "../../assets/a.png";
-import logoImage from "../../assets/DPH LOGO.png";
+import doctorImage from "../../assets/background.png";
+import logoImage from "../../assets/tansamoldlogo.png";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -64,7 +64,7 @@ const LoginPage = () => {
     <div className="signin-container">
       <div className="signin-left">
         <h1 className="signin-title">
-          Welcome to <span>DPH LMS</span>
+          Welcome to <span>TANSAM - LMS</span>
         </h1>
 
         <form className="signin-form" onSubmit={handleSubmit}>

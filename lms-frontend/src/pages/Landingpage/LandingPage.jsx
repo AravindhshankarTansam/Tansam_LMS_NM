@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "./LandingPage.css";
-import heroImg from "../../assets/header2.png";
+import heroImg from "../../assets/main_lms.png";
+import herologo from "../../assets/tansamoldlogo.png";
 import { Link, useNavigate } from "react-router-dom";
 
 const LandingPage = () => {
@@ -51,7 +52,10 @@ const LandingPage = () => {
       {/* ===== HERO SECTION ===== */}
       <section className="hero" id="home">
         <nav className="navbar">
-          <h2 className="logo">DPH Medical-LMS</h2>
+          <div className="logo-container">
+            <img src={herologo} alt="Logo" className="logo-img" />
+            {/* <h2 className="logo-text">TANSAM - LMS</h2> */}
+          </div>
           <ul className="nav-links">
             <li onClick={() => scrollToSection("home")}>Home</li>
             <li onClick={() => scrollToSection("courses")}>Courses</li>
@@ -79,17 +83,21 @@ const LandingPage = () => {
             </button>
 
             <div className="stats">
-              <div>
+              {/* <div>
                 <h3>150+</h3>
-                <p>Medical Courses</p>
-              </div>
+                <p>TANSAM Courses</p>
+              </div> */}
               <div>
                 <h3>12K+</h3>
                 <p>Active Students</p>
               </div>
               <div>
                 <h3>500+</h3>
-                <p>Medical Instructors</p>
+                <p>College Collaborations</p>
+              </div>
+              <div>
+                <h3>50+</h3>
+                <p>Industries Collaborations</p>
               </div>
             </div>
           </div>
@@ -279,7 +287,7 @@ const LandingPage = () => {
       <footer className="footer" id="blog">
         <div className="footer-top">
           <div className="footer-left">
-            <h2 className="footer-logo">DPH Medical-LMS</h2>
+            <h2 className="footer-logo">TANSAM-LMS</h2>
             <p>
               Providing accessible and high-quality medical education to students and professionals worldwide.
             </p>
@@ -314,7 +322,7 @@ const LandingPage = () => {
               <h4>Contact Us</h4>
               <ul>
                 <li>Call: +91 9876543210</li>
-                <li>Email: support@dphmedical.com</li>
+                <li>Email: support@tansam.org</li>
               </ul>
             </div>
           </div>
