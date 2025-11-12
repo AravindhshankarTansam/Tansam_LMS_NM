@@ -1,14 +1,17 @@
 import express from "express";
 import {
-  getChaptersByModule, createChapter, updateChapter, deleteChapter,
+  createChapter,
+  getChaptersByModule,
+  updateChapter,
+  deleteChapter,
 } from "../controllers/chapterController.js";
 import { authenticateUser } from "../middleware/authMiddleware.js";
-import { upload } from "../utils/fileHandler.js";
+import { uploadCourseMaterial as upload } from "../middleware/courseMiddleware.js";
 
 const router = express.Router();
 
-router.get("/:module_id", authenticateUser, getChaptersByModule);
 router.post("/", authenticateUser, upload.single("material"), createChapter);
+router.get("/:module_id", authenticateUser, getChaptersByModule);
 router.put("/:id", authenticateUser, upload.single("material"), updateChapter);
 router.delete("/:id", authenticateUser, deleteChapter);
 

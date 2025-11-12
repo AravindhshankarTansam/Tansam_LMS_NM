@@ -45,7 +45,7 @@ export default function ModuleList() {
   const fetchModules = async () => {
     try {
       const res = await fetch(`${MODULE_API}/${courseId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+       credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch modules");
       const data = await res.json();
@@ -63,7 +63,7 @@ export default function ModuleList() {
   const fetchChaptersForModule = async (moduleId) => {
     try {
       const res = await fetch(`${CHAPTER_API}/${moduleId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch chapters");
       const data = await res.json();
@@ -86,34 +86,40 @@ export default function ModuleList() {
   };
 
   // ✅ Add, Edit, Delete Module
-  const handleAddModule = async () => {
-    if (!newModuleName.trim()) return;
-    try {
-      const res = await fetch(MODULE_API, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          course_id: courseId,
-          module_name: newModuleName.trim(),
-          order_index: modules.length + 1,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to add module");
-      setNewModuleName("");
-      fetchModules();
-    } catch (err) {
-      console.error("❌ Error adding module:", err);
+const handleAddModule = async () => {
+  if (!newModuleName.trim()) return;
+  try {
+    const res = await fetch(MODULE_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json", // ✅ Important
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        course_id: courseId,
+        module_name: newModuleName.trim(),
+        order_index: modules.length + 1,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Failed to add module: ${errText}`);
     }
-  };
+
+    setNewModuleName("");
+    fetchModules();
+  } catch (err) {
+    console.error("❌ Error adding module:", err);
+  }
+};
+
 
   const handleDeleteModule = async (id) => {
     try {
       const res = await fetch(`${MODULE_API}/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete module");
       fetchModules();
@@ -131,10 +137,7 @@ export default function ModuleList() {
     try {
       const res = await fetch(`${MODULE_API}/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
         body: JSON.stringify({
           module_name: editingModuleName.trim(),
           order_index: modules.findIndex((m) => m.module_id === id) + 1,
@@ -154,7 +157,7 @@ export default function ModuleList() {
     try {
       const res = await fetch(`${CHAPTER_API}/${chapterId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete chapter");
       fetchChaptersForModule(moduleId);

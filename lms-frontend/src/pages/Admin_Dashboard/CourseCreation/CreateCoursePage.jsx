@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
+  Box,
   Paper,
   Tabs,
   Tab,
@@ -13,7 +14,11 @@ import {
   Chip,
   Snackbar,
   Alert,
-  Box,
+  Radio,
+  RadioGroup,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
 } from "@mui/material";
 import { Save, Publish, Add } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
@@ -21,20 +26,15 @@ import Sidebar from "../Sidebar";
 import CurriculumTab from "./Curriculum";
 import AddEditCourseDialog from "./AddEditCourseDialog";
 import AddLessonDialog from "./AddLessonDialog";
-// Correct
-import { COURSE_API, COURSE_CATEGORY_API } from "../../../config/apiConfig";
+import { COURSE_API } from "../../../config/apiConfig";
+import { COURSE_CATEGORY_API } from "../../../config/apiConfig";
 
 export default function CourseCreateForm() {
   const navigate = useNavigate();
-
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-
   const [savedCourses, setSavedCourses] = useState([]);
   const [modules, setModules] = useState([]);
-
-  const [categories, setCategories] = useState([]);
 
   // Dialog states
   const [addEditCourseOpen, setAddEditCourseOpen] = useState(false);
@@ -42,16 +42,19 @@ export default function CourseCreateForm() {
   const [currentModuleId, setCurrentModuleId] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
 
-  // Add course form
+  // Inline Add Course form
   const [showAddCourseForm, setShowAddCourseForm] = useState(false);
   const [newCourseName, setNewCourseName] = useState("");
-  const [newCategoryId, setNewCategoryId] = useState("");
+  const [newCategory, setNewCategory] = useState("");
   const [newOverview, setNewOverview] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [coverFile, setCoverFile] = useState(null);
   const [promoFile, setPromoFile] = useState(null);
   const coverInputRef = useRef(null);
   const promoInputRef = useRef(null);
+  const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [courseStatus, setCourseStatus] = useState("active"); // ✅ is_active field
 
   // Snackbar
   const [snackOpen, setSnackOpen] = useState(false);
@@ -60,59 +63,58 @@ export default function CourseCreateForm() {
 
   const token = localStorage.getItem("token");
 
-  const IMAGE_BASE =
-    import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/?$/, "") || "http://localhost:5000";
+  // Tabs
+  const handleTabChange = (e, v) => setTab(v);
 
-  // Fetch courses
+  // ✅ Fetch all courses (cookie-based)
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const res = await fetch(COURSE_API, { credentials: "include" });
+      const res = await fetch(COURSE_API, {
+        method: "GET",
+        credentials: "include", // ✅ send cookie
+      });
       if (!res.ok) throw new Error("Failed to fetch courses");
       const data = await res.json();
       setSavedCourses(data || []);
-    } catch (err) {
-      console.error(err);
-      showSnack("Failed to fetch courses", "error");
+    } catch (error) {
+      console.error("❌ Fetch error:", error);
+      setSnackMsg("Failed to fetch courses");
+      setSnackSeverity("error");
+      setSnackOpen(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch categories
-const fetchCategories = async () => {
-  try {
-    const res = await fetch(COURSE_CATEGORY_API, { credentials: "include" }); // ✅ fixed
-    if (!res.ok) throw new Error("Failed to fetch categories");
-    const data = await res.json();
-    setCategories(data);
-  } catch (err) {
-    console.error(err);
-    showSnack("Failed to fetch categories", "error");
-  }
-};
-
-
   useEffect(() => {
     fetchCourses();
+  }, []);
+
+  // ✅ Fetch categories (cookie-based)
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(COURSE_CATEGORY_API, {
+        method: "GET",
+        credentials: "include", // ✅ send cookie
+      });
+      if (!res.ok) throw new Error("Failed to fetch categories");
+     const data = await res.json();
+setCategories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
+  };
+
+  useEffect(() => {
     fetchCategories();
   }, []);
 
-  // Snackbar helper
-  const showSnack = (msg, severity = "success") => {
-    setSnackMsg(msg);
-    setSnackSeverity(severity);
-    setSnackOpen(true);
-  };
-
-  // Tabs
-  const handleTabChange = (e, v) => setTab(v);
-
-  // Add course
+  // ✅ Add course handler
   const handleAddCourse = () => {
     setShowAddCourseForm(true);
     setNewCourseName("");
-    setNewCategoryId("");
+    setNewCategory("");
     setNewOverview("");
     setNewDescription("");
     setCoverFile(null);
@@ -124,37 +126,43 @@ const fetchCategories = async () => {
     setAddEditCourseOpen(true);
   };
 
-  // Delete course
+  // ✅ Delete course (cookie-based)
   const deleteCourse = async (courseId) => {
     if (!window.confirm("Delete this course?")) return;
     try {
       const res = await fetch(`${COURSE_API}/${courseId}`, {
         method: "DELETE",
-        credentials: "include",
+        credentials: "include", // ✅ send cookie
       });
       if (!res.ok) throw new Error("Delete failed");
       setSavedCourses((prev) => prev.filter((c) => c.course_id !== courseId));
-      showSnack("Course deleted successfully");
+      setSnackMsg("Course deleted successfully");
+      setSnackSeverity("success");
+      setSnackOpen(true);
     } catch (err) {
       console.error(err);
-      showSnack("Failed to delete course", "error");
+      setSnackMsg("Failed to delete course");
+      setSnackSeverity("error");
+      setSnackOpen(true);
     }
   };
 
-  // Save new course
+  // ✅ Save new course (includes is_active)
   const saveNewCourse = async () => {
-    if (!newCourseName || !newCategoryId) {
-      showSnack("Please fill in all required fields", "warning");
+    if (!newCourseName || !newCategory) {
+      setSnackMsg("Please fill in all required fields.");
+      setSnackSeverity("warning");
+      setSnackOpen(true);
       return;
     }
 
     const formData = new FormData();
     formData.append("course_name", newCourseName);
-    formData.append("category_id", newCategoryId);
+    formData.append("category_id", newCategory);
     formData.append("overview", newOverview);
     formData.append("description", newDescription);
     formData.append("pricing_type", "free");
-    formData.append("price_amount", 0);
+    formData.append("is_active", courseStatus); // ✅ Added this
     if (coverFile) formData.append("course_image", coverFile);
     if (promoFile) formData.append("course_video", promoFile);
 
@@ -162,7 +170,7 @@ const fetchCategories = async () => {
       setSaving(true);
       const res = await fetch(COURSE_API, {
         method: "POST",
-        credentials: "include",
+        credentials: "include", // ✅ send cookie
         body: formData,
       });
 
@@ -171,16 +179,24 @@ const fetchCategories = async () => {
         throw new Error(`Save failed: ${res.status} - ${errText}`);
       }
 
-      showSnack("Course added successfully");
+      setSnackMsg("✅ Course added successfully");
+      setSnackSeverity("success");
+      setSnackOpen(true);
       setShowAddCourseForm(false);
       await fetchCourses();
     } catch (err) {
       console.error(err);
-      showSnack("Failed to save course", "error");
+      setSnackMsg("❌ Failed to save course");
+      setSnackSeverity("error");
+      setSnackOpen(true);
     } finally {
       setSaving(false);
     }
   };
+
+  const IMAGE_BASE =
+    import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/?$/, "") ||
+    "http://localhost:5000";
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
@@ -221,16 +237,21 @@ const fetchCategories = async () => {
                 select
                 fullWidth
                 label="Category"
-                value={newCategoryId}
-                onChange={(e) => setNewCategoryId(e.target.value)}
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
                 sx={{ mb: 2 }}
               >
-                {categories.map((cat) => (
-                  <MenuItem key={cat.category_id} value={cat.category_id}>
-                    {cat.category_name}
-                  </MenuItem>
-                ))}
+                {categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <MenuItem key={cat.category_id} value={cat.category_id}>
+                      {cat.category_name}
+                    </MenuItem>
+                  ))
+                ) : (
+                  <MenuItem disabled>Loading...</MenuItem>
+                )}
               </TextField>
+
               <TextField
                 fullWidth
                 label="Overview"
@@ -251,6 +272,19 @@ const fetchCategories = async () => {
                   marginBottom: "12px",
                 }}
               />
+
+              <FormControl component="fieldset" sx={{ mb: 2 }}>
+                <FormLabel component="legend">Course Status</FormLabel>
+                <RadioGroup
+                  row
+                  value={courseStatus}
+                  onChange={(e) => setCourseStatus(e.target.value)}
+                >
+                  <FormControlLabel value="active" control={<Radio />} label="Active" />
+                  <FormControlLabel value="inactive" control={<Radio />} label="Inactive" />
+                </RadioGroup>
+              </FormControl>
+
               <Stack direction="row" spacing={2}>
                 <Button variant="contained" onClick={saveNewCourse} disabled={saving}>
                   {saving ? "Saving..." : "Save"}
@@ -261,7 +295,7 @@ const fetchCategories = async () => {
               </Stack>
             </Box>
 
-            {/* Right panel - uploads */}
+            {/* Right panel - Uploads */}
             <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
               <Paper
                 variant="outlined"
@@ -285,6 +319,7 @@ const fetchCategories = async () => {
                   onChange={(e) => setCoverFile(e.target.files[0])}
                 />
               </Paper>
+
               <Paper
                 variant="outlined"
                 sx={{
@@ -322,7 +357,14 @@ const fetchCategories = async () => {
             </Tabs>
             <Box sx={{ flex: 1, p: 3 }}>
               {loading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: 300 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    height: 300,
+                  }}
+                >
                   <CircularProgress />
                 </Box>
               ) : (
@@ -332,19 +374,34 @@ const fetchCategories = async () => {
                       {savedCourses.length > 0 ? (
                         <Stack spacing={2}>
                           {savedCourses.map((course) => (
-                            <Paper key={course.course_id} sx={{ p: 2, display: "flex", alignItems: "center", gap: 2 }}>
+                            <Paper
+                              key={course.course_id}
+                              sx={{
+                                p: 2,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 2,
+                              }}
+                            >
                               {course.course_image && (
                                 <Box
                                   component="img"
                                   src={`${IMAGE_BASE}/${course.course_image}`}
                                   alt={course.course_name}
-                                  sx={{ width: 80, height: 80, objectFit: "cover", borderRadius: 1 }}
+                                  sx={{
+                                    width: 80,
+                                    height: 80,
+                                    objectFit: "cover",
+                                    borderRadius: 1,
+                                  }}
                                 />
                               )}
+
                               <Box sx={{ flex: 1 }}>
                                 <Typography fontWeight="bold">{course.course_name}</Typography>
                                 <Typography variant="caption">{course.overview}</Typography>
                               </Box>
+
                               <Stack direction="row" spacing={1}>
                                 <Button size="small" onClick={() => handleEditCourse(course)}>
                                   Edit
@@ -352,11 +409,17 @@ const fetchCategories = async () => {
                                 <Button
                                   size="small"
                                   variant="outlined"
-                                  onClick={() => navigate(`/admin/course/${course.course_id}/modules`)}
+                                  onClick={() =>
+                                    navigate(`/admin/course/${course.course_id}/modules`)
+                                  }
                                 >
                                   Manage Modules
                                 </Button>
-                                <Button size="small" color="error" onClick={() => deleteCourse(course.course_id)}>
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  onClick={() => deleteCourse(course.course_id)}
+                                >
                                   Delete
                                 </Button>
                               </Stack>
@@ -405,7 +468,11 @@ const fetchCategories = async () => {
         />
 
         {/* Snackbar */}
-        <Snackbar open={snackOpen} autoHideDuration={3000} onClose={() => setSnackOpen(false)}>
+        <Snackbar
+          open={snackOpen}
+          autoHideDuration={3000}
+          onClose={() => setSnackOpen(false)}
+        >
           <Alert severity={snackSeverity}>{snackMsg}</Alert>
         </Snackbar>
       </Box>

@@ -1,51 +1,68 @@
+// controllers/moduleController.js
 import { connectDB } from "../config/db.js";
 
-// ✅ Create module
-export const createModule = async (req, res) => {
-  try {
-    const db = await connectDB();
-    const { course_id, module_name, order_index } = req.body;
-
-    const [result] = await db.execute(
-      `INSERT INTO modules (course_id, module_name, order_index) VALUES (?, ?, ?)`,
-      [course_id, module_name, order_index || 0]
-    );
-
-    res.status(201).json({ message: "✅ Module created", module_id: result.insertId });
-  } catch (err) {
-    console.error("❌ Error creating module:", err);
-    res.status(500).json({ message: "Failed to create module" });
-  }
-};
-
-// ✅ Read modules by course
+// ✅ Get modules by course
 export const getModulesByCourse = async (req, res) => {
   try {
+    const { course_id } = req.params;
     const db = await connectDB();
-    const [modules] = await db.execute(
-      `SELECT * FROM modules WHERE course_id=? ORDER BY order_index ASC`,
-      [req.params.course_id]
+
+    const [rows] = await db.execute(
+      `SELECT * FROM modules WHERE course_id = ? ORDER BY order_index ASC`,
+      [course_id]
     );
-    res.json(modules);
+
+    console.log("📦 Modules for course:", course_id, rows);
+    res.status(200).json(rows);
   } catch (err) {
     console.error("❌ Error fetching modules:", err);
     res.status(500).json({ message: "Failed to fetch modules" });
   }
 };
 
+// ✅ Create module
+export const createModule = async (req, res) => {
+  try {
+    console.log("📩 Incoming body:", req.body);
+    const db = await connectDB();
+    const { course_id, module_name, order_index } = req.body;
+
+    if (!course_id || !module_name) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const [result] = await db.execute(
+      `INSERT INTO modules (course_id, module_name, order_index) VALUES (?, ?, ?)`,
+      [course_id, module_name, order_index || 0]
+    );
+
+    res.status(201).json({
+      message: "✅ Module created successfully",
+      module_id: result.insertId,
+    });
+  } catch (err) {
+    console.error("❌ Error creating module:", err);
+    res.status(500).json({ message: "Failed to create module" });
+  }
+};
+
 // ✅ Update module
 export const updateModule = async (req, res) => {
   try {
-    const db = await connectDB();
     const { id } = req.params;
     const { module_name, order_index } = req.body;
+    const db = await connectDB();
 
-    await db.execute(
-      `UPDATE modules SET module_name=?, order_index=? WHERE module_id=?`,
-      [module_name, order_index, id]
+    const [result] = await db.execute(
+      `UPDATE modules SET module_name = ?, order_index = ? WHERE module_id = ?`,
+      [module_name, order_index || 0, id]
     );
 
-    res.json({ message: "📝 Module updated" });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Module not found" });
+    }
+
+    res.status(200).json({ message: "✅ Module updated successfully" });
   } catch (err) {
     console.error("❌ Error updating module:", err);
     res.status(500).json({ message: "Failed to update module" });
@@ -55,40 +72,21 @@ export const updateModule = async (req, res) => {
 // ✅ Delete module
 export const deleteModule = async (req, res) => {
   try {
+    const { id } = req.params;
     const db = await connectDB();
-    const moduleId = req.params.id;
 
-    // 1️⃣ Get the course_id before deleting
-    const [rows] = await db.execute(
-      `SELECT course_id FROM modules WHERE module_id=?`,
-      [moduleId]
+    const [result] = await db.execute(
+      `DELETE FROM modules WHERE module_id = ?`,
+      [id]
     );
 
-    if (!rows.length) {
-      return res.status(404).json({ message: "❌ Module not found" });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Module not found" });
     }
 
-    const courseId = rows[0].course_id;
-
-    // 2️⃣ Delete the module
-    await db.execute(`DELETE FROM modules WHERE module_id=?`, [moduleId]);
-
-    // 3️⃣ Reindex remaining modules
-    const [remainingModules] = await db.execute(
-      `SELECT module_id FROM modules WHERE course_id=? ORDER BY order_index ASC`,
-      [courseId]
-    );
-
-    for (let i = 0; i < remainingModules.length; i++) {
-      await db.execute(
-        `UPDATE modules SET order_index=? WHERE module_id=?`,
-        [i + 1, remainingModules[i].module_id]
-      );
-    }
-
-    res.json({ message: "🗑️ Module deleted and reindexed successfully" });
+    res.status(200).json({ message: "✅ Module deleted successfully" });
   } catch (err) {
     console.error("❌ Error deleting module:", err);
-    res.status(500).json({ message: "Server error while deleting module" });
+    res.status(500).json({ message: "Failed to delete module" });
   }
 };
