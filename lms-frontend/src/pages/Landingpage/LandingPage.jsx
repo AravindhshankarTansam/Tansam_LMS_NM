@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from "react";
 import "./LandingPage.css";
 import heroImg from "../../assets/main_lms.png";
+import heroImg1  from "../../assets/Tansam11.jpg";
+import heroImg2  from "../../assets/Tansam7.jpeg";
+import heroImg3  from "../../assets/Tansam8.jpg";
+import heroImg4  from "../../assets/Tansam9.jpeg";
+import heroImg5  from "../../assets/3d-ar-vr-animation-service.png"; 
+// import heroImg from "../../assets/landingpagehero.png"; 
 import herologo from "../../assets/tansamoldlogo.png";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -8,6 +14,26 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+const images = [
+  heroImg1,
+  heroImg2,
+  heroImg3,
+  heroImg4,
+  heroImg5,
+];
+
+const [currentSlide, setCurrentSlide] = useState(0);
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    setCurrentSlide(prev =>
+      prev === images.length - 1 ? 0 : prev + 1
+    );
+  }, 2000); // 2 seconds
+
+  return () => clearInterval(interval);
+}, [images.length]);
+
 
   // ✅ Fetch courses dynamically from backend
   useEffect(() => {
@@ -156,7 +182,7 @@ const LandingPage = () => {
               <div className="step-number">04</div>
               <h4>Get your certificates</h4>
               <p>
-               Track your progress, test your understanding, and earn certificates that showcase your achievements.  </p>
+              Get certified and showcase your skills  </p>
             </div>
           </div>
         </div>
@@ -205,28 +231,16 @@ const LandingPage = () => {
       <section className="online-learning" id="instructors">
         <div className="left-container">
           <h2>Empowering Learners Through Digital Education</h2>
-          <div className="video-section">
-            <div className="video-layout">
-              <div className="main-img video-card">
-                <img src={heroImg} alt="Instructor" />
-                <p>Instructor</p>
-              </div>
-              <div className="side-column">
-                <div className="video-card">
-                  <img src={heroImg} alt="Instructor" />
-                  <p>Instructor</p>
-                </div>
-                <div className="video-card">
-                  <img src={heroImg} alt="Instructor" />
-                  <p>Instructor</p>
-                </div>
-              </div>
-            </div>
-            <div className="video-buttons">
-              <button className="present-btn">Watch Lecture</button>
-              <button className="call-btn">Join Live Session</button>
-            </div>
-          </div>
+<div className="video-section">
+  <div className="video-layout">
+    <div className="main-img video-card">
+      <img src={images[currentSlide]}  />
+     
+    </div>
+  </div>
+</div>
+
+
           <p className="small-text">Learn anytime, anywhere.</p>
         </div>
         <div className="right-container">
