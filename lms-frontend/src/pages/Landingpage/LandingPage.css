@@ -1,4 +1,3 @@
-
 /* ===========================
    HERO SECTION
 =========================== */
@@ -882,7 +881,7 @@
 
 /* ========== Footer Section ========== */
 .footer {
-  background-color: #0e0e0e;
+  background-color: #009999;
   color: #fff;
   padding: 60px 100px 30px;
   font-family: "Poppins", sans-serif;
@@ -909,14 +908,14 @@
 }
 
 .footer-left p {
-  color: #ccc;
+  color: #fff;
   margin-bottom: 20px;
 }
 
 .subscribe-box {
   display: flex;
   align-items: center;
-  background: #1a1a1a;
+  background:#fff;
   border-radius: 30px;
   overflow: hidden;
   width: 260px;
@@ -932,7 +931,7 @@
 }
 
 .subscribe-box button {
-  background-color: #e9d80b;
+  background-color: #046328;
   border: none;
   color: #000;
   font-size: 18px;
@@ -958,7 +957,7 @@
 }
 
 .footer-links li {
-  color: #aaa;
+  color: #fff;
   margin-bottom: 10px;
   cursor: pointer;
 }
@@ -981,7 +980,7 @@
 }
 
 .footer-bottom li {
-  color: #aaa;
+  color: #fff;
   cursor: pointer;
 }
 
@@ -1858,9 +1857,9 @@
     min-width: 300px;
   }
 
-  .step-number::after {
+  /* .step-number::after {
     width: 150px; /* Adjust dotted line length */
-  }
+  } */
 
   .courses {
     padding: 70px 50px;
@@ -1922,4 +1921,96 @@
     padding-bottom: 40px;
   }
 
+
+/* .steps-grid {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  text-align: center;
+  flex-wrap: wrap;
+  gap: 40px;
+  margin-top: 50px;
+  padding: 0 20px;
+} */
+.steps-grid {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+/* .step {
+  flex: 1 1 300px;
+  max-width: 320px;
+  padding: 20px;
+} */
+.step {
+  flex: 0 0 320px;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.step-number {
+  margin: 0 auto 15px auto;
+  position: relative;
+}
+
+.step h4 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #000;
+}
+
+.step p {
+  color: #555;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Optional: add a subtle hover effect */
+.step:hover {
+  transform: translateY(-5px);
+  transition: 0.3s ease;
+}
+.steps-content-wrapper {
+  max-width: 1600px;   /* Increase from 1200px or 1170px for more space */
+  margin: 0 auto;
+}
+
+.steps-grid {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 40px;
+  flex-wrap: nowrap;           /* Prevent wrapping */
+  width: 100%;                 /* Use full width of parent */
+  max-width: 1600px;           /* Match or exceed container's max-width */
+  overflow-x: visible;         /* No horizontal scrolling */
+}
+.step {
+  flex: 1 1 0;
+  max-width: 320px;            /* (Or less, for smaller screens) */
+  min-width: 220px;
+}
+.step-number:not(:last-child)::after {
+  content: "";
+
+  top: 50%;                         /* Center vertical alignment */
+  left: 100%;                       /* Start just after the circle */
+  margin-left: 14px;                /* Small space after the circle */
+  width: calc(100vw / 4 - 120px);   /* Adjust to fit four steps: tweak -120px as needed */
+  border-top: 2px dotted #004c3f;   /* Dotted line style */
+  transform: translateY(-50%);
+  z-index: 15;
+}
+
+.steps-grid {
+  position: relative;
+}
+/* Remove dots after the 4th step */
+.step:nth-child(4) .step-number::after {
+  display: none;
 }

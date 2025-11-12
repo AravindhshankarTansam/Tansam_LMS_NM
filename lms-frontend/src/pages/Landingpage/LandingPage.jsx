@@ -70,10 +70,10 @@ const LandingPage = () => {
 
         <div className="hero-content">
           <div className="text-content">
-            <h1>Advancing Medical Knowledge for the Future of Healthcare</h1>
+            <h1>Advancing Knowledge for the Future</h1>
             <p>
-              Learn from expert doctors, researchers, and medical educators.
-              Join thousands of learners transforming patient care through education.
+             Learn from industry experts, educators, and professionals.
+             Join thousands of learners upgrading their skills and shaping the future through powerful learning experiences on Tansam LMS.
             </p>
             <button
               className="get-started-btn"
@@ -120,19 +120,19 @@ const LandingPage = () => {
 
         <div className="steps-content-wrapper">
           <div className="steps-header">
-            <h2>Your Medical Learning Journey Made Simple</h2>
+            <h2>Your Learning Journey Made Simple</h2>
             <p>
-              Begin your path to medical excellence with structured, interactive, and practical learning.  
-              From anatomy to public health — gain the clinical knowledge and confidence you need to advance in healthcare.
+              Begin your path to success with structured, interactive, and practical courses. 
+            From fundamentals to advanced topics — gain the knowledge and confidence you need to grow and excel in your field.
             </p>
           </div>
 
           <div className="steps-grid">
             <div className="step">
               <div className="step-number">01</div>
-              <h4>Choose Your Medical Course</h4>
+              <h4>Choose Your Course</h4>
               <p>
-                Explore specialties like Surgery, Pharmacology, Pathology, and more — designed for healthcare professionals at every level.
+              Discover a variety of learning programs designed to help you grow, learn new skills, and achieve your goals.
               </p>
             </div>
 
@@ -140,16 +140,23 @@ const LandingPage = () => {
               <div className="step-number">02</div>
               <h4>Enroll and Access Expert-Led Content</h4>
               <p>
-                Learn directly from experienced doctors and researchers through immersive video lectures and case-based lessons.
+               Learn from experienced instructors through interactive lessons, projects, and engaging content.
+ 
               </p>
             </div>
 
             <div className="step">
               <div className="step-number">03</div>
-              <h4>Practice, Assess, and Grow</h4>
+              <h4>Practice, Assess, and Succeed</h4>
               <p>
-                Test your clinical knowledge, track your progress, and earn certificates to strengthen your medical career path.
-              </p>
+               Track your progress, test your understanding, and earn certificates that showcase your achievements.  </p>
+            </div>
+            
+            <div className="step">
+              <div className="step-number">04</div>
+              <h4>Get your certificates</h4>
+              <p>
+               Track your progress, test your understanding, and earn certificates that showcase your achievements.  </p>
             </div>
           </div>
         </div>
@@ -157,7 +164,7 @@ const LandingPage = () => {
 
       {/* ===== COURSES SECTION (Dynamic) ===== */}
       <section className="courses" id="courses">
-        <h2>Medical Courses</h2>
+        <h2>SkillSpace</h2>
         {loading ? (
           <p>Loading courses...</p>
         ) : courses.length > 0 ? (
@@ -197,7 +204,7 @@ const LandingPage = () => {
       {/* ===== INSTRUCTORS ===== */}
       <section className="online-learning" id="instructors">
         <div className="left-container">
-          <h2>Empowering healthcare through digital learning excellence.</h2>
+          <h2>Empowering Learners Through Digital Education</h2>
           <div className="video-section">
             <div className="video-layout">
               <div className="main-img video-card">
@@ -220,22 +227,22 @@ const LandingPage = () => {
               <button className="call-btn">Join Live Session</button>
             </div>
           </div>
-          <p className="small-text">Learn medicine anytime, anywhere.</p>
+          <p className="small-text">Learn anytime, anywhere.</p>
         </div>
         <div className="right-container">
-          <h3>Modern Learning Experience for Medical Professionals</h3>
+          <h3>A Modern Learning Experience for Everyone</h3>
           <div className="features">
             <div className="feature">
               <div className="icon-box"></div>
-              <p>Interactive video sessions with real-world clinical scenarios.</p>
+              <p>Interactive sessions designed for effective learning.</p>
             </div>
             <div className="feature">
               <div className="icon-box"></div>
-              <p>Personalized dashboards and student progress tracking.</p>
+              <p>Personalized dashboards and real-time progress tracking.</p>
             </div>
             <div className="feature">
               <div className="icon-box"></div>
-              <p>Case-based learning integrated with digital resources.</p>
+              <p>Practical learning with real-world applications.</p>
             </div>
           </div>
         </div>
@@ -244,24 +251,23 @@ const LandingPage = () => {
       {/* ===== TESTIMONIALS ===== */}
       <section className="trusted-section" id="testimonials">
         <div className="trusted-left">
-          <h4>Student Feedback</h4>
-          <h2>Trusted by Healthcare Learners Worldwide</h2>
+          <h4>Learner Feedback</h4>
+          <h2>Trusted by Learners Around the World</h2>
           <p>
-            DPH Medical-LMS has empowered thousands of healthcare professionals to upskill,
-            stay updated, and achieve academic excellence in medical sciences.
+            TANSAM-LMS has helped thousands of learners improve their skills, achieve goals, and grow through continuous learning.
           </p>
           <div className="trusted-stats">
             <div>
               <h3>98%</h3>
-              <p>Course Completion Success Rate</p>
+              <p>Course Completion Rate</p>
             </div>
             <div>
               <h3>15K+</h3>
-              <p>Positive Student Reviews Globally</p>
+              <p>Positive Reviews</p>
             </div>
             <div>
               <h3>120+</h3>
-              <p>Trusted Medical Institutions</p>
+              <p>Partner Organizations</p>
             </div>
           </div>
         </div>
@@ -272,9 +278,7 @@ const LandingPage = () => {
           </div>
           <div className="review-box">
             <p>
-              “DPH Medical-LMS made complex topics simple and interactive.
-              The instructors are very knowledgeable and responsive.
-              This platform truly helps me in clinical preparation.”
+              “TANSAM-LMS made learning engaging and easy to follow. The lessons are clear, the instructors are great, and I love the flexibility.”
             </p>
             <h4>Dr. Emiliya Cart</h4>
             <span>⭐⭐⭐⭐⭐</span>
@@ -289,8 +293,7 @@ const LandingPage = () => {
           <div className="footer-left">
             <h2 className="footer-logo">TANSAM-LMS</h2>
             <p>
-              Providing accessible and high-quality medical education to students and professionals worldwide.
-            </p>
+              Providing accessible, high-quality education to learners everywhere. Learn, grow, and achieve your goals with TANSAM-LMS.     </p>
             <div className="subscribe-box">
               <input type="email" placeholder="Enter your email..." />
               <button>→</button>
@@ -299,12 +302,12 @@ const LandingPage = () => {
 
           <div className="footer-links">
             <div>
-              <h4>Popular Courses</h4>
+              <h4>Popular Links</h4>
               <ul>
-                <li>Human Anatomy</li>
-                <li>Clinical Pathology</li>
-                <li>Pharmacology</li>
-                <li>Public Health</li>
+                <li>Courses</li>
+                <li>Instructors</li>
+                <li>Community</li>
+                <li>Blog</li>
               </ul>
             </div>
 
