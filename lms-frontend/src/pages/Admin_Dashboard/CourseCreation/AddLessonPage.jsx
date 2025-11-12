@@ -38,7 +38,7 @@ export default function AddChapterPage() {
   const [quizzes, setQuizzes] = useState([]);
 
   useEffect(() => {
-    console.log("✅ Module ID from URL:", moduleId);
+    console.log("✅ Module ID from URL:", moduleId); 
   }, [moduleId]);
 
   const handleAddQuiz = () => {
@@ -154,7 +154,7 @@ export default function AddChapterPage() {
   };
 
   return (
-    <Box p={3}>
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
       <Card
         sx={{
           p: 4,

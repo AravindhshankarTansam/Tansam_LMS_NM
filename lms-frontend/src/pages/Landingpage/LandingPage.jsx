@@ -110,13 +110,13 @@ const LandingPage = () => {
 
       {/* ===== PARTNERS ===== */}
       <section className="steps" id="steps">
-        <div className="partners-logos">
+        {/* <div className="partners-logos">
           <img src="google.png" alt="Google" />
           <img src="trello.png" alt="Trello" />
           <img src="monday.png" alt="Monday" />
           <img src="notion.png" alt="Notion" />
           <img src="slack.png" alt="Slack" />
-        </div>
+        </div> */}
 
         <div className="steps-content-wrapper">
           <div className="steps-header">
