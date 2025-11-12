@@ -3,6 +3,7 @@ import "./LandingPage.css";
 import heroImg from "../../assets/main_lms.png";
 import herologo from "../../assets/tansamoldlogo.png";
 import { Link, useNavigate } from "react-router-dom";
+import PlansSection from "./PlansSection";
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -149,14 +150,14 @@ const LandingPage = () => {
               <div className="step-number">03</div>
               <h4>Practice, Assess, and Succeed</h4>
               <p>
-               Track your progress, test your understanding, and earn certificates that showcase your achievements.  </p>
+               Track your progress, test your understanding  </p>
             </div>
             
             <div className="step">
               <div className="step-number">04</div>
               <h4>Get your certificates</h4>
               <p>
-               Track your progress, test your understanding, and earn certificates that showcase your achievements.  </p>
+               arn certificates that showcase your achievements.  </p>
             </div>
           </div>
         </div>
@@ -200,6 +201,8 @@ const LandingPage = () => {
           <p>No courses found</p>
         )}
       </section>
+
+      <PlansSection />
 
       {/* ===== INSTRUCTORS ===== */}
       <section className="online-learning" id="instructors">
@@ -324,8 +327,14 @@ const LandingPage = () => {
             <div>
               <h4>Contact Us</h4>
               <ul>
-                <li>Call: +91 9876543210</li>
-                <li>Email: support@tansam.org</li>
+                <li><span className="contact-label">Call:</span> +91 9884035145</li>
+                <li>
+                  <span className="contact-label">Email:</span>{" "}
+                  <a href="mailto:support@tansam.org" className="contact-email">
+                    support@tansam.org
+                  </a>
+                </li>
+
               </ul>
             </div>
           </div>
