@@ -6,6 +6,7 @@ import heroImg2  from "../../assets/Tansam7.jpeg";
 import heroImg3  from "../../assets/Tansam8.jpg";
 import heroImg4  from "../../assets/Tansam9.jpeg";
 import heroImg5  from "../../assets/3d-ar-vr-animation-service.png"; 
+import heroImg6 from "../../assets/student_lms.png";
 // import heroImg from "../../assets/landingpagehero.png"; 
 import herologo from "../../assets/tansamoldlogo.png";
 import { Link, useNavigate } from "react-router-dom";
@@ -114,7 +115,7 @@ useEffect(() => {
                 <p>TANSAM Courses</p>
               </div> */}
               <div>
-                <h3>12K+</h3>
+                <h3>12k+</h3>
                 <p>Active Students</p>
               </div>
               <div>
@@ -276,11 +277,11 @@ useEffect(() => {
               <p>Course Completion Rate</p>
             </div>
             <div>
-              <h3>15K+</h3>
+              <h3>10K+</h3>
               <p>Positive Reviews</p>
             </div>
             <div>
-              <h3>120+</h3>
+              <h3>15+</h3>
               <p>Partner Organizations</p>
             </div>
           </div>
@@ -288,13 +289,15 @@ useEffect(() => {
 
         <div className="trusted-right">
           <div className="student-img-box">
-            <img src={heroImg} alt="Student" />
+           <img src={heroImg6} alt="Student" className="lms-hero-image" />
+
+
           </div>
           <div className="review-box">
             <p>
               “TANSAM-LMS made learning engaging and easy to follow. The lessons are clear, the instructors are great, and I love the flexibility.”
             </p>
-            <h4>Dr. Emiliya Cart</h4>
+            <h4>Satisfied Learner</h4>
             <span>⭐⭐⭐⭐⭐</span>
             <p className="reviews-count">24 Reviews</p>
           </div>

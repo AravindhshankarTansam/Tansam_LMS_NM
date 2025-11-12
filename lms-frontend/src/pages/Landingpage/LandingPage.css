@@ -744,7 +744,7 @@
 
 .student-img-box img {
   width: 100%;
-  max-width: 350px;
+  max-width: 100%;
   border-radius: 12px;
   object-fit: cover;
 }
@@ -2013,4 +2013,67 @@
 /* Remove dots after the 4th step */
 .step:nth-child(4) .step-number::after {
   display: none;
+}
+.trusted-left h4,
+.trusted-left h2,
+.trusted-left p {
+  text-align: left;
+}
+
+.trusted-left {
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+  justify-content: left;
+}
+.trusted-left {
+  margin: 0 auto;
+  max-width: 600px;
+  padding: 24px 0;
+}
+
+.trusted-left {
+  margin: 60px 80px;     /* Adds space around the entire block */
+  padding: 20px 40px;    /* Adds space inside the block */
+}
+
+.trusted-left h4 {
+  margin-bottom: 10px;   /* space between small title and main heading */
+  color: #23a093;        /* keeps your teal tone */
+  font-weight: 600;
+}
+
+.trusted-left h2 {
+  margin-bottom: 15px;   /* space below main heading */
+}
+
+.trusted-left p {
+  margin-bottom: 20px;   /* space below paragraph */
+  line-height: 1.6;
+  color: #555;
+}
+
+.lms-hero-image {
+width: 100%;
+    max-width: 100%;
+    border-radius: 12px;
+    object-fit: cover;
+}
+.trusted-section {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 48px;            /* space between stats and image */
+}
+
+.trusted-left {
+  width: 44%;
+}
+
+.trusted-right {
+  width: 56%;           /* place your image/testimonial here */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
