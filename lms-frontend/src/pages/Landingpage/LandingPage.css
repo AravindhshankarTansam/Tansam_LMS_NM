@@ -1923,3 +1923,52 @@
   }
 
 }
+.steps-grid {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  text-align: center;
+  flex-wrap: wrap;
+  gap: 40px;
+  margin-top: 50px;
+  padding: 0 20px;
+}
+
+.step {
+  flex: 1 1 300px;
+  max-width: 320px;
+  padding: 20px;
+}
+
+.step-number {
+  background-color: #215c57; /* matches your green tone */
+  color: #fff;
+  font-weight: 600;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 15px auto;
+  font-size: 16px;
+}
+
+.step h4 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #000;
+}
+
+.step p {
+  color: #555;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Optional: add a subtle hover effect */
+.step:hover {
+  transform: translateY(-5px);
+  transition: 0.3s ease;
+}

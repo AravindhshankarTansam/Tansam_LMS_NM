@@ -133,7 +133,7 @@ const LandingPage = () => {
               <h4>Choose Your Course</h4>
               <p>
               Discover a variety of learning programs designed to help you grow, learn new skills, and achieve your goals.
-        </p>
+              </p>
             </div>
 
             <div className="step">
@@ -157,7 +157,7 @@ const LandingPage = () => {
 
       {/* ===== COURSES SECTION (Dynamic) ===== */}
       <section className="courses" id="courses">
-        <h2>Medical Courses</h2>
+        <h2>SkillSpace</h2>
         {loading ? (
           <p>Loading courses...</p>
         ) : courses.length > 0 ? (
