@@ -1,0 +1,35 @@
+.plans-section {
+  background-color: #e0e9fa;
+  padding: 4rem 1.5rem;
+}
+
+.plans-row {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 24px;
+  max-width: 85%;
+  margin: 0 auto;
+  flex-wrap: nowrap;
+}
+
+.plan-card {
+  flex: 1;
+  border-top: 4px solid #00b894 !important;
+  border-radius: 16px !important;
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+.plan-card:hover {
+  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.plan-btn {
+  background-color: #00b894 !important;
+  text-transform: none !important;
+  margin-bottom: 16px !important;
+}
+
+.plan-btn:hover {
+  background-color: #7c3aed !important;
+}
