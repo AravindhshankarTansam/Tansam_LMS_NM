@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
 import "./LandingPage.css";
 import heroImg from "../../assets/main_lms.png";
+import heroImg1  from "../../assets/Tansam11.jpg";
+import heroImg2  from "../../assets/mech.png";
+import heroImg3  from "../../assets/Tansam8.jpg";
+import heroImg4  from "../../assets/Tansam9.jpeg";
+import heroImg5  from "../../assets/3d-ar-vr-animation-service.png"; 
+import heroImg6 from "../../assets/student_lms.png";
+// import heroImg from "../../assets/landingpagehero.png"; 
 import herologo from "../../assets/tansamoldlogo.png";
 import { Link, useNavigate } from "react-router-dom";
 import PlansSection from "./PlansSection";
@@ -9,6 +16,26 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+const images = [
+  heroImg1,
+  heroImg2,
+  heroImg3,
+  heroImg4,
+  heroImg5,
+];
+
+const [currentSlide, setCurrentSlide] = useState(0);
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    setCurrentSlide(prev =>
+      prev === images.length - 1 ? 0 : prev + 1
+    );
+  }, 2000); // 2 seconds
+
+  return () => clearInterval(interval);
+}, [images.length]);
+
 
   // ✅ Fetch courses dynamically from backend
   useEffect(() => {
@@ -89,7 +116,7 @@ const LandingPage = () => {
                 <p>TANSAM Courses</p>
               </div> */}
               <div>
-                <h3>12K+</h3>
+                <h3>12k+</h3>
                 <p>Active Students</p>
               </div>
               <div>
@@ -157,7 +184,7 @@ const LandingPage = () => {
               <div className="step-number">04</div>
               <h4>Get your certificates</h4>
               <p>
-               arn certificates that showcase your achievements.  </p>
+              Get certified and showcase your skills  </p>
             </div>
           </div>
         </div>
@@ -198,7 +225,7 @@ const LandingPage = () => {
             ))}
           </div>
         ) : (
-          <p>No courses found</p>
+          <p></p>
         )}
       </section>
 
@@ -208,28 +235,16 @@ const LandingPage = () => {
       <section className="online-learning" id="instructors">
         <div className="left-container">
           <h2>Empowering Learners Through Digital Education</h2>
-          <div className="video-section">
-            <div className="video-layout">
-              <div className="main-img video-card">
-                <img src={heroImg} alt="Instructor" />
-                <p>Instructor</p>
-              </div>
-              <div className="side-column">
-                <div className="video-card">
-                  <img src={heroImg} alt="Instructor" />
-                  <p>Instructor</p>
-                </div>
-                <div className="video-card">
-                  <img src={heroImg} alt="Instructor" />
-                  <p>Instructor</p>
-                </div>
-              </div>
-            </div>
-            <div className="video-buttons">
-              <button className="present-btn">Watch Lecture</button>
-              <button className="call-btn">Join Live Session</button>
-            </div>
-          </div>
+<div className="video-section">
+  <div className="video-layout">
+    <div className="main-img video-card">
+      <img src={images[currentSlide]}  />
+     
+    </div>
+  </div>
+</div>
+
+
           <p className="small-text">Learn anytime, anywhere.</p>
         </div>
         <div className="right-container">
@@ -265,11 +280,11 @@ const LandingPage = () => {
               <p>Course Completion Rate</p>
             </div>
             <div>
-              <h3>15K+</h3>
+              <h3>10K+</h3>
               <p>Positive Reviews</p>
             </div>
             <div>
-              <h3>120+</h3>
+              <h3>15+</h3>
               <p>Partner Organizations</p>
             </div>
           </div>
@@ -277,13 +292,15 @@ const LandingPage = () => {
 
         <div className="trusted-right">
           <div className="student-img-box">
-            <img src={heroImg} alt="Student" />
+           <img src={heroImg6} alt="Student" className="lms-hero-image" />
+
+
           </div>
           <div className="review-box">
             <p>
               “TANSAM-LMS made learning engaging and easy to follow. The lessons are clear, the instructors are great, and I love the flexibility.”
             </p>
-            <h4>Dr. Emiliya Cart</h4>
+            <h4>Satisfied Learner</h4>
             <span>⭐⭐⭐⭐⭐</span>
             <p className="reviews-count">24 Reviews</p>
           </div>
