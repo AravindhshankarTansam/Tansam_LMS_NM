@@ -1858,9 +1858,9 @@
     min-width: 300px;
   }
 
-  .step-number::after {
+  /* .step-number::after {
     width: 150px; /* Adjust dotted line length */
-  }
+  } */
 
   .courses {
     padding: 70px 50px;
@@ -1923,7 +1923,7 @@
   }
 
 }
-.steps-grid {
+/* .steps-grid {
   display: flex;
   justify-content: space-around;
   align-items: flex-start;
@@ -1932,26 +1932,30 @@
   gap: 40px;
   margin-top: 50px;
   padding: 0 20px;
+} */
+.steps-grid {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
 }
-
-.step {
+/* .step {
   flex: 1 1 300px;
   max-width: 320px;
   padding: 20px;
+} */
+.step {
+  flex: 0 0 320px;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .step-number {
-  background-color: #215c57; /* matches your green tone */
-  color: #fff;
-  font-weight: 600;
-  border-radius: 50%;
-  width: 45px;
-  height: 45px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   margin: 0 auto 15px auto;
-  font-size: 16px;
+  position: relative;
 }
 
 .step h4 {
