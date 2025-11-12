@@ -223,7 +223,7 @@ useEffect(() => {
             ))}
           </div>
         ) : (
-          <p>No courses found</p>
+          <p></p>
         )}
       </section>
 
