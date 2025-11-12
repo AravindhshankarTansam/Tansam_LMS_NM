@@ -26,11 +26,12 @@
   flex-direction: column;
   gap: 10px;
   margin-top: 6px;
+  font-size: 30px;
 }
 
 .leftnav .lnk {
-  width: 44px;
-  height: 44px;
+  width: 54px;
+  height: 54px;
   border-radius: 10px;
   display: flex;
   align-items: center;
