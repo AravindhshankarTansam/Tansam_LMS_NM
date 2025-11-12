@@ -13,6 +13,7 @@ import {
   Chip,
   Snackbar,
   Alert,
+  Box,
 } from "@mui/material";
 import { Save, Publish, Add } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
@@ -20,15 +21,20 @@ import Sidebar from "../Sidebar";
 import CurriculumTab from "./Curriculum";
 import AddEditCourseDialog from "./AddEditCourseDialog";
 import AddLessonDialog from "./AddLessonDialog";
-import { COURSE_API } from "../../../config/apiConfig";
-import { Box } from "@mui/material";
+// Correct
+import { COURSE_API, COURSE_CATEGORY_API } from "../../../config/apiConfig";
 
 export default function CourseCreateForm() {
   const navigate = useNavigate();
+
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
   const [savedCourses, setSavedCourses] = useState([]);
   const [modules, setModules] = useState([]);
+
+  const [categories, setCategories] = useState([]);
 
   // Dialog states
   const [addEditCourseOpen, setAddEditCourseOpen] = useState(false);
@@ -36,17 +42,16 @@ export default function CourseCreateForm() {
   const [currentModuleId, setCurrentModuleId] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
 
-  // Inline Add Course form
+  // Add course form
   const [showAddCourseForm, setShowAddCourseForm] = useState(false);
   const [newCourseName, setNewCourseName] = useState("");
-  const [newCategory, setNewCategory] = useState("");
+  const [newCategoryId, setNewCategoryId] = useState("");
   const [newOverview, setNewOverview] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [coverFile, setCoverFile] = useState(null);
   const [promoFile, setPromoFile] = useState(null);
   const coverInputRef = useRef(null);
   const promoInputRef = useRef(null);
-  const [saving, setSaving] = useState(false);
 
   // Snackbar
   const [snackOpen, setSnackOpen] = useState(false);
@@ -55,38 +60,59 @@ export default function CourseCreateForm() {
 
   const token = localStorage.getItem("token");
 
-  // Tabs
-  const handleTabChange = (e, v) => setTab(v);
+  const IMAGE_BASE =
+    import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/?$/, "") || "http://localhost:5000";
 
   // Fetch courses
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const res = await fetch(COURSE_API, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(COURSE_API, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch courses");
       const data = await res.json();
       setSavedCourses(data || []);
-    } catch (error) {
-      console.error("❌ Fetch error:", error);
-      setSnackMsg("Failed to fetch courses");
-      setSnackSeverity("error");
-      setSnackOpen(true);
+    } catch (err) {
+      console.error(err);
+      showSnack("Failed to fetch courses", "error");
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch categories
+const fetchCategories = async () => {
+  try {
+    const res = await fetch(COURSE_CATEGORY_API, { credentials: "include" }); // ✅ fixed
+    if (!res.ok) throw new Error("Failed to fetch categories");
+    const data = await res.json();
+    setCategories(data);
+  } catch (err) {
+    console.error(err);
+    showSnack("Failed to fetch categories", "error");
+  }
+};
+
+
   useEffect(() => {
     fetchCourses();
+    fetchCategories();
   }, []);
 
-  // Add course handler
+  // Snackbar helper
+  const showSnack = (msg, severity = "success") => {
+    setSnackMsg(msg);
+    setSnackSeverity(severity);
+    setSnackOpen(true);
+  };
+
+  // Tabs
+  const handleTabChange = (e, v) => setTab(v);
+
+  // Add course
   const handleAddCourse = () => {
     setShowAddCourseForm(true);
     setNewCourseName("");
-    setNewCategory("");
+    setNewCategoryId("");
     setNewOverview("");
     setNewDescription("");
     setCoverFile(null);
@@ -104,44 +130,39 @@ export default function CourseCreateForm() {
     try {
       const res = await fetch(`${COURSE_API}/${courseId}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Delete failed");
       setSavedCourses((prev) => prev.filter((c) => c.course_id !== courseId));
-      setSnackMsg("Course deleted successfully");
-      setSnackSeverity("success");
-      setSnackOpen(true);
+      showSnack("Course deleted successfully");
     } catch (err) {
       console.error(err);
-      setSnackMsg("Failed to delete course");
-      setSnackSeverity("error");
-      setSnackOpen(true);
+      showSnack("Failed to delete course", "error");
     }
   };
 
-  // ✅ Add new course API call (FormData)
+  // Save new course
   const saveNewCourse = async () => {
-    if (!newCourseName || !newCategory) {
-      setSnackMsg("Please fill in all required fields.");
-      setSnackSeverity("warning");
-      setSnackOpen(true);
+    if (!newCourseName || !newCategoryId) {
+      showSnack("Please fill in all required fields", "warning");
       return;
     }
 
     const formData = new FormData();
     formData.append("course_name", newCourseName);
-    formData.append("category_name", newCategory);
+    formData.append("category_id", newCategoryId);
     formData.append("overview", newOverview);
     formData.append("description", newDescription);
     formData.append("pricing_type", "free");
+    formData.append("price_amount", 0);
     if (coverFile) formData.append("course_image", coverFile);
-    if (promoFile) formData.append("promo_video", promoFile);
+    if (promoFile) formData.append("course_video", promoFile);
 
     try {
       setSaving(true);
       const res = await fetch(COURSE_API, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
         body: formData,
       });
 
@@ -150,24 +171,16 @@ export default function CourseCreateForm() {
         throw new Error(`Save failed: ${res.status} - ${errText}`);
       }
 
-      setSnackMsg("Course added successfully");
-      setSnackSeverity("success");
-      setSnackOpen(true);
+      showSnack("Course added successfully");
       setShowAddCourseForm(false);
-      await fetchCourses(); // refresh course list
+      await fetchCourses();
     } catch (err) {
       console.error(err);
-      setSnackMsg("Failed to save course");
-      setSnackSeverity("error");
-      setSnackOpen(true);
+      showSnack("Failed to save course", "error");
     } finally {
       setSaving(false);
     }
   };
-
-  const IMAGE_BASE =
-    import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/?$/, "") ||
-    "http://localhost:5000";
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
@@ -208,13 +221,15 @@ export default function CourseCreateForm() {
                 select
                 fullWidth
                 label="Category"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
+                value={newCategoryId}
+                onChange={(e) => setNewCategoryId(e.target.value)}
                 sx={{ mb: 2 }}
               >
-                <MenuItem value="Web Development">Web Development</MenuItem>
-                <MenuItem value="Design">Design</MenuItem>
-                <MenuItem value="Business">Business</MenuItem>
+                {categories.map((cat) => (
+                  <MenuItem key={cat.category_id} value={cat.category_id}>
+                    {cat.category_name}
+                  </MenuItem>
+                ))}
               </TextField>
               <TextField
                 fullWidth
@@ -246,7 +261,7 @@ export default function CourseCreateForm() {
               </Stack>
             </Box>
 
-            {/* Right panel - Uploads */}
+            {/* Right panel - uploads */}
             <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
               <Paper
                 variant="outlined"
@@ -307,14 +322,7 @@ export default function CourseCreateForm() {
             </Tabs>
             <Box sx={{ flex: 1, p: 3 }}>
               {loading ? (
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    height: 300,
-                  }}
-                >
+                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: 300 }}>
                   <CircularProgress />
                 </Box>
               ) : (
@@ -324,34 +332,19 @@ export default function CourseCreateForm() {
                       {savedCourses.length > 0 ? (
                         <Stack spacing={2}>
                           {savedCourses.map((course) => (
-                            <Paper
-                              key={course.course_id}
-                              sx={{
-                                p: 2,
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 2,
-                              }}
-                            >
+                            <Paper key={course.course_id} sx={{ p: 2, display: "flex", alignItems: "center", gap: 2 }}>
                               {course.course_image && (
                                 <Box
                                   component="img"
                                   src={`${IMAGE_BASE}/${course.course_image}`}
                                   alt={course.course_name}
-                                  sx={{
-                                    width: 80,
-                                    height: 80,
-                                    objectFit: "cover",
-                                    borderRadius: 1,
-                                  }}
+                                  sx={{ width: 80, height: 80, objectFit: "cover", borderRadius: 1 }}
                                 />
                               )}
-
                               <Box sx={{ flex: 1 }}>
                                 <Typography fontWeight="bold">{course.course_name}</Typography>
                                 <Typography variant="caption">{course.overview}</Typography>
                               </Box>
-
                               <Stack direction="row" spacing={1}>
                                 <Button size="small" onClick={() => handleEditCourse(course)}>
                                   Edit
@@ -359,17 +352,11 @@ export default function CourseCreateForm() {
                                 <Button
                                   size="small"
                                   variant="outlined"
-                                  onClick={() =>
-                                    navigate(`/admin/course/${course.course_id}/modules`)
-                                  }
+                                  onClick={() => navigate(`/admin/course/${course.course_id}/modules`)}
                                 >
                                   Manage Modules
                                 </Button>
-                                <Button
-                                  size="small"
-                                  color="error"
-                                  onClick={() => deleteCourse(course.course_id)}
-                                >
+                                <Button size="small" color="error" onClick={() => deleteCourse(course.course_id)}>
                                   Delete
                                 </Button>
                               </Stack>
@@ -418,11 +405,7 @@ export default function CourseCreateForm() {
         />
 
         {/* Snackbar */}
-        <Snackbar
-          open={snackOpen}
-          autoHideDuration={3000}
-          onClose={() => setSnackOpen(false)}
-        >
+        <Snackbar open={snackOpen} autoHideDuration={3000} onClose={() => setSnackOpen(false)}>
           <Alert severity={snackSeverity}>{snackMsg}</Alert>
         </Snackbar>
       </Box>
