@@ -43,13 +43,19 @@ export default function AddEditCourseDialog({
 
   // ✅ Load categories for dropdown
   useEffect(() => {
-    fetch(COURSE_CATEGORY_API, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  fetch(COURSE_CATEGORY_API, { credentials: "include" })
+    .then((res) => res.json())
+    .then((data) => {
+      // Ensure categories is always an array
+      const cats = Array.isArray(data) ? data : data.categories || [];
+      setCategories(cats);
     })
-      .then((res) => res.json())
-      .then((data) => setCategories(data))
-      .catch((err) => console.error("Failed to load categories:", err));
-  }, []);
+    .catch((err) => {
+      console.error("Failed to load categories:", err);
+      setCategories([]); // fallback
+    });
+}, []);
+
 
   // ✅ Prefill form when editing
   useEffect(() => {
@@ -103,9 +109,7 @@ export default function AddEditCourseDialog({
     try {
       const res = await fetch(url, {
         method,
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+        credentials: "include",
         body: formData,
       });
       const data = await res.json();
@@ -115,7 +119,7 @@ export default function AddEditCourseDialog({
 
         // Refresh course list after save
         const refreshed = await fetch(COURSE_API, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          credentials: true,
         }).then((r) => r.json());
         setSavedCourses(refreshed);
 
@@ -151,7 +155,7 @@ export default function AddEditCourseDialog({
                 setCourse((s) => ({ ...s, category_id: e.target.value }))
               }
             >
-              {categories.map((cat) => (
+              {Array.isArray(categories) && categories.map((cat) => (
                 <MenuItem key={cat.category_id} value={cat.category_id}>
                   {cat.category_name}
                 </MenuItem>

@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
   FileType,
 } from "lucide-react";
+  import { Box } from "@mui/material";
 
 import Video1 from "../../../assets/Video-1.mp4";
 import FlowchartImg from "../../../assets/flowchart.png";
@@ -163,8 +164,16 @@ const MyCourse = () => {
 
   return (
     <>
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
       <Sidebar />
       <ToastContainer />
+      <Box sx={{
+      flex: 1,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      p: 11,
+    }}>
       <div className="mycourse-container">
         <div className="mycourse-grid">
           <div className="left-section">
@@ -243,6 +252,8 @@ const MyCourse = () => {
           </div>
         )}
       </div>
+      </Box>
+     </Box>
     </>
   );
 };
