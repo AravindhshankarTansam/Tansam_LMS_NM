@@ -1,0 +1,136 @@
+.topbar_1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(90deg, #ffffff, #f3f6ff);
+  /* padding: 12px 40px; */
+  border-bottom: 2px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  position: relative;
+  padding: 1px 40px;
+}
+
+/* Common vertical alignment */
+.topbar-left,
+.topbar-center,
+.topbar-right {
+  display: flex;
+  align-items: center;
+}
+
+/* ✅ Equal space trick: both sides flex = 1 so title stays centered */
+.topbar-left,
+.topbar-right {
+  flex: 1;
+}
+
+.topbar-center {
+  flex: 0 0 auto;
+  justify-content: center;
+}
+
+/* Logo */
+.logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
+/* Title - perfectly centered */
+/* Title - animated and centered */
+.title1 {
+  font-size: 36px;
+  font-weight: 700;
+  margin: 0;
+  text-align: center;
+  text-transform: uppercase;
+  font-family: "Poppins", sans-serif;
+  letter-spacing: 1px;
+
+  /* Gradient text */
+  background: linear-gradient(90deg, #1a237e, #3949ab, #1a237e);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  /* Animation */
+  animation: textShine 5s linear infinite, floatTitle 4s ease-in-out infinite;
+}
+
+/* 🌈 Text shimmer (soft gradient movement) */
+@keyframes textShine {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* 🌊 Gentle float effect (up-down movement) */
+@keyframes floatTitle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+
+/* Right side (user) */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+  font-family: "Inter", sans-serif;
+}
+
+.user-avatar {
+  cursor: pointer;
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(25, 118, 210, 0.4);
+}
+
+.user-initial {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background-color: #1976d2;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 18px;
+  box-shadow: 0 0 5px rgba(25, 118, 210, 0.3);
+  transition: transform 0.2s ease, background 0.3s ease;
+}
+
+.user-initial:hover {
+  background-color: #1565c0;
+  transform: scale(1.1);
+}
