@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Box,
   Paper,
   Tabs,
   Tab,
@@ -22,6 +21,7 @@ import CurriculumTab from "./Curriculum";
 import AddEditCourseDialog from "./AddEditCourseDialog";
 import AddLessonDialog from "./AddLessonDialog";
 import { COURSE_API } from "../../../config/apiConfig";
+import { Box } from "@mui/material";
 
 export default function CourseCreateForm() {
   const navigate = useNavigate();

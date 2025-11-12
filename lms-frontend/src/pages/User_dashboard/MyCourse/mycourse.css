@@ -2,9 +2,10 @@
 
 .mycourse-container {
   font-family: 'Inter', 'Segoe UI', sans-serif;
-  background-color: #f9f9fb;
-  min-height: 100vh;
-  padding: 20px;
+  padding: 10px 40px;
+  margin: 0 auto;
+  width: 90%;
+  border-radius: 12px;
 }
 
 .breadcrumb {

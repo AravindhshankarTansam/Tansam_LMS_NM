@@ -1,6 +1,7 @@
   import React, { useState, useMemo, useEffect } from "react";
   import "./CoursePlayer.css";
   import Sidebar from "../Sidebar/sidebar";
+  import { Box } from "@mui/material";
 
   export default function CoursePlayer() {
     // Course data (mirroring LandingPage for simplicity)
@@ -109,6 +110,7 @@
 
     return (
       <>
+      <Box sx={{ display: "flex",alignItems: "center", justifyContent: "center", minHeight: "100vh", bgcolor: "#f9fafb" }}>
         <Sidebar />
         <div className="learning-dashboard">
           <div className="app-container">
@@ -321,6 +323,7 @@
             </section>
           </div>
         </div>
+        </Box>
       </>
     );
   }
