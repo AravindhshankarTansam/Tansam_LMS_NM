@@ -60,21 +60,26 @@ export default function ModuleList() {
   }, [courseId]);
 
   // ✅ Fetch chapters for a specific module (when expanded)
-  const fetchChaptersForModule = async (moduleId) => {
-    try {
-      const res = await fetch(`${CHAPTER_API}/${moduleId}`, {
-         credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to fetch chapters");
-      const data = await res.json();
-      setChaptersByModule((prev) => ({
-        ...prev,
-        [moduleId]: Array.isArray(data) ? data : [],
-      }));
-    } catch (err) {
-      console.error("❌ Error fetching chapters:", err);
-    }
-  };
+const fetchChaptersForModule = async (moduleId) => {
+  try {
+    const res = await fetch(`${CHAPTER_API}/${moduleId}`, {
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Failed to fetch chapters");
+    const data = await res.json();
+
+    // Extract chapters array
+    const chaptersArray = Array.isArray(data.chapters) ? data.chapters : [];
+    
+    setChaptersByModule((prev) => ({
+      ...prev,
+      [moduleId]: chaptersArray,
+    }));
+  } catch (err) {
+    console.error("❌ Error fetching chapters:", err);
+  }
+};
+
 
   // ✅ Expand/collapse logic
   const handleToggleExpand = (moduleId) => {

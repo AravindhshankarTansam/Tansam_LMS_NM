@@ -38,7 +38,7 @@ export default function AddChapterPage() {
   const [quizzes, setQuizzes] = useState([]);
 
   useEffect(() => {
-    console.log("✅ Module ID from URL:", moduleId); 
+    console.log("✅ Module ID from URL:", moduleId);
   }, [moduleId]);
 
   const handleAddQuiz = () => {
@@ -46,7 +46,7 @@ export default function AddChapterPage() {
       ...prev,
       {
         id: Date.now(),
-        quiz_type: "multiple_choice", // ✅ changed from "mcq"
+        question_type: "multiple_choice",
         question: "",
         options: [""],
         correct_answers: [],
@@ -99,7 +99,7 @@ export default function AddChapterPage() {
 
     const res = await fetch(CHAPTER_API, {
       method: "POST",
-      credentials:"include",
+      credentials: "include",
       body: formData,
     });
 
@@ -116,13 +116,21 @@ export default function AddChapterPage() {
       return;
     }
 
+    // ✅ Filter valid quizzes only (skip empty)
+    const validQuizzes = quizzes.filter(
+      (q) =>
+        q.question.trim() !== "" &&
+        Array.isArray(q.options) &&
+        q.options.some((opt) => opt.trim() !== "")
+    );
+
     // ✅ Create quizzes
-    for (const quiz of quizzes) {
+    for (const quiz of validQuizzes) {
       const quizPayload = {
         chapter_id: chapterId,
-        quiz_type: quiz.quiz_type,
-        question: quiz.question,
-        options: quiz.options,
+        question_type: quiz.question_type,
+        question: quiz.question.trim(),
+        options: quiz.options.filter((opt) => opt.trim() !== ""),
         correct_answers: quiz.correct_answers,
         order_index: 0,
       };
@@ -130,12 +138,18 @@ export default function AddChapterPage() {
       try {
         const quizRes = await fetch(QUIZ_API, {
           method: "POST",
-          credentials:"include",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify(quizPayload),
         });
 
+        const quizData = await quizRes.json();
         if (!quizRes.ok) {
-          console.error("❌ Quiz creation failed:", quizRes.status);
+          console.error("❌ Quiz creation failed:", quizData);
+        } else {
+          console.log("✅ Quiz saved:", quizData);
         }
       } catch (err) {
         console.error("❌ Quiz creation error:", err);
@@ -157,6 +171,8 @@ export default function AddChapterPage() {
           borderRadius: 4,
           background: "linear-gradient(180deg, #f9f9fb 0%, #ffffff 100%)",
           "&:hover": { boxShadow: 7 },
+          maxWidth: 900,
+          mx: "auto",
         }}
       >
         <Typography variant="h5" fontWeight={700} mb={3}>
@@ -248,10 +264,10 @@ export default function AddChapterPage() {
                     <FormControl fullWidth>
                       <InputLabel>Quiz Type</InputLabel>
                       <Select
-                        value={quiz.quiz_type}
+                        value={quiz.question_type}
                         label="Quiz Type"
                         onChange={(e) =>
-                          updateQuiz(quiz.id, "quiz_type", e.target.value)
+                          updateQuiz(quiz.id, "question_type", e.target.value)
                         }
                       >
                         <MenuItem value="multiple_choice">
@@ -272,7 +288,7 @@ export default function AddChapterPage() {
                     />
 
                     {/* ✅ Multiple Choice Section */}
-                    {quiz.quiz_type === "multiple_choice" && (
+                    {quiz.question_type === "multiple_choice" && (
                       <>
                         {quiz.options.map((opt, i) => (
                           <TextField
@@ -326,7 +342,7 @@ export default function AddChapterPage() {
                     )}
 
                     {/* ✅ Short Answer */}
-                    {quiz.quiz_type === "short_answer" && (
+                    {quiz.question_type === "short_answer" && (
                       <TextField
                         label="Correct Answer"
                         fullWidth
@@ -340,7 +356,7 @@ export default function AddChapterPage() {
                     )}
 
                     {/* ✅ True/False */}
-                    {quiz.quiz_type === "true_false" && (
+                    {quiz.question_type === "true_false" && (
                       <FormControl fullWidth>
                         <InputLabel>Correct Answer</InputLabel>
                         <Select
