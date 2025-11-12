@@ -2,145 +2,144 @@ import { connectDB } from "../config/db.js";
 
 // ✅ Create quiz
 export const createQuiz = async (req, res) => {
-  const db = await connectDB();
-
   try {
-    let {
-      chapter_id,
-      question,
-      quiz_type,
-      options,
-      correct_answers,
-      order_index,
-    } = req.body;
+    const db = await connectDB();
 
-    if (!chapter_id) {
-      return res.status(400).json({ message: "❌ chapter_id missing in request" });
+    let { chapter_id, question, question_type, options, correct_answer } = req.body;
+
+    if (!chapter_id || !question || !correct_answer) {
+      return res
+        .status(400)
+        .json({ message: "❌ Required fields missing (chapter_id, question, correct_answer)" });
     }
 
-    // Parse JSON fields if sent as strings (FormData converts them)
+    // Parse JSON strings if coming from FormData
     try {
       options = typeof options === "string" ? JSON.parse(options) : options;
-      correct_answers =
-        typeof correct_answers === "string"
-          ? JSON.parse(correct_answers)
-          : correct_answers;
-    } catch (e) {
-      console.error("⚠️ Invalid JSON for quiz fields:", e);
-      return res.status(400).json({ message: "❌ Invalid JSON in options or correct_answers" });
+    } catch (err) {
+      console.error("⚠️ Invalid JSON in options:", err);
+      return res.status(400).json({ message: "❌ Invalid options JSON format" });
     }
 
-    const [
-      option_a,
-      option_b,
-      option_c,
-      option_d,
-      option_e,
-      option_f,
-    ] = options || [];
+    // Extract up to 4 options (A–D)
+    const [option_a, option_b, option_c, option_d] = options || [];
 
-    const result = await db.run(
-      `INSERT INTO quizzes 
-       (chapter_id, question, quiz_type, option_a, option_b, option_c, option_d, option_e, option_f, correct_answers, order_index)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    const [result] = await db.query(
+      `
+      INSERT INTO quizzes
+      (chapter_id, question, option_a, option_b, option_c, option_d, correct_answer, question_type)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `,
       [
         chapter_id,
         question,
-        quiz_type,
-        option_a,
-        option_b,
-        option_c,
-        option_d,
-        option_e,
-        option_f,
-        JSON.stringify(correct_answers || []),
-        order_index || 0,
+        option_a || null,
+        option_b || null,
+        option_c || null,
+        option_d || null,
+        correct_answer,
+        question_type || "mcq",
       ]
     );
 
-    res.json({
+    res.status(201).json({
       message: "✅ Quiz created successfully",
-      quiz_id: result.lastID,
+      quiz_id: result.insertId,
     });
   } catch (err) {
-    console.error("❌ Quiz creation error:", err);
-    res.status(500).json({ message: "Internal Server Error", error: err.message });
+    console.error("❌ Quiz creation failed:", err);
+    res.status(500).json({ error: "Failed to create quiz", details: err.message });
   }
 };
 
-
-// ✅ Read quizzes by chapter (randomized)
+// ✅ Read quizzes by chapter (random order)
 export const getQuizzesByChapter = async (req, res) => {
-  const db = await connectDB();
-  const quizzes = await db.all(
-    `SELECT * FROM quizzes WHERE chapter_id=? ORDER BY RANDOM()`,
-    [req.params.chapter_id]
-  );
-  res.json(quizzes);
+  try {
+    const db = await connectDB();
+    const { chapter_id } = req.params;
+
+    const [rows] = await db.query(
+      "SELECT * FROM quizzes WHERE chapter_id = ? ORDER BY RAND()",
+      [chapter_id]
+    );
+
+    res.status(200).json({ success: true, quizzes: rows });
+  } catch (err) {
+    console.error("❌ Error fetching quizzes:", err);
+    res.status(500).json({ error: "Failed to fetch quizzes" });
+  }
 };
 
 // ✅ Update quiz
 export const updateQuiz = async (req, res) => {
-  const db = await connectDB();
-  const { id } = req.params;
-  const {
-    question,
-    quiz_type,
-    options,
-    correct_answers,
-    order_index,
-  } = req.body;
+  try {
+    const db = await connectDB();
+    const { id } = req.params;
+    let { question, question_type, options, correct_answer } = req.body;
 
-  const [
-    option_a,
-    option_b,
-    option_c,
-    option_d,
-    option_e,
-    option_f,
-  ] = options || [];
+    try {
+      options = typeof options === "string" ? JSON.parse(options) : options;
+    } catch (err) {
+      return res.status(400).json({ message: "❌ Invalid JSON in options" });
+    }
 
-  await db.run(
-    `UPDATE quizzes
-     SET question=?, quiz_type=?, option_a=?, option_b=?, option_c=?, option_d=?, option_e=?, option_f=?, correct_answers=?, order_index=?
-     WHERE quiz_id=?`,
-    [
-      question,
-      quiz_type,
-      option_a,
-      option_b,
-      option_c,
-      option_d,
-      option_e,
-      option_f,
-      correct_answers,
-      order_index || 0,
-      id,
-    ]
-  );
-  res.json({ message: "📝 Quiz updated" });
+    const [option_a, option_b, option_c, option_d] = options || [];
+
+    await db.query(
+      `
+      UPDATE quizzes
+      SET question = ?, question_type = ?, option_a = ?, option_b = ?, option_c = ?, option_d = ?, correct_answer = ?
+      WHERE quiz_id = ?
+      `,
+      [
+        question,
+        question_type || "mcq",
+        option_a || null,
+        option_b || null,
+        option_c || null,
+        option_d || null,
+        correct_answer,
+        id,
+      ]
+    );
+
+    res.json({ message: "📝 Quiz updated successfully" });
+  } catch (err) {
+    console.error("❌ Quiz update failed:", err);
+    res.status(500).json({ error: "Failed to update quiz" });
+  }
 };
 
 // ✅ Delete quiz
 export const deleteQuiz = async (req, res) => {
-  const db = await connectDB();
-  await db.run(`DELETE FROM quizzes WHERE quiz_id=?`, [req.params.id]);
-  res.json({ message: "🗑️ Quiz deleted" });
+  try {
+    const db = await connectDB();
+    const { id } = req.params;
+
+    await db.query("DELETE FROM quizzes WHERE quiz_id = ?", [id]);
+
+    res.json({ message: "🗑️ Quiz deleted successfully" });
+  } catch (err) {
+    console.error("❌ Quiz deletion failed:", err);
+    res.status(500).json({ error: "Failed to delete quiz" });
+  }
 };
 
-
+// ✅ Submit quiz
 export const submitQuiz = async (req, res) => {
-  const db = await connectDB();
   try {
-    const { user_email, chapter_id, answers } = req.body;
+    const db = await connectDB();
+    const { custom_id, chapter_id, answers } = req.body;
 
-    if (!user_email || !chapter_id || typeof answers !== "object") {
-      return res.status(400).json({ message: "❌ Missing required fields or invalid answers format" });
+    if (!custom_id || !chapter_id || typeof answers !== "object") {
+      return res
+        .status(400)
+        .json({ message: "❌ Missing required fields (custom_id, chapter_id, answers)" });
     }
 
-    // Fetch correct answers
-    const quizzes = await db.all(
-      `SELECT quiz_id, correct_answers FROM quizzes WHERE chapter_id=?`,
+    // Fetch all quizzes for chapter
+    const [quizzes] = await db.query(
+      "SELECT quiz_id, correct_answer FROM quizzes WHERE chapter_id = ?",
       [chapter_id]
     );
 
@@ -151,75 +150,34 @@ export const submitQuiz = async (req, res) => {
     let total = quizzes.length;
     let score = 0;
 
-    // 🧮 Calculate score
     for (const quiz of quizzes) {
-      const correctArr = JSON.parse(quiz.correct_answers || "[]");
-      const selected = answers[quiz.quiz_id];
+      const correct = quiz.correct_answer?.toString().trim();
+      const selected = answers[quiz.quiz_id]?.toString().trim();
 
-      if (!selected) continue;
+      const isCorrect = correct && selected && correct === selected;
 
-      const selectedArr = Array.isArray(selected) ? selected : [selected];
-      const isCorrect =
-        correctArr.length === selectedArr.length &&
-        correctArr.every((c) => selectedArr.includes(c));
+      await db.query(
+        `
+        INSERT INTO quiz_results (custom_id, quiz_id, selected_answer, is_correct)
+        VALUES (?, ?, ?, ?)
+        `,
+        [custom_id, quiz.quiz_id, selected || "", isCorrect ? 1 : 0]
+      );
 
       if (isCorrect) score++;
     }
 
     const percentage = ((score / total) * 100).toFixed(2);
-    const submittedAt = new Date().toISOString();
-
-    // Get previous attempts
-    const previous = await db.get(
-      `SELECT MAX(attempt_number) as max_attempt FROM quiz_attempts WHERE user_email=? AND chapter_id=?`,
-      [user_email, chapter_id]
-    );
-    const attempt_number = (previous?.max_attempt || 0) + 1;
-
-    // 🧾 Save attempt summary
-    await db.run(
-      `INSERT INTO quiz_attempts (user_email, chapter_id, attempt_number, total_questions, total_correct, total_score, percentage, time_taken, passed, submitted_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        user_email,
-        chapter_id,
-        attempt_number,
-        total,
-        score,
-        score,
-        percentage,
-        0,
-        percentage >= 50 ? 1 : 0,
-        submittedAt,
-      ]
-    );
-
-    // 🗃️ Store individual results
-    for (const quiz of quizzes) {
-      const selected = answers[quiz.quiz_id];
-      await db.run(
-        `INSERT INTO quiz_results (user_email, quiz_id, user_answer, score, time_taken)
-         VALUES (?, ?, ?, ?, ?)`,
-        [
-          user_email,
-          quiz.quiz_id,
-          JSON.stringify(selected || []),
-          0,
-          0,
-        ]
-      );
-    }
 
     res.json({
       message: "✅ Quiz submitted successfully",
-      score,
       total,
+      score,
       percentage,
-      attempt_number,
-      submittedAt,
+      passed: percentage >= 50,
     });
   } catch (err) {
     console.error("❌ Quiz submission failed:", err);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ error: "Failed to submit quiz" });
   }
 };

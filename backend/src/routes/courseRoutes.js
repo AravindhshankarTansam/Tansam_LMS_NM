@@ -6,18 +6,32 @@ import {
   deleteCourse,
 } from "../controllers/courseController.js";
 import { authenticateUser } from "../middleware/authMiddleware.js";
-import { uploadCourseMaterial as upload } from "../middleware/courseMiddleware.js"; 
- // ✅ import multer setup
+import { uploadCourseMaterial } from "../middleware/courseMiddleware.js";
 
 const router = express.Router();
 
-// ✅ Routes
+/**
+ * ✅ Multer setup:
+ * Handles both image + video in a single request
+ * Fields allowed:
+ *   - course_image
+ *   - video
+ */
+const upload = uploadCourseMaterial.fields([
+  { name: "course_image", maxCount: 1 },
+  { name: "course_video", maxCount: 1 },
+]);
+
+// ✅ Get all courses
 router.get("/", authenticateUser, getAllCourses);
 
-// ✅ Use multer for image upload
-router.post("/", authenticateUser, upload.single("course_image"), createCourse);
-router.put("/:id", authenticateUser, upload.single("course_image"), updateCourse);
+// ✅ Create a new course (with image, video & is_active)
+router.post("/", authenticateUser, upload, createCourse);
 
+// ✅ Update course (with image, video & is_active)
+router.put("/:id", authenticateUser, upload, updateCourse);
+
+// ✅ Delete a course
 router.delete("/:id", authenticateUser, deleteCourse);
 
 export default router;

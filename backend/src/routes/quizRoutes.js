@@ -1,5 +1,5 @@
 import express from "express";
-import { upload } from "../utils/fileHandler.js"; // ✅ your existing multer config
+import { upload } from "../utils/fileHandler.js";
 import {
   createQuiz,
   getQuizzesByChapter,
@@ -11,26 +11,21 @@ import { authenticateUser } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// ✅ Handle both JSON-based and file-based quiz uploads
+// ✅ Allow file-based or JSON-based quiz creation
 router.post(
   "/dashboard/quizzes",
-  upload.single("quiz_file"), // <--- allow optional file upload
-  async (req, res, next) => {
+  authenticateUser,
+  upload.single("quiz_file"),
+  async (req, res) => {
     try {
       if (req.file) {
-        // 📦 Handle file-based quiz import
-        const filePath = req.file.path;
-        const fileType = req.file.mimetype;
-
-        // You can parse Excel or DOC here (using xlsx, mammoth, etc.)
-        // For now, return file info for debugging:
+        const { path, mimetype } = req.file;
         return res.json({
           message: "✅ Quiz file uploaded successfully",
-          filePath,
-          fileType,
+          filePath: path,
+          fileType: mimetype,
         });
       } else {
-        // 🧾 Fall back to JSON-based quiz creation
         return createQuiz(req, res);
       }
     } catch (err) {
@@ -39,7 +34,6 @@ router.post(
     }
   }
 );
-
 
 router.get("/:chapter_id", authenticateUser, getQuizzesByChapter);
 router.post("/", authenticateUser, createQuiz);
