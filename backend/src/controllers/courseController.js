@@ -1,8 +1,7 @@
 import { connectDB } from "../config/db.js";
 import path from "path";
 
-// ✅ Helper: convert undefined → null for SQL-safe insertions
-
+// ✅ Helper: get relative path from absolute file path
 const getRelativePath = (filePath) => {
   const uploadsIndex = filePath.indexOf("uploads");
   if (uploadsIndex !== -1) {
@@ -11,6 +10,7 @@ const getRelativePath = (filePath) => {
   return filePath.replace(/\\/g, "/");
 };
 
+// ✅ Helper: convert undefined → null for SQL-safe insertions
 const safeValue = (val, fallback = null) =>
   val === undefined || val === "" ? fallback : val;
 
@@ -46,14 +46,19 @@ export const createCourse = async (req, res) => {
       is_active,
     } = req.body;
 
-    // ✅ Handle uploaded files
-    const course_image = req.files?.course_image
-  ? `uploads/${getRelativePath(req.files.course_image[0].path)}`
-  : null;
+    // ✅ Safely handle uploaded files
+    let course_image = null;
+    let course_video = null;
 
-const course_video = req.files?.video
-  ? `uploads/${getRelativePath(req.files.video[0].path)}`
-  : null;
+    if (req.files && req.files.course_image && req.files.course_image.length > 0) {
+      course_image = getRelativePath(req.files.course_image[0].path);
+    }
+
+      if (req.files && req.files.course_video && req.files.course_video.length > 0) {
+    course_video = getRelativePath(req.files.course_video[0].path);
+  }
+
+    // ✅ Get created_by (from auth middleware or default)
     const created_by = req.user?.email || req.user?.username || "Unknown";
 
     // ✅ Sanitize all input values
@@ -64,9 +69,7 @@ const course_video = req.files?.video
     overview = safeValue(overview);
     pricing_type = safeValue(pricing_type, "free");
     price_amount =
-      pricing_type === "free"
-        ? 0
-        : safeValue(Number(price_amount), 0);
+      pricing_type === "free" ? 0 : safeValue(Number(price_amount), 0);
     is_active = safeValue(is_active, "active");
 
     console.log("📦 Incoming course data:", {
@@ -79,8 +82,11 @@ const course_video = req.files?.video
       price_amount,
       is_active,
       created_by,
+      course_image,
+      course_video,
     });
 
+    // ✅ Insert into DB
     const [result] = await db.execute(
       `
       INSERT INTO courses (
@@ -116,6 +122,8 @@ const course_video = req.files?.video
     res.status(201).json({
       message: "✅ Course created successfully",
       course_id: result.insertId,
+      course_image,
+      course_video,
     });
   } catch (error) {
     console.error("❌ Error creating course:", error);
@@ -145,14 +153,18 @@ export const updateCourse = async (req, res) => {
       return res.status(404).json({ message: "Course not found" });
     const existing = rows[0];
 
-    // ✅ Update with new files if provided
-    const course_image = req.files?.course_image
-      ? req.files.course_image[0].path.replace(/\\/g, "/")
-      : existing.course_image;
+    // ✅ Update with new files only if provided
+    let course_image = existing.course_image;
+    let course_video = existing.course_video;
 
-    const course_video = req.files?.video
-      ? req.files.video[0].path.replace(/\\/g, "/")
-      : existing.course_video;
+    if (req.files && req.files.course_image && req.files.course_image.length > 0) {
+      course_image = getRelativePath(req.files.course_image[0].path);
+    }
+
+      if (req.files && req.files.course_video && req.files.course_video.length > 0) {
+      course_video = getRelativePath(req.files.course_video[0].path);
+    }
+
 
     await db.execute(
       `

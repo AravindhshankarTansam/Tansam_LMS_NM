@@ -1,4 +1,3 @@
-// src/pages/Admin_dashboard/CourseCreation/AddChapterPage.jsx
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -8,18 +7,18 @@ import {
   TextField,
   Button,
   Stack,
+  Paper,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Divider,
   IconButton,
-  Paper,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Checkbox,
   FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import {
   Add,
@@ -32,21 +31,44 @@ import { CHAPTER_API, QUIZ_API } from "../../../config/apiConfig";
 
 export default function AddChapterPage() {
   const { moduleId } = useParams();
+
   const [chapterName, setChapterName] = useState("");
-  const [materialType, setMaterialType] = useState("video");
-  const [file, setFile] = useState(null);
+  const [materials, setMaterials] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
 
   useEffect(() => {
     console.log("✅ Module ID from URL:", moduleId);
   }, [moduleId]);
 
+  // ===========================
+  // MATERIAL HANDLERS
+  // ===========================
+  const handleAddMaterial = () => {
+    setMaterials((prev) => [
+      ...prev,
+      { id: Date.now(), material_type: "", file: null },
+    ]);
+  };
+
+  const updateMaterial = (id, field, value) => {
+    setMaterials((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, [field]: value } : m))
+    );
+  };
+
+  const removeMaterial = (id) => {
+    setMaterials((prev) => prev.filter((m) => m.id !== id));
+  };
+
+  // ===========================
+  // QUIZ HANDLERS
+  // ===========================
   const handleAddQuiz = () => {
     setQuizzes((prev) => [
       ...prev,
       {
         id: Date.now(),
-        question_type: "multiple_choice",
+        quiz_type: "multiple_choice",
         question: "",
         options: [""],
         correct_answers: [],
@@ -87,192 +109,220 @@ export default function AddChapterPage() {
     );
   };
 
-  const handleSaveChapter = async () => {
-    if (!chapterName) return alert("Enter a chapter name");
-    if (!moduleId) return alert("❌ Module ID missing in URL");
+  const removeQuiz = (id) => {
+    setQuizzes((prev) => prev.filter((q) => q.id !== id));
+  };
 
-    // ✅ Create chapter
+  // ===========================
+  // SAVE CHAPTER LOGIC
+  // ===========================
+  // ===========================
+// SAVE CHAPTER LOGIC (Fixed)
+// ===========================
+const handleSaveChapter = async () => {
+  if (!chapterName) return alert("⚠️ Enter a chapter name first.");
+  if (!moduleId) return alert("❌ Module ID missing in URL.");
+
+  try {
+    // 🧩 Prepare FormData for chapter + materials in one request
     const formData = new FormData();
     formData.append("module_id", moduleId);
     formData.append("chapter_name", chapterName);
-    if (file) formData.append("material", file);
 
-    const res = await fetch(CHAPTER_API, {
+    materials.forEach((m) => {
+      if (m.file) {
+        formData.append("materials", m.file);
+        formData.append("material_types", m.material_type);
+      }
+    });
+
+    // ✅ Create chapter + upload materials together
+    const chapterRes = await fetch(`${CHAPTER_API}`, {
       method: "POST",
       credentials: "include",
       body: formData,
     });
 
-    if (!res.ok) {
-      alert("❌ Failed to create chapter");
-      return;
-    }
+    if (!chapterRes.ok) throw new Error(await chapterRes.text());
+    const chapterData = await chapterRes.json();
+    const chapterId = chapterData.chapter_id || chapterData.id;
 
-    const data = await res.json();
-    const chapterId = data.chapter_id || data.id;
+    if (!chapterId)
+      throw new Error("❌ No chapter_id returned from backend.");
 
-    if (!chapterId) {
-      alert("❌ Chapter created, but no chapter_id returned from backend.");
-      return;
-    }
-
-    // ✅ Filter valid quizzes only (skip empty)
-    const validQuizzes = quizzes.filter(
-      (q) =>
-        q.question.trim() !== "" &&
-        Array.isArray(q.options) &&
-        q.options.some((opt) => opt.trim() !== "")
-    );
-
-    // ✅ Create quizzes
-    for (const quiz of validQuizzes) {
+    // ✅ Save quizzes (if any)
+    for (const quiz of quizzes) {
       const quizPayload = {
         chapter_id: chapterId,
-        question_type: quiz.question_type,
-        question: quiz.question.trim(),
-        options: quiz.options.filter((opt) => opt.trim() !== ""),
+        quiz_type: quiz.quiz_type,
+        question: quiz.question,
+        options: quiz.options,
         correct_answers: quiz.correct_answers,
-        order_index: 0,
       };
 
-      try {
-        const quizRes = await fetch(QUIZ_API, {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(quizPayload),
-        });
+      const quizRes = await fetch(`${QUIZ_API}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(quizPayload),
+      });
 
-        const quizData = await quizRes.json();
-        if (!quizRes.ok) {
-          console.error("❌ Quiz creation failed:", quizData);
-        } else {
-          console.log("✅ Quiz saved:", quizData);
-        }
-      } catch (err) {
-        console.error("❌ Quiz creation error:", err);
-      }
+      if (!quizRes.ok)
+        console.error("❌ Quiz creation failed:", await quizRes.text());
     }
 
-    alert("✅ Chapter & quizzes saved successfully!");
+    alert("✅ Chapter, materials & quizzes saved successfully!");
     setChapterName("");
-    setFile(null);
+    setMaterials([]);
     setQuizzes([]);
+  } catch (err) {
+    console.error("❌ Error saving chapter:", err);
+    alert(`Error: ${err.message}`);
+  }
+};
+
+
+  // ===========================
+  // FILE PREVIEW HANDLER
+  // ===========================
+  const renderPreview = (file, type) => {
+    if (!file) return null;
+    const url = URL.createObjectURL(file);
+    if (type === "video") return <video src={url} controls width="280" />;
+    if (type === "flowchart") return <img src={url} alt="preview" width="250" />;
+    return <Typography mt={1}>{file.name}</Typography>;
   };
 
+  // ===========================
+  // UI RENDER
+  // ===========================
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
+    <Box p={3}>
       <Card
         sx={{
           p: 4,
-          boxShadow: 5,
           borderRadius: 4,
-          background: "linear-gradient(180deg, #f9f9fb 0%, #ffffff 100%)",
-          "&:hover": { boxShadow: 7 },
-          maxWidth: 900,
-          mx: "auto",
+          boxShadow: 5,
+          background: "linear-gradient(180deg,#f9f9fb 0%,#fff 100%)",
         }}
       >
         <Typography variant="h5" fontWeight={700} mb={3}>
-          Create New Chapter
+          ➕ Create New Chapter
         </Typography>
 
-        {/* CHAPTER INPUTS */}
-        <Stack spacing={2}>
+        <Stack spacing={3}>
           <TextField
             label="Chapter Name"
+            fullWidth
             value={chapterName}
             onChange={(e) => setChapterName(e.target.value)}
-            fullWidth
           />
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            <FormControl fullWidth>
-              <InputLabel>Material Type</InputLabel>
-              <Select
-                value={materialType}
-                label="Material Type"
-                onChange={(e) => setMaterialType(e.target.value)}
-              >
-                <MenuItem value="video">Video</MenuItem>
-                <MenuItem value="ppt">PPT</MenuItem>
-                <MenuItem value="pdf">PDF</MenuItem>
-                <MenuItem value="other">Other</MenuItem>
-              </Select>
-            </FormControl>
-
-            <Button
-              variant="outlined"
-              component="label"
-              startIcon={<UploadFile />}
-              sx={{ minWidth: 220 }}
-            >
-              Upload {materialType.toUpperCase()}
-              <input
-                type="file"
-                hidden
-                onChange={(e) => setFile(e.target.files[0])}
-              />
-            </Button>
-          </Stack>
-        </Stack>
-
-        <Divider sx={{ my: 3 }} />
-
-        {/* QUIZZES SECTION */}
-        <Accordion defaultExpanded>
-          <AccordionSummary expandIcon={<ExpandMore />}>
-            <Typography variant="h6" fontWeight={600}>
-              Quizzes for this Chapter
-            </Typography>
-          </AccordionSummary>
-
-          <AccordionDetails>
-            <Stack spacing={2}>
-              {quizzes.map((quiz, idx) => (
-                <Paper
-                  key={quiz.id}
-                  sx={{
-                    p: 2.5,
-                    borderRadius: 3,
-                    boxShadow: 3,
-                    backgroundColor: "#f8f9fa",
-                  }}
-                >
-                  <Stack
-                    direction="row"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    mb={1}
-                  >
-                    <Typography variant="subtitle1" fontWeight={600}>
-                      Quiz {idx + 1}
-                    </Typography>
-                    <IconButton
-                      color="error"
-                      onClick={() =>
-                        setQuizzes(quizzes.filter((q) => q.id !== quiz.id))
-                      }
+          {/* ================= MATERIALS ================= */}
+          <Accordion defaultExpanded>
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Typography variant="h6" fontWeight={600}>
+                Upload Chapter Materials
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack spacing={2}>
+                {materials.map((m) => (
+                  <Paper key={m.id} sx={{ p: 2, borderRadius: 3, boxShadow: 2 }}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      mb={1}
                     >
-                      <Delete />
-                    </IconButton>
-                  </Stack>
+                      <Typography fontWeight={600}>Material</Typography>
+                      <IconButton color="error" onClick={() => removeMaterial(m.id)}>
+                        <Delete />
+                      </IconButton>
+                    </Stack>
 
-                  <Stack spacing={2}>
+                    <FormControl fullWidth>
+                      <InputLabel>Material Type</InputLabel>
+                      <Select
+                        value={m.material_type}
+                        label="Material Type"
+                        onChange={(e) =>
+                          updateMaterial(m.id, "material_type", e.target.value)
+                        }
+                      >
+                        <MenuItem value="video">Video</MenuItem>
+                        <MenuItem value="pdf">PDF</MenuItem>
+                        <MenuItem value="ppt">PPT</MenuItem>
+                        <MenuItem value="doc">DOC</MenuItem>
+                        <MenuItem value="flowchart">Flowchart</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    <Button
+                      sx={{ mt: 1 }}
+                      variant="outlined"
+                      component="label"
+                      startIcon={<UploadFile />}
+                    >
+                      Upload File
+                      <input
+                        type="file"
+                        hidden
+                        onChange={(e) =>
+                          updateMaterial(m.id, "file", e.target.files[0])
+                        }
+                      />
+                    </Button>
+
+                    {renderPreview(
+                      m.file,
+                      m.material_type === "flowchart"
+                        ? "flowchart"
+                        : m.material_type
+                    )}
+                  </Paper>
+                ))}
+
+                <Button startIcon={<Add />} variant="contained" onClick={handleAddMaterial}>
+                  Add Material
+                </Button>
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* ================= QUIZZES ================= */}
+          <Accordion defaultExpanded>
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Typography variant="h6" fontWeight={600}>
+                Add Quizzes
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack spacing={2}>
+                {quizzes.map((quiz, idx) => (
+                  <Paper key={quiz.id} sx={{ p: 2, borderRadius: 3, boxShadow: 3 }}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      mb={1}
+                    >
+                      <Typography fontWeight={600}>Quiz {idx + 1}</Typography>
+                      <IconButton color="error" onClick={() => removeQuiz(quiz.id)}>
+                        <Delete />
+                      </IconButton>
+                    </Stack>
+
                     <FormControl fullWidth>
                       <InputLabel>Quiz Type</InputLabel>
                       <Select
-                        value={quiz.question_type}
+                        value={quiz.quiz_type}
                         label="Quiz Type"
                         onChange={(e) =>
-                          updateQuiz(quiz.id, "question_type", e.target.value)
+                          updateQuiz(quiz.id, "quiz_type", e.target.value)
                         }
                       >
-                        <MenuItem value="multiple_choice">
-                          Multiple Choice
-                        </MenuItem>
+                        <MenuItem value="multiple_choice">Multiple Choice</MenuItem>
                         <MenuItem value="short_answer">Short Answer</MenuItem>
                         <MenuItem value="true_false">True / False</MenuItem>
                       </Select>
@@ -281,18 +331,20 @@ export default function AddChapterPage() {
                     <TextField
                       label="Question"
                       fullWidth
+                      sx={{ mt: 2 }}
                       value={quiz.question}
                       onChange={(e) =>
                         updateQuiz(quiz.id, "question", e.target.value)
                       }
                     />
 
-                    {/* ✅ Multiple Choice Section */}
-                    {quiz.question_type === "multiple_choice" && (
+                    {/* Multiple Choice */}
+                    {quiz.quiz_type === "multiple_choice" && (
                       <>
                         {quiz.options.map((opt, i) => (
                           <TextField
                             key={i}
+                            sx={{ mt: 1 }}
                             label={`Option ${i + 1}`}
                             value={opt}
                             onChange={(e) => {
@@ -303,29 +355,22 @@ export default function AddChapterPage() {
                             fullWidth
                           />
                         ))}
-
                         <Button
                           size="small"
+                          sx={{ mt: 1 }}
                           onClick={() => addOption(quiz.id)}
-                          variant="text"
                         >
                           + Add Option
                         </Button>
 
-                        <Typography
-                          variant="subtitle2"
-                          mt={1}
-                          fontWeight={600}
-                          color="primary"
-                        >
-                          Select Correct Option(s)
+                        <Typography variant="subtitle2" mt={1} fontWeight={600}>
+                          Correct Answer(s)
                         </Typography>
-
                         {quiz.options.map(
                           (opt, i) =>
                             opt && (
                               <FormControlLabel
-                                key={`chk-${quiz.id}-${i}`}
+                                key={i}
                                 control={
                                   <Checkbox
                                     checked={quiz.correct_answers.includes(opt)}
@@ -334,30 +379,29 @@ export default function AddChapterPage() {
                                     }
                                   />
                                 }
-                                label={opt || `Option ${i + 1}`}
+                                label={opt}
                               />
                             )
                         )}
                       </>
                     )}
 
-                    {/* ✅ Short Answer */}
-                    {quiz.question_type === "short_answer" && (
+                    {/* Short Answer */}
+                    {quiz.quiz_type === "short_answer" && (
                       <TextField
+                        sx={{ mt: 2 }}
                         label="Correct Answer"
                         fullWidth
                         value={quiz.correct_answers[0] || ""}
                         onChange={(e) =>
-                          updateQuiz(quiz.id, "correct_answers", [
-                            e.target.value,
-                          ])
+                          updateQuiz(quiz.id, "correct_answers", [e.target.value])
                         }
                       />
                     )}
 
-                    {/* ✅ True/False */}
-                    {quiz.question_type === "true_false" && (
-                      <FormControl fullWidth>
+                    {/* True/False */}
+                    {quiz.quiz_type === "true_false" && (
+                      <FormControl fullWidth sx={{ mt: 2 }}>
                         <InputLabel>Correct Answer</InputLabel>
                         <Select
                           value={quiz.correct_answers[0] || ""}
@@ -372,35 +416,32 @@ export default function AddChapterPage() {
                         </Select>
                       </FormControl>
                     )}
-                  </Stack>
-                </Paper>
-              ))}
+                  </Paper>
+                ))}
 
-              <Button
-                startIcon={<Add />}
-                onClick={handleAddQuiz}
-                variant="contained"
-                color="primary"
-                sx={{ alignSelf: "flex-start" }}
-              >
-                Add Quiz
-              </Button>
-            </Stack>
-          </AccordionDetails>
-        </Accordion>
+                <Button
+                  startIcon={<Add />}
+                  variant="contained"
+                  color="primary"
+                  onClick={handleAddQuiz}
+                >
+                  Add Quiz
+                </Button>
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
 
-        <Divider sx={{ my: 3 }} />
-
-        <Stack direction="row" justifyContent="flex-end">
-          <Button
-            variant="contained"
-            color="success"
-            size="large"
-            startIcon={<Save />}
-            onClick={handleSaveChapter}
-          >
-            Save Chapter & Quizzes
-          </Button>
+          <Stack direction="row" justifyContent="flex-end">
+            <Button
+              variant="contained"
+              color="success"
+              size="large"
+              startIcon={<Save />}
+              onClick={handleSaveChapter}
+            >
+              Save Chapter, Materials & Quizzes
+            </Button>
+          </Stack>
         </Stack>
       </Card>
     </Box>
