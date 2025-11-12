@@ -61,22 +61,32 @@ export const getChaptersByModule = async (req, res) => {
     const db = await connectDB();
     const { module_id } = req.params;
 
+    console.log("Fetching chapters for module_id:", module_id);
+
     const [rows] = await db.query(
       "SELECT * FROM chapters WHERE module_id = ? ORDER BY order_index ASC",
       [module_id]
     );
 
-    const chapters = rows.map((ch) => ({
-      ...ch,
-      materials_json: ch.materials_json ? JSON.parse(ch.materials_json) : [],
-    }));
+    console.log("DB returned rows:", rows);
+
+    const chapters = rows.map((ch) => {
+      let materials = [];
+      try {
+        materials = ch.materials_json ? JSON.parse(ch.materials_json) : [];
+      } catch (err) {
+        console.error("❌ JSON parse error for chapter_id:", ch.chapter_id, err);
+      }
+      return { ...ch, materials_json: materials };
+    });
 
     res.status(200).json({ success: true, chapters });
   } catch (error) {
     console.error("❌ Error fetching chapters:", error);
-    res.status(500).json({ error: "Failed to fetch chapters" });
+    res.status(500).json({ error: "Failed to fetch chapters", details: error.message });
   }
 };
+
 
 // ✅ Update chapter (name, order, or materials)
 export const updateChapter = async (req, res) => {
