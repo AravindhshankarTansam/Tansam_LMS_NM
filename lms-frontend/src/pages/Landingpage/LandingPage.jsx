@@ -151,6 +151,13 @@ const LandingPage = () => {
               <p>
                Track your progress, test your understanding, and earn certificates that showcase your achievements.  </p>
             </div>
+            
+            <div className="step">
+              <div className="step-number">04</div>
+              <h4>Get your certificates</h4>
+              <p>
+               Track your progress, test your understanding, and earn certificates that showcase your achievements.  </p>
+            </div>
           </div>
         </div>
       </section>
