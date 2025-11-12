@@ -2,7 +2,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-// Configure storage for course uploads
+// ✅ Configure storage dynamically
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const courseName = req.body.course_name
@@ -17,15 +17,10 @@ const storage = multer.diskStorage({
       ? req.body.material_type.replace(/\s+/g, "_").toLowerCase()
       : "misc";
 
-    // Example: uploads/course_name/chapter_name/material_type
-    const folder = path.resolve(
-      "uploads",
-      courseName,
-      chapterName,
-      materialType
-    );
-
+    // Example path: uploads/course_name/chapter_name/material_type
+    const folder = path.join("uploads", courseName, chapterName, materialType);
     fs.mkdirSync(folder, { recursive: true });
+
     cb(null, folder);
   },
 
@@ -37,7 +32,7 @@ const storage = multer.diskStorage({
   },
 });
 
-// Allow videos, PDFs, images, and documents
+// ✅ Allow only supported files
 const fileFilter = (req, file, cb) => {
   const allowed = [
     "image/jpeg",
@@ -59,9 +54,15 @@ const fileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
-// 10 MB limit for now
+// ✅ Export multer instance (limit: 100 MB)
 export const uploadCourseMaterial = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB
 });
+
+// ✅ Helper: Return relative path (from 'uploads/')
+export const getRelativePath = (absolutePath) => {
+  if (!absolutePath) return null;
+  return absolutePath.split("uploads").pop().replace(/\\/g, "/").replace(/^\//, "");
+};
