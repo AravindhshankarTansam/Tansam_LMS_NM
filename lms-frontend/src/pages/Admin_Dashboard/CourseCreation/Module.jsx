@@ -32,7 +32,6 @@ import { MODULE_API, CHAPTER_API } from "../../../config/apiConfig";
 export default function ModuleList() {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
 
   const [modules, setModules] = useState([]);
   const [expandedModule, setExpandedModule] = useState(null);
@@ -41,11 +40,12 @@ export default function ModuleList() {
   const [editingModuleId, setEditingModuleId] = useState(null);
   const [editingModuleName, setEditingModuleName] = useState("");
 
-  // ✅ Fetch all modules for a specific course
+  // ✅ Fetch all modules for a specific course (cookie-based)
   const fetchModules = async () => {
     try {
       const res = await fetch(`${MODULE_API}/${courseId}`, {
-       credentials: "include",
+        method: "GET",
+        credentials: "include", // ✅ send cookies with request
       });
       if (!res.ok) throw new Error("Failed to fetch modules");
       const data = await res.json();
@@ -59,27 +59,23 @@ export default function ModuleList() {
     if (courseId) fetchModules();
   }, [courseId]);
 
-  // ✅ Fetch chapters for a specific module (when expanded)
-const fetchChaptersForModule = async (moduleId) => {
-  try {
-    const res = await fetch(`${CHAPTER_API}/${moduleId}`, {
-      credentials: "include",
-    });
-    if (!res.ok) throw new Error("Failed to fetch chapters");
-    const data = await res.json();
-
-    // Extract chapters array
-    const chaptersArray = Array.isArray(data.chapters) ? data.chapters : [];
-    
-    setChaptersByModule((prev) => ({
-      ...prev,
-      [moduleId]: chaptersArray,
-    }));
-  } catch (err) {
-    console.error("❌ Error fetching chapters:", err);
-  }
-};
-
+  // ✅ Fetch chapters for a specific module
+  const fetchChaptersForModule = async (moduleId) => {
+    try {
+      const res = await fetch(`${CHAPTER_API}/${moduleId}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch chapters");
+      const data = await res.json();
+      setChaptersByModule((prev) => ({
+        ...prev,
+        [moduleId]: Array.isArray(data) ? data : [],
+      }));
+    } catch (err) {
+      console.error("❌ Error fetching chapters:", err);
+    }
+  };
 
   // ✅ Expand/collapse logic
   const handleToggleExpand = (moduleId) => {
@@ -90,35 +86,27 @@ const fetchChaptersForModule = async (moduleId) => {
     }
   };
 
-  // ✅ Add, Edit, Delete Module
-const handleAddModule = async () => {
-  if (!newModuleName.trim()) return;
-  try {
-    const res = await fetch(MODULE_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json", // ✅ Important
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        course_id: courseId,
-        module_name: newModuleName.trim(),
-        order_index: modules.length + 1,
-      }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`Failed to add module: ${errText}`);
+  // ✅ Add, Edit, Delete Module (cookie-based)
+  const handleAddModule = async () => {
+    if (!newModuleName.trim()) return;
+    try {
+      const res = await fetch(MODULE_API, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          course_id: courseId,
+          module_name: newModuleName.trim(),
+          order_index: modules.length + 1,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to add module");
+      setNewModuleName("");
+      fetchModules();
+    } catch (err) {
+      console.error("❌ Error adding module:", err);
     }
-
-    setNewModuleName("");
-    fetchModules();
-  } catch (err) {
-    console.error("❌ Error adding module:", err);
-  }
-};
-
+  };
 
   const handleDeleteModule = async (id) => {
     try {
@@ -143,6 +131,7 @@ const handleAddModule = async () => {
       const res = await fetch(`${MODULE_API}/${id}`, {
         method: "PUT",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           module_name: editingModuleName.trim(),
           order_index: modules.findIndex((m) => m.module_id === id) + 1,

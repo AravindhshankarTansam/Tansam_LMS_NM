@@ -99,8 +99,8 @@ export default function CourseCreateForm() {
         credentials: "include", // ✅ send cookie
       });
       if (!res.ok) throw new Error("Failed to fetch categories");
-     const data = await res.json();
-setCategories(Array.isArray(data) ? data : []);
+      const data = await res.json();
+      setCategories(data[0] || []);
     } catch (err) {
       console.error("Error fetching categories:", err);
     }
