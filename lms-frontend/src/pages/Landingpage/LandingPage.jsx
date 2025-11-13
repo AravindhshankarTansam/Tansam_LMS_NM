@@ -60,9 +60,9 @@ const LandingPage = () => {
           <ul className="nav-links">
             <li onClick={() => scrollToSection("home")}>Home</li>
             <li onClick={() => scrollToSection("courses")}>Courses</li>
-            <li onClick={() => scrollToSection("instructors")}>Instructors</li>
+            {/* <li onClick={() => scrollToSection("instructors")}>Instructors</li> */}
             <li onClick={() => scrollToSection("testimonials")}>Testimonials</li>
-            <li onClick={() => scrollToSection("blog")}>Blog</li>
+            {/* <li onClick={() => scrollToSection("blog")}>Blog</li> */}
           </ul>
           <Link to="/login">
             <button className="contact-btns">Login</button>
@@ -314,7 +314,7 @@ const LandingPage = () => {
               </ul>
             </div>
 
-            <div>
+            {/* <div>
               <h4>Support</h4>
               <ul>
                 <li>Help Center</li>
@@ -322,7 +322,7 @@ const LandingPage = () => {
                 <li>About Us</li>
                 <li>Contact</li>
               </ul>
-            </div>
+            </div> */}
 
             <div>
               <h4>Contact Us</h4>
@@ -330,8 +330,8 @@ const LandingPage = () => {
                 <li><span className="contact-label">Call:</span> +91 9884035145</li>
                 <li>
                   <span className="contact-label">Email:</span>{" "}
-                  <a href="mailto:support@tansam.org" className="contact-email">
-                    support@tansam.org
+                  <a href="mailto:info@tansam.org" className="contact-email">
+                    info@tansam.org
                   </a>
                 </li>
 
@@ -344,9 +344,12 @@ const LandingPage = () => {
           <ul>
             <li onClick={() => scrollToSection("home")}>Home</li>
             <li onClick={() => scrollToSection("courses")}>Courses</li>
-            <li onClick={() => scrollToSection("instructors")}>Instructors</li>
+            {/* <li onClick={() => scrollToSection("instructors")}>Instructors</li> */}
             <li onClick={() => scrollToSection("testimonials")}>Testimonials</li>
-            <li onClick={() => scrollToSection("blog")}>Blog</li>
+            {/* <li onClick={() => scrollToSection("blog")}>Blog</li> */}
+            <li> <a href="#" className="thin-link">Policy & Terms</a> </li>
+
+
           </ul>
         </div>
       </footer>

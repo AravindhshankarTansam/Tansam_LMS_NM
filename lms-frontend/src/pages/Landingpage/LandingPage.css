@@ -721,7 +721,20 @@
 
 .trusted-left {
   flex: 1;
+  text-align: left;
 }
+
+.trusted-left h4{
+  margin-bottom: 10px;
+}
+
+.trusted-left h2 {
+  font-size: 1.7rem;
+  margin-bottom: 20px;
+  background-color: #009999;
+  padding: 5px 10px;
+  color: #fff;
+} 
 
 .trusted-right {
   flex: 1;
@@ -892,7 +905,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 50px;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #d8f325;
   padding-bottom: 40px;
 }
 
@@ -911,6 +924,7 @@
   color: #fff;
   margin-bottom: 20px;
 }
+
 
 .subscribe-box {
   display: flex;
@@ -987,6 +1001,18 @@
 .footer-bottom li:hover {
   color: #e9d80b;
 }
+.thin-link {
+  text-decoration: none;
+  color: #ffff;
+  font-weight: 400; /* makes text thinner */
+  transition: color 0.3s ease;
+}
+
+.thin-link:hover {
+  color: #e9d80b; /* hover color */
+  text-decoration: underline;
+}
+
 
 .contact-label{
   font-weight: bold;
@@ -2019,7 +2045,7 @@
   top: 50%;                         /* Center vertical alignment */
   left: 100%;                       /* Start just after the circle */
   margin-left: 14px;                /* Small space after the circle */
-  width: calc(100vw / 4 - 120px);   /* Adjust to fit four steps: tweak -120px as needed */
+  width: calc(100vw / 4 - 80px);   /* Adjust to fit four steps: tweak -120px as needed */
   border-top: 2px dotted #004c3f;   /* Dotted line style */
   transform: translateY(-50%);
   z-index: 15;

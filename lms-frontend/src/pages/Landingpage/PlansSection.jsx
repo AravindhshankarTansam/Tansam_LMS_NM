@@ -14,149 +14,69 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import "./PlansSection.css"; // 👈 Import CSS file
 
 const PlansSection = () => {
-  const teamPlanFeatures = [
-    "Access to 13,000+ top courses",
-    "Certification prep",
-    "Goal-focused recommendations",
-    "AI-powered coaching",
-    "Analytics and adoption reports",
-  ];
-
-  const enterprisePlanFeatures = [
-    "Access to 30,000+ top courses",
-    "Certification prep",
-    "Goal-focused recommendations",
-    "AI-powered coaching",
-    "Advanced analytics and insights",
-    "Dedicated customer success team",
-    "Customizable content",
-    "Hands-on tech training",
-    "Strategic implementation services",
-  ];
+const labs = [
+  {
+    icon: "💡",
+    title: "Innovative Manufacturing",
+    desc: "TANSAM with Siemens powers precision manufacturing through reverse engineering and 3D metal printing.",
+  },
+  {
+    icon: "🏭",
+    title: "Smart Factory",
+    desc: "TANSAM Smart Factory uses Siemens Industry 4.0 tools to optimize and transform manufacturing.",
+  },
+  {
+    icon: "🕶️",
+    title: "AR | VR | XR",
+    desc: "TANSAM AR/VR/MR Lab develops immersive simulations enhancing training, learning, and real-world workflows.",
+  },
+  {
+    icon: "📋",
+    title: "Product Lifecycle Management",
+    desc: "TANSAM PLM Center uses Siemens Teamcenter to streamline product lifecycle, collaboration, and innovation.",
+  },
+  {
+    icon: "📦",
+    title: "Product Innovation",
+    desc: "TANSAM Product Innovation Center uses Siemens tools to accelerate efficient, creative product development.",
+  },
+  {
+    icon: "✅",
+    title: "Predictive Engineering",
+    desc: "TANSAM Predictive Engineering Center uses Siemens tools to simulate, analyze, and optimize products.",
+  },
+  {
+    icon: "⚙️",
+    title: "Asset Performance",
+    desc: "TANSAM Asset Performance uses advanced engineering & computing methods to determine predictive and preventive asset performance.",
+  },
+  {
+    icon: "🔗",
+    title: "Industrial IoT & Equipment",
+    desc: "TANSAM Industrial IIoT & Equipment performance center uses edge computing and industrial automation tools to enhance efficiency and productivity.",
+  },
+  {
+    icon: "🤖",
+    title: "Digital Technologies",
+    desc: "TANSAM Digital Technologies center uses Artificial Intelligence & Machine Learning techniques for vision computing and digitization.",
+  },
+];
 
   return (
-    <section className="plans-section">
-      {/* Header */}
-      <Box textAlign="center" mb={6}>
-        <Typography variant="h4" fontWeight="bold" gutterBottom>
-          Grow your team's skills and your business
-        </Typography>
-        <Typography color="text.secondary" fontSize="1rem">
-          Reach goals faster with one of our plans or programs. Try one free
-          today or contact sales to learn more.
-        </Typography>
-      </Box>
+        <section className="innovation-section" id="innovation-labs">
+      <h2 className="innovation-title">
+        <span>INNOVATION</span> LABS
+      </h2>
 
-      {/* Cards Row */}
-      <Box className="plans-row">
-        {/* TEAM PLAN */}
-        <Card className="plan-card">
-          <CardContent>
-            <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Team Plan
-            </Typography>
-            <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-              <PeopleAltIcon color="action" fontSize="small" />
-              <Typography variant="body2" color="text.secondary">
-                2 to 10 people – For your team
-              </Typography>
-            </Stack>
-
-            <Button fullWidth variant="contained" className="plan-btn">
-              Start subscription
-            </Button>
-
-            <Typography fontWeight="bold">₹2,000 a month per user</Typography>
-            <Typography variant="body2" color="text.secondary" mb={3}>
-              Billed annually. Cancel anytime.
-            </Typography>
-
-            <Stack spacing={1}>
-              {teamPlanFeatures.map((item) => (
-                <Stack key={item} direction="row" spacing={1} alignItems="center">
-                  <CheckCircleIcon color="success" fontSize="small" />
-                  <Typography variant="body2">{item}</Typography>
-                </Stack>
-              ))}
-            </Stack>
-          </CardContent>
-        </Card>
-
-        {/* ENTERPRISE PLAN */}
-        <Card className="plan-card">
-          <CardContent>
-            <Typography variant="h6" fontWeight="bold" gutterBottom>
-              Enterprise Plan
-            </Typography>
-            <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-              <GroupsIcon color="action" fontSize="small" />
-              <Typography variant="body2" color="text.secondary">
-                More than 20 people – For your whole organization
-              </Typography>
-            </Stack>
-
-            <Button fullWidth variant="contained" className="plan-btn">
-              Request a demo
-            </Button>
-
-            <Typography fontWeight="bold" mb={2}>
-              Contact sales for pricing
-            </Typography>
-
-            <Stack spacing={1}>
-              {enterprisePlanFeatures.map((item) => (
-                <Stack key={item} direction="row" spacing={1} alignItems="center">
-                  <CheckCircleIcon color="success" fontSize="small" />
-                  <Typography variant="body2">{item}</Typography>
-                </Stack>
-              ))}
-            </Stack>
-          </CardContent>
-        </Card>
-
-        {/* AI FLUENCY */}
-        <Card className="plan-card">
-          <CardContent>
-            <Typography variant="h6" fontWeight="bold" gutterBottom>
-              AI Fluency
-            </Typography>
-            <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-              <AutoAwesomeIcon color="action" fontSize="small" />
-              <Typography variant="body2" color="text.secondary">
-                From AI foundations to Enterprise transformation
-              </Typography>
-            </Stack>
-
-            <Button fullWidth variant="contained" className="plan-btn">
-              Contact Us
-            </Button>
-
-            <Stack spacing={4}>
-              <Box>
-                <Typography fontWeight="bold">AI Readiness Collection</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  👥 More than 100 people
-                </Typography>
-                <Typography variant="body2" color="text.secondary" mt={1}>
-                  Build org-wide AI fluency fast with 50 curated courses + AI
-                  Assistant to accelerate learning.
-                </Typography>
-              </Box>
-
-              <Box>
-                <Typography fontWeight="bold">AI Growth Collection</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  👥 More than 20 people
-                </Typography>
-                <Typography variant="body2" color="text.secondary" mt={1}>
-                  Scale AI and technical expertise with 800+ specialized courses
-                  and 30+ role-specific learning paths in multiple languages.
-                </Typography>
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
-      </Box>
+      <div className="labs-grid">
+        {labs.map((lab, index) => (
+          <div key={index} className="lab-card">
+            <div className="lab-icon">{lab.icon}</div>
+            <h3 className="lab-title">{lab.title}</h3>
+            <p className="lab-desc">{lab.desc}</p>
+          </div>
+        ))}
+      </div>
     </section>
   );
 };

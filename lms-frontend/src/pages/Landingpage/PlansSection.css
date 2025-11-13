@@ -1,35 +1,71 @@
-.plans-section {
-  background-color: #e0e9fa;
-  padding: 4rem 1.5rem;
+.innovation-section {
+  text-align: center;
+  padding: 80px 40px;
+  background-color: #ffffff;
 }
 
-.plans-row {
-  display: flex;
+.innovation-title {
+  font-size: 2rem;
+  margin-bottom: 50px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.innovation-title span {
+  color: #00b894;
+  font-weight: bolder !important;
+}
+
+/* 🔹 Force exactly 3 columns per row on desktop */
+.labs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
   justify-content: center;
-  align-items: stretch;
-  gap: 24px;
-  max-width: 85%;
-  margin: 0 auto;
-  flex-wrap: nowrap;
 }
 
-.plan-card {
-  flex: 1;
-  border-top: 4px solid #00b894 !important;
-  border-radius: 16px !important;
-  transition: box-shadow 0.3s ease-in-out;
+/* 🔸 For tablets (2 per row) */
+@media (max-width: 992px) {
+  .labs-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.plan-card:hover {
-  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
+/* 🔸 For mobile (1 per row) */
+@media (max-width: 600px) {
+  .labs-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-.plan-btn {
-  background-color: #00b894 !important;
-  text-transform: none !important;
-  margin-bottom: 16px !important;
+.lab-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 30px 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
 }
 
-.plan-btn:hover {
-  background-color: #7c3aed !important;
+.lab-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.lab-icon {
+  font-size: 40px;
+  color: #7ec8c9;
+  margin-bottom: 15px;
+}
+
+.lab-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #000;
+}
+
+.lab-desc {
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.5;
 }
