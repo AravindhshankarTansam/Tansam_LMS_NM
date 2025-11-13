@@ -129,8 +129,6 @@
   position: relative;
   overflow: hidden;
   height: 100vh;
-  border-top-left-radius: 40px;  /* ✅ curved top-left corner */
-  border-bottom-left-radius: 40px;  /* ✅ curved bottom-left corner */
   box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15); /* optional soft shadow */
 }
 /* Blurred and dimmed background image */
@@ -243,4 +241,93 @@
     transparent 70%
   );
   z-index: -1;
+}
+
+
+/* From Uiverse.io by mobinkakei */
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 33px;
+  text-decoration: none;
+  font-size: 18px;
+  color: white;
+  background: #00569a;
+  transition: 1s;
+  box-shadow: 6px 6px 0 #6ebf45;
+  transform: skewX(-15deg);
+  border: none;
+  cursor: pointer;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.cta:focus {
+  outline: none;
+}
+
+.cta:hover {
+  transition: 0.5s;
+  box-shadow: 10px 10px 0 #fbc638;
+}
+
+.cta .second {
+  transition: 0.5s;
+  margin-right: 0px;
+}
+
+.cta:hover .second {
+  transition: 0.5s;
+  margin-right: 45px;
+}
+
+.span {
+  transform: skewX(15deg);
+  font-weight: 600;
+}
+
+.second {
+  width: 20px;
+  margin-left: 30px;
+  position: relative;
+  top: 12%;
+}
+
+.one {
+  transition: 0.4s;
+  transform: translateX(-60%);
+}
+
+.two {
+  transition: 0.5s;
+  transform: translateX(-30%);
+}
+
+.cta:hover .three {
+  animation: color_anim 1s infinite 0.2s;
+}
+
+.cta:hover .one {
+  transform: translateX(0%);
+  animation: color_anim 1s infinite 0.6s;
+}
+
+.cta:hover .two {
+  transform: translateX(0%);
+  animation: color_anim 1s infinite 0.4s;
+}
+
+@keyframes color_anim {
+  0% {
+    fill: white;
+  }
+
+  50% {
+    fill: #fbc638;
+  }
+
+  100% {
+    fill: white;
+  }
 }

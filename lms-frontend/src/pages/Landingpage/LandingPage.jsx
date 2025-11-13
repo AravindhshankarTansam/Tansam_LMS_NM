@@ -16,7 +16,8 @@ const LandingPage = () => {
       try {
         const token = localStorage.getItem("token");
 
-        const res = await fetch("http://localhost:5000/api/dashboard/courses", {
+        // const res = await fetch("http://localhost:5000/api/dashboard/courses", {
+          const res = await fetch("https://lms.tansam.org/api/dashboard/courses", {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",

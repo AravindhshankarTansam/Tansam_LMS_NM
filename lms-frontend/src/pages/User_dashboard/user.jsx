@@ -19,7 +19,8 @@ const DashboardContent = () => {
     const fetchUserData = async () => {
       try {
         // ✅ Automatically send cookie-based JWT
-        const res = await fetch("http://localhost:5000/api/auth/me", {
+        // const res = await fetch("http://localhost:5000/api/auth/me", {
+        const res = await fetch("https://lms.tansam.org/api/auth/me", {
           method: "GET",
           credentials: "include", // 👈 this is crucial
         });
