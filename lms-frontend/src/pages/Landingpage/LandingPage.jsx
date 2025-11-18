@@ -4,6 +4,7 @@ import heroImg from "../../assets/main_lms.png";
 import herologo from "../../assets/tansamoldlogo.png";
 import { Link, useNavigate } from "react-router-dom";
 import PlansSection from "./PlansSection";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -16,8 +17,7 @@ const LandingPage = () => {
       try {
         const token = localStorage.getItem("token");
 
-        // const res = await fetch("http://localhost:5000/api/dashboard/courses", {
-          const res = await fetch("https://lms.tansam.org/api/dashboard/courses", {
+        const res = await fetch(`${API_BASE}/dashboard/courses`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -174,7 +174,7 @@ const LandingPage = () => {
             {courses.map((course) => (
               <div className="course-card" key={course.course_id}>
                 <img
-                  src={`http://localhost:5000/${course.course_image}`}
+                  src={`${import.meta.env.VITE_API_BASE_URL.replace("/api", "")}/${course.course_image}`}
                   alt={course.course_name}
                   onError={(e) => {
                     e.target.src = "/fallback.jpg"; // fallback image

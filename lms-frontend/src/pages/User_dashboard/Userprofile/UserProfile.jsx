@@ -15,12 +15,14 @@ import Sidebar from "../Sidebar/sidebar";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_ROOT = API_BASE.replace("/api", ""); // for image URLs
+
 const UserProfile = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
 
-  // Editable temporary states
   const [tempName, setTempName] = useState("");
   const [tempStudentId, setTempStudentId] = useState("");
   const [tempEmail, setTempEmail] = useState("");
@@ -28,21 +30,16 @@ const UserProfile = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          console.warn("No token found");
-          setLoading(false);
-          return;
-        }
-
-        const res = await fetch("http://localhost:5000/api/auth/me", {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await fetch(`${API_BASE}/auth/me`, {
+          method: "GET",
+          credentials: "include", // cookie-based auth
         });
 
         if (!res.ok) throw new Error("Failed to fetch user profile");
 
         const data = await res.json();
         setUserData(data.user);
+
         setTempName(data.user.profile?.full_name || "");
         setTempStudentId(data.user.profile?.custom_id || "");
         setTempEmail(data.user.profile?.user_email || data.user.email || "");
@@ -60,7 +57,6 @@ const UserProfile = () => {
   const handleCancel = () => setEditing(false);
 
   const handleSave = () => {
-    // This is local-only for now
     setUserData((prev) => ({
       ...prev,
       profile: {
@@ -73,7 +69,6 @@ const UserProfile = () => {
     setEditing(false);
   };
 
-  // Mock attendance chart
   const courseData = [
     { name: "Dental", attendance: [75, 100, 75, 30, 30] },
     { name: "MBBS", attendance: [80, 85, 90, 95, 100] },
@@ -115,8 +110,8 @@ const UserProfile = () => {
           <div>
             <h2>Student Details</h2>
             <p>
-              Course: <b>MBBS (Bachelor of Medicine and Bachelor of Surgery)</b> | Semester:{" "}
-              <b>Final Semester</b> | College: <b>Madras Medical College</b>
+              Course: <b>MBBS</b> | Semester: <b>Final Semester</b> | College:{" "}
+              <b>Madras Medical College</b>
             </p>
           </div>
         </header>
@@ -132,6 +127,7 @@ const UserProfile = () => {
                 Weekly Class Hours: 40 | Current:{" "}
                 {courseData[1].attendance[courseData[1].attendance.length - 1]}% | Projected: 80%
               </p>
+
               <Bar data={chartData} options={chartOptions} />
             </div>
           </div>
@@ -141,7 +137,7 @@ const UserProfile = () => {
               <img
                 src={
                   profile.image_path
-                    ? `http://localhost:5000/${profile.image_path.replace("\\", "/")}`
+                    ? `${API_ROOT}/${profile.image_path.replace("\\", "/")}`
                     : "https://i.pravatar.cc/100"
                 }
                 alt="student"
@@ -170,7 +166,6 @@ const UserProfile = () => {
               </button>
             </div>
 
-            {/* Popup Modal */}
             {editing && (
               <div className="modal-overlay">
                 <div className="modal-content">
@@ -187,6 +182,7 @@ const UserProfile = () => {
                           />
                         </td>
                       </tr>
+
                       <tr>
                         <td className="label">Student ID</td>
                         <td>
@@ -197,6 +193,7 @@ const UserProfile = () => {
                           />
                         </td>
                       </tr>
+
                       <tr>
                         <td className="label">Email</td>
                         <td>
