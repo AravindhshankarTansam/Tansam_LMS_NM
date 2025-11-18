@@ -24,10 +24,7 @@ import { Save, Publish, Add } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import CurriculumTab from "./Curriculum";
-import AddEditCourseDialog from "./AddEditCourseDialog";
-import AddLessonDialog from "./AddLessonDialog";
-import { COURSE_API } from "../../../config/apiConfig";
-import { COURSE_CATEGORY_API } from "../../../config/apiConfig";
+import { COURSE_API, COURSE_CATEGORY_API } from "../../../config/apiConfig";
 
 export default function CourseCreateForm() {
   const navigate = useNavigate();
@@ -36,43 +33,42 @@ export default function CourseCreateForm() {
   const [savedCourses, setSavedCourses] = useState([]);
   const [modules, setModules] = useState([]);
 
-  // Dialog states
-  const [addEditCourseOpen, setAddEditCourseOpen] = useState(false);
-  const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
-  const [currentModuleId, setCurrentModuleId] = useState(null);
-  const [selectedCourse, setSelectedCourse] = useState(null);
-
-  // Inline Add Course form
-  const [showAddCourseForm, setShowAddCourseForm] = useState(false);
+  // Inline Add/Edit Course form
+  const [showCourseForm, setShowCourseForm] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
   const [newCourseName, setNewCourseName] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [newOverview, setNewOverview] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [coverFile, setCoverFile] = useState(null);
   const [promoFile, setPromoFile] = useState(null);
+  const [courseStatus, setCourseStatus] = useState("active");
+  const [pricingType, setPricingType] = useState("free");
+  const [pricingAmount, setPricingAmount] = useState("");
   const coverInputRef = useRef(null);
   const promoInputRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [courseStatus, setCourseStatus] = useState("active"); // ✅ is_active field
 
   // Snackbar
   const [snackOpen, setSnackOpen] = useState(false);
   const [snackMsg, setSnackMsg] = useState("");
   const [snackSeverity, setSnackSeverity] = useState("success");
 
-  const token = localStorage.getItem("token");
+  const IMAGE_BASE =
+    import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/?$/, "") ||
+    "http://localhost:5000";
 
   // Tabs
   const handleTabChange = (e, v) => setTab(v);
 
-  // ✅ Fetch all courses (cookie-based)
+  // Fetch all courses
   const fetchCourses = async () => {
     try {
       setLoading(true);
       const res = await fetch(COURSE_API, {
         method: "GET",
-        credentials: "include", // ✅ send cookie
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch courses");
       const data = await res.json();
@@ -87,52 +83,70 @@ export default function CourseCreateForm() {
     }
   };
 
-  useEffect(() => {
-    fetchCourses();
-  }, []);
+  // Fetch categories
+const fetchCategories = async () => {
+  try {
+    const res = await fetch(COURSE_CATEGORY_API, {
+      method: "GET",
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Failed to fetch categories");
+    const data = await res.json();
 
-  // ✅ Fetch categories (cookie-based)
-  const fetchCategories = async () => {
-    try {
-      const res = await fetch(COURSE_CATEGORY_API, {
-        method: "GET",
-        credentials: "include", // ✅ send cookie
-      });
-      if (!res.ok) throw new Error("Failed to fetch categories");
-      const data = await res.json();
-      setCategories(data[0] || []);
-    } catch (err) {
-      console.error("Error fetching categories:", err);
-    }
-  };
+    // Unwrap nested array if needed
+    const categoryList = Array.isArray(data[0]) ? data[0] : data;
+    setCategories(categoryList || []);
+  } catch (err) {
+    console.error("Error fetching categories:", err);
+  }
+};
+
 
   useEffect(() => {
     fetchCategories();
+    fetchCourses();
   }, []);
 
-  // ✅ Add course handler
-  const handleAddCourse = () => {
-    setShowAddCourseForm(true);
+  // Reset form
+  const resetForm = () => {
     setNewCourseName("");
     setNewCategory("");
     setNewOverview("");
     setNewDescription("");
     setCoverFile(null);
     setPromoFile(null);
+    setCourseStatus("active");
+    setPricingType("free");
+    setPricingAmount("");
   };
 
+  // Open Add Course Form
+  const handleAddCourse = () => {
+    setEditingCourse(null);
+    setShowCourseForm(true);
+    resetForm();
+  };
+
+  // Open Edit Course Form
   const handleEditCourse = (course) => {
-    setSelectedCourse(course);
-    setAddEditCourseOpen(true);
+    setEditingCourse(course);
+    setShowCourseForm(true);
+    setNewCourseName(course.course_name);
+    setNewCategory(course.category_id);
+    setNewOverview(course.overview || "");
+    setNewDescription(course.description || "");
+    setCourseStatus(course.is_active || "active");
+    setPricingType(course.pricing_type || "free");
+    setPricingAmount(course.price_amount || "");
   };
 
-  // ✅ Delete course (cookie-based)
+  // Delete Course
   const deleteCourse = async (courseId) => {
     if (!window.confirm("Delete this course?")) return;
     try {
       const res = await fetch(`${COURSE_API}/${courseId}`, {
         method: "DELETE",
-        credentials: "include", // ✅ send cookie
+        credentials: "include",
       });
       if (!res.ok) throw new Error("Delete failed");
       setSavedCourses((prev) => prev.filter((c) => c.course_id !== courseId));
@@ -147,10 +161,17 @@ export default function CourseCreateForm() {
     }
   };
 
-  // ✅ Save new course (includes is_active)
-  const saveNewCourse = async () => {
+  // Save Course (Add or Edit)
+  const saveCourse = async () => {
     if (!newCourseName || !newCategory) {
-      setSnackMsg("Please fill in all required fields.");
+      setSnackMsg("Please fill in required fields.");
+      setSnackSeverity("warning");
+      setSnackOpen(true);
+      return;
+    }
+
+    if (pricingType === "paid" && !pricingAmount) {
+      setSnackMsg("Please enter pricing amount for Paid course.");
       setSnackSeverity("warning");
       setSnackOpen(true);
       return;
@@ -161,28 +182,46 @@ export default function CourseCreateForm() {
     formData.append("category_id", newCategory);
     formData.append("overview", newOverview);
     formData.append("description", newDescription);
-    formData.append("pricing_type", "free");
-    formData.append("is_active", courseStatus); // ✅ Added this
+    formData.append("pricing_type", pricingType);
+    formData.append("is_active", courseStatus);
+
+    // Fix: send price_amount to match backend
+    if (pricingType === "paid") {
+      formData.append("price_amount", pricingAmount);
+    } else {
+      formData.append("price_amount", 0);
+    }
+
     if (coverFile) formData.append("course_image", coverFile);
     if (promoFile) formData.append("course_video", promoFile);
 
     try {
       setSaving(true);
-      const res = await fetch(COURSE_API, {
-        method: "POST",
-        credentials: "include", // ✅ send cookie
-        body: formData,
-      });
 
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Save failed: ${res.status} - ${errText}`);
+      let res;
+      if (editingCourse) {
+        res = await fetch(`${COURSE_API}/${editingCourse.course_id}`, {
+          method: "PUT",
+          credentials: "include",
+          body: formData,
+        });
+        if (!res.ok) throw new Error("Update failed");
+        setSnackMsg("✅ Course updated successfully");
+      } else {
+        res = await fetch(COURSE_API, {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+        if (!res.ok) throw new Error("Save failed");
+        setSnackMsg("✅ Course added successfully");
       }
 
-      setSnackMsg("✅ Course added successfully");
       setSnackSeverity("success");
       setSnackOpen(true);
-      setShowAddCourseForm(false);
+      setShowCourseForm(false);
+      setEditingCourse(null);
+      resetForm();
       await fetchCourses();
     } catch (err) {
       console.error(err);
@@ -194,22 +233,26 @@ export default function CourseCreateForm() {
     }
   };
 
-  const IMAGE_BASE =
-    import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/?$/, "") ||
-    "http://localhost:5000";
-
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
       <Sidebar />
       <Box sx={{ flex: 1, p: 3 }}>
         {/* Header */}
         <Paper sx={{ p: 2, mb: 2 }} elevation={2}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
             <Typography variant="h5" fontWeight="bold">
               Course Management
             </Typography>
             <Stack direction="row" spacing={1}>
-              <Button startIcon={<Add />} variant="outlined" onClick={handleAddCourse}>
+              <Button
+                startIcon={<Add />}
+                variant="outlined"
+                onClick={handleAddCourse}
+              >
                 Add Course
               </Button>
               <Button startIcon={<Save />} variant="outlined">
@@ -222,8 +265,9 @@ export default function CourseCreateForm() {
           </Stack>
         </Paper>
 
-        {showAddCourseForm ? (
-          <Box sx={{ display: "flex", gap: 5 }}>
+        {/* Add/Edit Course Form */}
+        {showCourseForm && (
+          <Box sx={{ display: "flex", gap: 5, mb: 4 }}>
             {/* Left panel */}
             <Box sx={{ flex: 2 }}>
               <TextField
@@ -241,15 +285,13 @@ export default function CourseCreateForm() {
                 onChange={(e) => setNewCategory(e.target.value)}
                 sx={{ mb: 2 }}
               >
-                {categories.length > 0 ? (
-                  categories.map((cat) => (
-                    <MenuItem key={cat.category_id} value={cat.category_id}>
-                      {cat.category_name}
-                    </MenuItem>
-                  ))
-                ) : (
-                  <MenuItem disabled>Loading...</MenuItem>
-                )}
+                {categories.length > 0
+                  ? categories.map((cat) => (
+                      <MenuItem key={cat.category_id} value={cat.category_id}>
+                        {cat.category_name}
+                      </MenuItem>
+                    ))
+                  : <MenuItem disabled>Loading...</MenuItem>}
               </TextField>
 
               <TextField
@@ -280,23 +322,69 @@ export default function CourseCreateForm() {
                   value={courseStatus}
                   onChange={(e) => setCourseStatus(e.target.value)}
                 >
-                  <FormControlLabel value="active" control={<Radio />} label="Active" />
-                  <FormControlLabel value="inactive" control={<Radio />} label="Inactive" />
+                  <FormControlLabel
+                    value="active"
+                    control={<Radio />}
+                    label="Active"
+                  />
+                  <FormControlLabel
+                    value="inactive"
+                    control={<Radio />}
+                    label="Inactive"
+                  />
                 </RadioGroup>
               </FormControl>
 
+              <TextField
+                select
+                fullWidth
+                label="Pricing Type"
+                value={pricingType}
+                onChange={(e) => {
+                  setPricingType(e.target.value);
+                  if (e.target.value === "free") setPricingAmount("");
+                }}
+                sx={{ mb: 2 }}
+              >
+                <MenuItem value="free">Free</MenuItem>
+                <MenuItem value="paid">Paid</MenuItem>
+              </TextField>
+
+              {pricingType === "paid" && (
+                <TextField
+                  fullWidth
+                  label="Pricing Amount"
+                  value={pricingAmount}
+                  onChange={(e) => setPricingAmount(e.target.value)}
+                  sx={{ mb: 2 }}
+                />
+              )}
+
               <Stack direction="row" spacing={2}>
-                <Button variant="contained" onClick={saveNewCourse} disabled={saving}>
-                  {saving ? "Saving..." : "Save"}
+                <Button
+                  variant="contained"
+                  onClick={saveCourse}
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : editingCourse ? "Update" : "Save"}
                 </Button>
-                <Button variant="outlined" onClick={() => setShowAddCourseForm(false)}>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setShowCourseForm(false);
+                    setEditingCourse(null);
+                    resetForm();
+                  }}
+                >
                   Cancel
                 </Button>
               </Stack>
             </Box>
 
             {/* Right panel - Uploads */}
-            <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
+            <Box
+              sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}
+            >
               <Paper
                 variant="outlined"
                 sx={{
@@ -310,7 +398,9 @@ export default function CourseCreateForm() {
                 {coverFile ? (
                   <Chip label={coverFile.name} onDelete={() => setCoverFile(null)} />
                 ) : (
-                  <Button onClick={() => coverInputRef.current.click()}>Upload</Button>
+                  <Button onClick={() => coverInputRef.current.click()}>
+                    Upload
+                  </Button>
                 )}
                 <input
                   ref={coverInputRef}
@@ -344,7 +434,10 @@ export default function CourseCreateForm() {
               </Paper>
             </Box>
           </Box>
-        ) : (
+        )}
+
+        {/* Course List / Tabs */}
+        {!showCourseForm && (
           <Paper elevation={1} sx={{ display: "flex" }}>
             <Tabs
               value={tab}
@@ -353,7 +446,7 @@ export default function CourseCreateForm() {
               sx={{ minWidth: 180, borderRight: 1, borderColor: "divider" }}
             >
               <Tab label="Basic Info" />
-              <Tab label="Curriculum" />
+              {/* <Tab label="Curriculum" /> */}
             </Tabs>
             <Box sx={{ flex: 1, p: 3 }}>
               {loading ? (
@@ -396,24 +489,37 @@ export default function CourseCreateForm() {
                                   }}
                                 />
                               )}
-
                               <Box sx={{ flex: 1 }}>
-                                <Typography fontWeight="bold">{course.course_name}</Typography>
-                                <Typography variant="caption">{course.overview}</Typography>
+                                <Typography fontWeight="bold">
+                                  {course.course_name}
+                                </Typography>
+                                <Typography variant="caption">
+                                  {course.overview}
+                                </Typography>
+                                <Typography variant="caption">
+                                  Price:{" "}
+                                  {course.pricing_type === "free"
+                                    ? "Free"
+                                    : `$${course.price_amount}`}
+                                </Typography>
                               </Box>
-
                               <Stack direction="row" spacing={1}>
-                                <Button size="small" onClick={() => handleEditCourse(course)}>
+                                <Button
+                                  size="small"
+                                  onClick={() => handleEditCourse(course)}
+                                >
                                   Edit
                                 </Button>
                                 <Button
                                   size="small"
                                   variant="outlined"
                                   onClick={() =>
-                                    navigate(`/admin/course/${course.course_id}/modules`)
+                                    navigate(
+                                      `/admin/course/${course.course_id}/modules`
+                                    )
                                   }
                                 >
-                                  Manage Modules
+                                  Add Modules
                                 </Button>
                                 <Button
                                   size="small"
@@ -431,41 +537,18 @@ export default function CourseCreateForm() {
                       )}
                     </Box>
                   )}
-                  {tab === 1 && (
+                  {/* {tab === 1 && (
                     <CurriculumTab
                       modules={modules}
                       setModules={setModules}
-                      openLessonDialog={(modId) => {
-                        setCurrentModuleId(modId);
-                        setLessonDialogOpen(true);
-                      }}
+                      openLessonDialog={(modId) => {}}
                     />
-                  )}
+                  )} */}
                 </>
               )}
             </Box>
           </Paper>
         )}
-
-        {/* Dialogs */}
-        <AddEditCourseDialog
-          open={addEditCourseOpen}
-          onClose={() => {
-            setAddEditCourseOpen(false);
-            setSelectedCourse(null);
-            fetchCourses();
-          }}
-          savedCourses={savedCourses}
-          setSavedCourses={setSavedCourses}
-          editCourse={selectedCourse}
-        />
-        <AddLessonDialog
-          open={lessonDialogOpen}
-          onClose={() => setLessonDialogOpen(false)}
-          modules={modules}
-          setModules={setModules}
-          currentModuleId={currentModuleId}
-        />
 
         {/* Snackbar */}
         <Snackbar
