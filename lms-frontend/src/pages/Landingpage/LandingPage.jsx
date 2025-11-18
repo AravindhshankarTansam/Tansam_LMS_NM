@@ -12,23 +12,17 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const coursesPerPage = 9; // 3x3 grid (9 courses per page)
 
-  // ✅ Fetch courses dynamically from backend
+  // Fetch courses dynamically from backend
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const token = localStorage.getItem("token");
-
-        const res = await fetch(`${API_BASE}/dashboard/courses`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+        const res = await fetch("http://localhost:5000/api/dashboard/courses", {
+          credentials: "include",
         });
-
-        if (!res.ok) throw new Error("Failed to fetch courses");
         const data = await res.json();
-
         setCourses(data);
       } catch (err) {
         console.error("Error fetching courses:", err);
@@ -39,6 +33,19 @@ const LandingPage = () => {
 
     fetchCourses();
   }, []);
+
+  // Pagination logic
+  const indexOfLastCourse = currentPage * coursesPerPage;
+  const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
+  const currentCourses = courses.slice(indexOfFirstCourse, indexOfLastCourse);
+
+  const totalPages = Math.ceil(courses.length / coursesPerPage);
+
+  const changePage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   // Scroll Helper
   const scrollToSection = (id) => {
@@ -109,48 +116,76 @@ const LandingPage = () => {
       <section className="courses" id="courses">
         <h2>SkillSpace</h2>
 
-        {courses.map((course) => {
-          // Fix image path from backend
-          const uploadPath = course.course_image
-            ? course.course_image.replace(/^.*uploads\//, "")
-            : "";
+        {/* Displaying the 3x3 grid of courses */}
+        <div className="courses-grid">
+          {currentCourses.map((course) => {
+            const uploadPath = course.course_image
+              ? course.course_image.replace(/^.*uploads\//, "")
+              : "";
+            const imageURL = uploadPath
+              ? `${UPLOADS_BASE}/${uploadPath}`
+              : "/fallback.jpg";
 
-          // Use ENV variable (UPLOADS_BASE)
-          const imageURL = uploadPath
-            ? `${UPLOADS_BASE}/${uploadPath}`
-            : "/fallback.jpg";
+            return (
+              <div className="course-card" key={course.course_id}>
+                <img
+                  src={imageURL}
+                  alt={course.course_name}
+                  onError={(e) => (e.target.src = "/fallback.jpg")}
+                />
+                <div className="course-info">
+                  <p className="category">{course.course_name}</p>
+                  <h3>{course.description}</h3>
+                  {/* <p>{course.category_name}</p> */}
 
-          return (
-            <div className="course-card" key={course.course_id}>
-              <img
-                src={imageURL}
-                alt={course.course_name}
-                onError={(e) => (e.target.src = "/fallback.jpg")}
-              />
+                  <div className="details">
+                    <p>
+                      {course.pricing_type === "free"
+                        ? "Free"
+                        : `₹${course.price_amount}`}
+                    </p>
+                  </div>
 
-              <div className="course-info">
-                <p className="category">{course.course_name}</p>
-                <h3>{course.description}</h3>
-                <p>{course.category_name}</p>
-
-                <div className="details">
-                  <p>
-                    {course.pricing_type === "free"
-                      ? "Free"
-                      : `₹${course.price_amount}`}
-                  </p>
+                  <span
+                    className="price"
+                    onClick={() => handleEnroll(course.course_id)}
+                  >
+                    Enroll
+                  </span>
                 </div>
-
-                <span
-                  className="price"
-                  onClick={() => handleEnroll(course.course_id)}
-                >
-                  Enroll
-                </span>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        {/* Pagination */}
+        <div className="pagination">
+          <button
+            className="pagination-btn"
+            onClick={() => changePage(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Prev
+          </button>
+
+          {[...Array(totalPages)].map((_, index) => (
+            <button
+              key={index}
+              className={`page-box ${currentPage === index + 1 ? "active" : ""}`}
+              onClick={() => changePage(index + 1)}
+            >
+              {index + 1}
+            </button>
+          ))}
+
+          <button
+            className="pagination-btn"
+            onClick={() => changePage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </button>
+        </div>
       </section>
 
       <PlansSection />

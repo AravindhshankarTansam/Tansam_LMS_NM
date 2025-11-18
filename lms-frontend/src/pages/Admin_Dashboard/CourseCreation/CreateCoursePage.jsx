@@ -234,11 +234,20 @@ const fetchCategories = async () => {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
-      <Sidebar />
-      {/* Main Content Area */}
-      <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+  {/* Sticky Sidebar */}
+  <Box sx={{ position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
+    <Sidebar />
+  </Box>
+
+  {/* Main Column */}
+  <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+    {/* Sticky Header */}
+    <Box sx={{ position: "sticky", top: 0, zIndex: 1000 }}>
       <Header />
-      <Box sx={{ flex: 1, p: 3 }}>
+    </Box>
+
+    {/* Scrollable Content */}
+    <Box sx={{ flex: 1, overflowY: "auto", p: 3 }}>
         {/* Header */}
         <Paper sx={{ p: 2, mb: 2 }} elevation={2}>
           <Stack
