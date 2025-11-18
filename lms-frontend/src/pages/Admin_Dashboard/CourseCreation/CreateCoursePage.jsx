@@ -25,6 +25,8 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../Sidebar";
 import CurriculumTab from "./Curriculum";
 import { COURSE_API, COURSE_CATEGORY_API } from "../../../config/apiConfig";
+import Header from "../Header";
+
 
 export default function CourseCreateForm() {
   const navigate = useNavigate();
@@ -236,6 +238,9 @@ const fetchCategories = async () => {
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
       <Sidebar />
+          {/* Main Content Area */}
+    <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <Header />
       <Box sx={{ flex: 1, p: 3 }}>
         {/* Header */}
         <Paper sx={{ p: 2, mb: 2 }} elevation={2}>
@@ -559,6 +564,7 @@ const fetchCategories = async () => {
           <Alert severity={snackSeverity}>{snackMsg}</Alert>
         </Snackbar>
       </Box>
+    </Box>
     </Box>
   );
 }
