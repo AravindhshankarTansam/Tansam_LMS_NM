@@ -1,4 +1,3 @@
-// LMS/lms-frontend/src/pages/User_dashboard/DashboardContent.jsx
 import React, { useEffect, useState } from "react";
 import "./user.css";
 import Sidebar from "./Sidebar/sidebar";
@@ -15,14 +14,14 @@ const DashboardContent = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [dailyCompletion, setDailyCompletion] = useState({});
 
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // ✅ Automatically send cookie-based JWT
-        // const res = await fetch("http://localhost:5000/api/auth/me", {
-        const res = await fetch("https://lms.tansam.org/api/auth/me", {
+        const res = await fetch(`${API_BASE}/auth/me`, {
           method: "GET",
-          credentials: "include", // 👈 this is crucial
+          credentials: "include",
         });
 
         if (!res.ok) {
@@ -100,15 +99,18 @@ const DashboardContent = () => {
           {/* ===== Header Section ===== */}
           <div className="header-card">
             <div className="user-info">
+
+              {/* -------- Updated Dynamic Image URL -------- */}
               <img
                 src={
                   profile.image_path
-                    ? `http://localhost:5000/${profile.image_path.replace("\\", "/")}`
+                    ? `${API_BASE.replace("/api", "")}/${profile.image_path.replace("\\", "/")}`
                     : "https://i.pravatar.cc/100"
                 }
                 alt="User"
                 className="user-avatar-large"
               />
+
               <div>
                 <h2>{profile.full_name || "Unknown User"} 🎓</h2>
                 <p>{profile.custom_id || "N/A"}</p>
@@ -237,7 +239,7 @@ const DashboardContent = () => {
             </div>
           </div>
 
-          {/* ===== Timetable Section ===== */}
+          {/* ===== Timetable ===== */}
           <div className="timetable-section">
             <div className="timetable-header">
               <h3>Timetable</h3>
