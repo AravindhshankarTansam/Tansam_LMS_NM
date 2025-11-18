@@ -5,7 +5,7 @@ import { connectDB } from "../config/db.js";
 export const getCategories = async (req, res) => {
   try {
     const db = await connectDB();
-    const categories = await db.query("SELECT * FROM categories ORDER BY category_id DESC");
+    const [categories] = await db.query("SELECT * FROM categories ORDER BY category_id DESC");
     res.json(categories);
   } catch (error) {
     console.error("Error fetching categories:", error.message);
@@ -42,7 +42,10 @@ export const updateCategory = async (req, res) => {
       return res.status(400).json({ message: "Category name is required" });
     }
 
-    await db.run("UPDATE categories SET category_name = ? WHERE category_id = ?", [name.trim(), category_id]);
+    await db.execute("UPDATE categories SET category_name = ? WHERE category_id = ?", [
+      name.trim(),
+      category_id,
+    ]);
     res.json({ message: "✏️ Category updated successfully" });
   } catch (error) {
     console.error("Error updating category:", error.message);
@@ -56,7 +59,7 @@ export const deleteCategory = async (req, res) => {
     const db = await connectDB();
     const { category_id } = req.params;
 
-    await db.run("DELETE FROM categories WHERE category_id = ?", [category_id]);
+    await db.execute("DELETE FROM categories WHERE category_id = ?", [category_id]);
     res.json({ message: "🗑️ Category deleted successfully" });
   } catch (error) {
     console.error("Error deleting category:", error.message);

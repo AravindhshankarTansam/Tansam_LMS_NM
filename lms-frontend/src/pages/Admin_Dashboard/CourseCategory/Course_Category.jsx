@@ -18,6 +18,8 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -35,18 +37,37 @@ const CourseCategoryPage = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch categories
+  // ✅ Snackbar state
+  const [toast, setToast] = useState({
+    open: false,
+    message: "",
+    severity: "success", // success | error | warning | info
+  });
+
+  const showToast = (message, severity = "success") => {
+    setToast({ open: true, message, severity });
+  };
+
+  const handleCloseToast = () => {
+    setToast((prev) => ({ ...prev, open: false }));
+  };
+
+  // ✅ Fetch all categories
   const fetchCategories = async () => {
     try {
       const res = await fetch(COURSE_CATEGORY_API);
-      if (!res.ok) throw new Error("Failed to fetch categories");
       const data = await res.json();
 
-      // Fix: Use only the first array (actual data)
-      setCategories(data[0]);
-      setFilteredCategories(data[0]);
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to fetch categories");
+      }
+
+      const list = Array.isArray(data) ? data : [];
+      setCategories(list);
+      setFilteredCategories(list);
     } catch (err) {
-      console.error("Error fetching categories:", err);
+      console.error("❌ Error fetching categories:", err);
+      showToast(`Error fetching categories: ${err.message}`, "error");
     }
   };
 
@@ -54,7 +75,7 @@ const CourseCategoryPage = () => {
     fetchCategories();
   }, []);
 
-  // Handle search
+  // ✅ Handle search filtering
   useEffect(() => {
     if (!searchTerm.trim()) {
       setFilteredCategories(categories);
@@ -66,7 +87,7 @@ const CourseCategoryPage = () => {
     }
   }, [searchTerm, categories]);
 
-  // Open Add/Edit dialog
+  // ✅ Open Add/Edit dialog
   const handleOpenDialog = (index = null) => {
     if (index !== null) {
       setCategory(filteredCategories[index].category_name);
@@ -84,49 +105,60 @@ const CourseCategoryPage = () => {
     setEditIndex(null);
   };
 
-  // Save or update category
+  // ✅ Add or update category
   const handleSave = async () => {
-    if (!category.trim()) return;
+    if (!category.trim()) {
+      showToast("Category name cannot be empty", "warning");
+      return;
+    }
     const trimmed = category.trim();
 
     try {
+      let res;
       if (editIndex !== null) {
         const id = filteredCategories[editIndex].category_id;
-        const res = await fetch(`${COURSE_CATEGORY_API}/${id}`, {
+        res = await fetch(`${COURSE_CATEGORY_API}/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: trimmed }),
         });
-        if (!res.ok) throw new Error("Failed to update category");
       } else {
-        const res = await fetch(COURSE_CATEGORY_API, {
+        res = await fetch(COURSE_CATEGORY_API, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: trimmed }),
         });
-        if (!res.ok) throw new Error("Failed to add category");
       }
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Something went wrong");
+
+      showToast(data.message || (editIndex !== null ? "Category updated" : "Category added"), "success");
       await fetchCategories();
       handleCloseDialog();
     } catch (err) {
-      console.error("Error saving category:", err);
-      alert("Error saving category");
+      console.error("❌ Error saving category:", err);
+      showToast(`Error: ${err.message}`, "error");
     }
   };
 
-  // Delete category
+  // ✅ Delete category
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this category?")) return;
     try {
       const res = await fetch(`${COURSE_CATEGORY_API}/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete category");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to delete category");
+
+      showToast(data.message || "Category deleted successfully", "success");
       await fetchCategories();
     } catch (err) {
-      console.error("Error deleting category:", err);
-      alert("Error deleting category");
+      console.error("❌ Error deleting category:", err);
+      showToast(`Error: ${err.message}`, "error");
     }
   };
 
+  // ✅ Render UI
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9f9f9" }}>
       <Sidebar />
@@ -181,7 +213,9 @@ const CourseCategoryPage = () => {
                 <TableHead>
                   <TableRow sx={{ bgcolor: "primary.main" }}>
                     <TableCell sx={{ color: "white", fontWeight: "bold" }}>#</TableCell>
-                    <TableCell sx={{ color: "white", fontWeight: "bold" }}>Category Name</TableCell>
+                    <TableCell sx={{ color: "white", fontWeight: "bold" }}>
+                      Category Name
+                    </TableCell>
                     <TableCell align="center" sx={{ color: "white", fontWeight: "bold" }}>
                       Actions
                     </TableCell>
@@ -197,8 +231,8 @@ const CourseCategoryPage = () => {
                   ) : (
                     filteredCategories.map((cat, index) => (
                       <TableRow key={cat.category_id} hover>
-                        <TableCell sx={{ color: "text.primary" }}>{index + 1}</TableCell>
-                        <TableCell sx={{ color: "text.primary" }}>{cat.category_name}</TableCell>
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell>{cat.category_name}</TableCell>
                         <TableCell align="center">
                           <Tooltip title="Edit">
                             <IconButton color="info" onClick={() => handleOpenDialog(index)}>
@@ -227,7 +261,9 @@ const CourseCategoryPage = () => {
             fullWidth
             PaperProps={{ sx: { borderRadius: 3, p: 2, boxShadow: 6 } }}
           >
-            <DialogTitle sx={{ fontWeight: "bold", fontSize: "1.5rem", textAlign: "center", mb: 1 }}>
+            <DialogTitle
+              sx={{ fontWeight: "bold", fontSize: "1.5rem", textAlign: "center", mb: 1 }}
+            >
               {editIndex !== null ? "Edit Category" : "Add Category"}
             </DialogTitle>
             <DialogContent sx={{ pt: 3 }}>
@@ -244,14 +280,40 @@ const CourseCategoryPage = () => {
               />
             </DialogContent>
             <DialogActions sx={{ p: 3, justifyContent: "center", gap: 2 }}>
-              <Button onClick={handleCloseDialog} color="inherit" variant="outlined" sx={{ borderRadius: 2, px: 3, fontWeight: 600 }}>
+              <Button
+                onClick={handleCloseDialog}
+                color="inherit"
+                variant="outlined"
+                sx={{ borderRadius: 2, px: 3, fontWeight: 600 }}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleSave} variant="contained" color="primary" sx={{ borderRadius: 2, px: 4, fontWeight: 600 }}>
+              <Button
+                onClick={handleSave}
+                variant="contained"
+                color="primary"
+                sx={{ borderRadius: 2, px: 4, fontWeight: 600 }}
+              >
                 {editIndex !== null ? "Update" : "Save"}
               </Button>
             </DialogActions>
           </Dialog>
+
+          {/* ✅ Snackbar Toast */}
+          <Snackbar
+            open={toast.open}
+            autoHideDuration={3000}
+            onClose={handleCloseToast}
+            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+          >
+            <Alert
+              onClose={handleCloseToast}
+              severity={toast.severity}
+              sx={{ width: "100%", fontSize: "1rem", borderRadius: 2 }}
+            >
+              {toast.message}
+            </Alert>
+          </Snackbar>
         </Box>
       </Box>
     </Box>
