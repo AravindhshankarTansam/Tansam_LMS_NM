@@ -55,9 +55,7 @@ export default function CourseCreateForm() {
   const [snackMsg, setSnackMsg] = useState("");
   const [snackSeverity, setSnackSeverity] = useState("success");
 
-  const IMAGE_BASE =
-    import.meta.env.VITE_API_BASE_URL?.replace(/\/api\/?$/, "") ||
-    "http://localhost:5000";
+  const IMAGE_BASE = import.meta.env.VITE_UPLOADS_BASE;
 
   // Tabs
   const handleTabChange = (e, v) => setTab(v);
@@ -479,7 +477,7 @@ const fetchCategories = async () => {
                               {course.course_image && (
                                 <Box
                                   component="img"
-                                  src={`${IMAGE_BASE}/${course.course_image}`}
+                                  src={`${IMAGE_BASE}/${course.course_image.replace(/^.*uploads\//, "")}`}
                                   alt={course.course_name}
                                   sx={{
                                     width: 80,
@@ -489,6 +487,7 @@ const fetchCategories = async () => {
                                   }}
                                 />
                               )}
+
                               <Box sx={{ flex: 1 }}>
                                 <Typography fontWeight="bold">
                                   {course.course_name}
