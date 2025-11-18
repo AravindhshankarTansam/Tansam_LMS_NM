@@ -28,6 +28,8 @@ import {
   Save,
 } from "@mui/icons-material";
 import { CHAPTER_API, QUIZ_API } from "../../../config/apiConfig";
+import Sidebar from "../Sidebar";
+import Header from "../Header";
 
 export default function AddChapterPage() {
   const { moduleId } = useParams();
@@ -197,7 +199,25 @@ const handleSaveChapter = async () => {
   // UI RENDER
   // ===========================
   return (
-    <Box p={3}>
+
+      <Box sx={{ display: "flex", minHeight: "100vh" }}>
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Main content */}
+      <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        {/* Header */}
+        <Header />
+
+        {/* Page content */}
+        <Box sx={{ flex: 1, p: 3 }}>
+          <Button
+            startIcon={<ArrowBack />}
+            sx={{ mb: 2 }}
+            onClick={() => navigate(-1)}
+          >
+            Back
+          </Button>
       <Card
         sx={{
           p: 4,
@@ -444,6 +464,8 @@ const handleSaveChapter = async () => {
           </Stack>
         </Stack>
       </Card>
+        </Box>
+      </Box>    
     </Box>
   );
 }
