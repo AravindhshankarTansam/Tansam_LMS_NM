@@ -19,7 +19,6 @@ import {
   IconButton,
   FormControlLabel,
   Checkbox,
-  ArrowBack,
 } from "@mui/material";
 import {
   Add,
@@ -27,6 +26,7 @@ import {
   ExpandMore,
   UploadFile,
   Save,
+  ArrowBack,
 } from "@mui/icons-material";
 import { CHAPTER_API, QUIZ_API } from "../../../config/apiConfig";
 import Sidebar from "../Sidebar";
