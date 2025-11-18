@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate  } from "react-router-dom";
 import {
   Box,
   Card,
@@ -34,6 +34,7 @@ import Header from "../Header";
 
 export default function AddChapterPage() {
   const { moduleId } = useParams();
+  const navigate = useNavigate();
 
   const [chapterName, setChapterName] = useState("");
   const [materials, setMaterials] = useState([]);
