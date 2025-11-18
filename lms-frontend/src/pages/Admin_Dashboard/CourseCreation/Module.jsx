@@ -190,7 +190,7 @@ export default function ModuleList() {
         {/* Header */}
         <Header />
 
-        <Box sx={{ flexGrow: 1, p: 4 }}></Box>
+        {/* <Box sx={{ flexGrow: 1, p: 4 }}></Box> */}
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="h5" fontWeight="bold">
           Modules for Course #{courseId}
