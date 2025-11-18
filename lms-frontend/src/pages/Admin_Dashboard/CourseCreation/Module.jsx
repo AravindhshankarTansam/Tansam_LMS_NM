@@ -28,6 +28,8 @@ import {
 } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
 import { MODULE_API, CHAPTER_API } from "../../../config/apiConfig";
+import Header from "../Header";
+import Sidebar from "../Sidebar";
 
 export default function ModuleList() {
   const { courseId } = useParams();
@@ -177,7 +179,18 @@ export default function ModuleList() {
   };
 
   return (
+    
     <Box sx={{ p: 4 }}>
+      <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9f9f9" }}>
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Main Content */}
+      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+        {/* Header */}
+        <Header />
+
+        <Box sx={{ flexGrow: 1, p: 4 }}></Box>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="h5" fontWeight="bold">
           Modules for Course #{courseId}
@@ -349,6 +362,8 @@ export default function ModuleList() {
           ))}
         </Stack>
       )}
+      </Box>
+      </Box>
     </Box>
   );
 }
