@@ -4,7 +4,9 @@ import heroImg from "../../assets/main_lms.png";
 import herologo from "../../assets/tansamoldlogo.png";
 import { Link, useNavigate } from "react-router-dom";
 import PlansSection from "./PlansSection";
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -38,13 +40,12 @@ const LandingPage = () => {
     fetchCourses();
   }, []);
 
-  // ✅ Scroll Helper
+  // Scroll Helper
   const scrollToSection = (id) => {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // ✅ Enroll click handler
   const handleEnroll = (courseId) => {
     navigate("/login", { state: { fromEnroll: true, courseId } });
   };
@@ -56,14 +57,11 @@ const LandingPage = () => {
         <nav className="navbar">
           <div className="logo-container">
             <img src={herologo} alt="Logo" className="logo-img" />
-            {/* <h2 className="logo-text">TANSAM - LMS</h2> */}
           </div>
           <ul className="nav-links">
             <li onClick={() => scrollToSection("home")}>Home</li>
             <li onClick={() => scrollToSection("courses")}>Courses</li>
-            {/* <li onClick={() => scrollToSection("instructors")}>Instructors</li> */}
             <li onClick={() => scrollToSection("testimonials")}>Testimonials</li>
-            {/* <li onClick={() => scrollToSection("blog")}>Blog</li> */}
           </ul>
           <Link to="/login">
             <button className="contact-btns">Login</button>
@@ -74,8 +72,9 @@ const LandingPage = () => {
           <div className="text-content">
             <h1>Advancing Knowledge for the Future</h1>
             <p>
-             Learn from industry experts, educators, and professionals.
-             Join thousands of learners upgrading their skills and shaping the future through powerful learning experiences on Tansam LMS.
+              Learn from industry experts, educators, and professionals.
+              Join thousands of learners upgrading their skills and shaping the
+              future through powerful learning experiences on Tansam LMS.
             </p>
             <button
               className="get-started-btn"
@@ -85,10 +84,6 @@ const LandingPage = () => {
             </button>
 
             <div className="stats">
-              {/* <div>
-                <h3>150+</h3>
-                <p>TANSAM Courses</p>
-              </div> */}
               <div>
                 <h3>12K+</h3>
                 <p>Active Students</p>
@@ -110,102 +105,59 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ===== PARTNERS ===== */}
-      <section className="steps" id="steps">
-        {/* <div className="partners-logos">
-          <img src="google.png" alt="Google" />
-          <img src="trello.png" alt="Trello" />
-          <img src="monday.png" alt="Monday" />
-          <img src="notion.png" alt="Notion" />
-          <img src="slack.png" alt="Slack" />
-        </div> */}
-
-        <div className="steps-content-wrapper">
-          <div className="steps-header">
-            <h2>Your Learning Journey Made Simple</h2>
-            <p>
-              Begin your path to success with structured, interactive, and practical courses. 
-            From fundamentals to advanced topics — gain the knowledge and confidence you need to grow and excel in your field.
-            </p>
-          </div>
-
-          <div className="steps-grid">
-            <div className="step">
-              <div className="step-number">01</div>
-              <h4>Choose Your Course</h4>
-              <p>
-              Discover a variety of learning programs designed to help you grow, learn new skills, and achieve your goals.
-              </p>
-            </div>
-
-            <div className="step">
-              <div className="step-number">02</div>
-              <h4>Enroll and Access Expert-Led Content</h4>
-              <p>
-               Learn from experienced instructors through interactive lessons, projects, and engaging content.
- 
-              </p>
-            </div>
-
-            <div className="step">
-              <div className="step-number">03</div>
-              <h4>Practice, Assess, and Succeed</h4>
-              <p>
-               Track your progress, test your understanding  </p>
-            </div>
-            
-            <div className="step">
-              <div className="step-number">04</div>
-              <h4>Get your certificates</h4>
-              <p>
-               arn certificates that showcase your achievements.  </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ===== COURSES SECTION (Dynamic) ===== */}
       <section className="courses" id="courses">
         <h2>SkillSpace</h2>
-        {loading ? (
-          <p>Loading courses...</p>
-        ) : courses.length > 0 ? (
-          <div className="courses-grid">
-            {courses.map((course) => (
-              <div className="course-card" key={course.course_id}>
-                <img
-                  src={`${import.meta.env.VITE_API_BASE_URL.replace("/api", "")}/${course.course_image}`}
-                  alt={course.course_name}
-                  onError={(e) => {
-                    e.target.src = "/fallback.jpg"; // fallback image
-                  }}
-                />
-                <div className="course-info">
-                  <p className="category">
-                    
-                    {course.course_name}
+
+        {courses.map((course) => {
+          // Fix image path from backend
+          const uploadPath = course.course_image
+            ? course.course_image.replace(/^.*uploads\//, "")
+            : "";
+
+          // Use ENV variable (UPLOADS_BASE)
+          const imageURL = uploadPath
+            ? `${UPLOADS_BASE}/${uploadPath}`
+            : "/fallback.jpg";
+
+          return (
+            <div className="course-card" key={course.course_id}>
+              <img
+                src={imageURL}
+                alt={course.course_name}
+                onError={(e) => (e.target.src = "/fallback.jpg")}
+              />
+
+              <div className="course-info">
+                <p className="category">{course.course_name}</p>
+                <h3>{course.description}</h3>
+                <p>{course.category_name}</p>
+
+                <div className="details">
+                  <p>
+                    {course.pricing_type === "free"
+                      ? "Free"
+                      : `₹${course.price_amount}`}
                   </p>
-                  <h3>{course.description}</h3>
-                  <p>{course.category_name}</p>
-                  <div className="details">
-                    <p>{course.pricing_type === "free" ? "Free" : `₹${course.price_amount}`}</p>
-                    {/* <p>{course.overview}</p> */}
-                  </div>
-                  <span className="price" onClick={() => handleEnroll(course.course_id)}>
-                    Enroll
-                  </span>
                 </div>
+
+                <span
+                  className="price"
+                  onClick={() => handleEnroll(course.course_id)}
+                >
+                  Enroll
+                </span>
               </div>
-            ))}
-          </div>
-        ) : (
-          <p>No courses found</p>
-        )}
+            </div>
+          );
+        })}
       </section>
 
       <PlansSection />
 
-      {/* ===== INSTRUCTORS ===== */}
+      {/* ===== INSTRUCTORS, TESTIMONIALS, FOOTER ===== */}
+      {/* (no changes in these sections, keeping your original code) */}
+
       <section className="online-learning" id="instructors">
         <div className="left-container">
           <h2>Empowering Learners Through Digital Education</h2>
@@ -233,6 +185,7 @@ const LandingPage = () => {
           </div>
           <p className="small-text">Learn anytime, anywhere.</p>
         </div>
+
         <div className="right-container">
           <h3>A Modern Learning Experience for Everyone</h3>
           <div className="features">
@@ -252,13 +205,13 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ===== TESTIMONIALS ===== */}
       <section className="trusted-section" id="testimonials">
         <div className="trusted-left">
           <h4>Learner Feedback</h4>
           <h2>Trusted by Learners Around the World</h2>
           <p>
-            TANSAM-LMS has helped thousands of learners improve their skills, achieve goals, and grow through continuous learning.
+            TANSAM-LMS has helped thousands of learners improve their skills,
+            achieve goals, and grow through continuous learning.
           </p>
           <div className="trusted-stats">
             <div>
@@ -282,7 +235,8 @@ const LandingPage = () => {
           </div>
           <div className="review-box">
             <p>
-              “TANSAM-LMS made learning engaging and easy to follow. The lessons are clear, the instructors are great, and I love the flexibility.”
+              “TANSAM-LMS made learning engaging and easy to follow. The lessons
+              are clear, the instructors are great, and I love the flexibility.”
             </p>
             <h4>Dr. Emiliya Cart</h4>
             <span>⭐⭐⭐⭐⭐</span>
@@ -291,13 +245,14 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ===== FOOTER ===== */}
       <footer className="footer" id="blog">
         <div className="footer-top">
           <div className="footer-left">
             <h2 className="footer-logo">TANSAM-LMS</h2>
             <p>
-              Providing accessible, high-quality education to learners everywhere. Learn, grow, and achieve your goals with TANSAM-LMS.     </p>
+              Providing accessible, high-quality education to learners
+              everywhere. Learn, grow, and achieve your goals with TANSAM-LMS.
+            </p>
             <div className="subscribe-box">
               <input type="email" placeholder="Enter your email..." />
               <button>→</button>
@@ -315,27 +270,18 @@ const LandingPage = () => {
               </ul>
             </div>
 
-            {/* <div>
-              <h4>Support</h4>
-              <ul>
-                <li>Help Center</li>
-                <li>Account Information</li>
-                <li>About Us</li>
-                <li>Contact</li>
-              </ul>
-            </div> */}
-
             <div>
               <h4>Contact Us</h4>
               <ul>
-                <li><span className="contact-label">Call:</span> +91 9884035145</li>
+                <li>
+                  <span className="contact-label">Call:</span> +91 9884035145
+                </li>
                 <li>
                   <span className="contact-label">Email:</span>{" "}
                   <a href="mailto:info@tansam.org" className="contact-email">
                     info@tansam.org
                   </a>
                 </li>
-
               </ul>
             </div>
           </div>
@@ -345,12 +291,14 @@ const LandingPage = () => {
           <ul>
             <li onClick={() => scrollToSection("home")}>Home</li>
             <li onClick={() => scrollToSection("courses")}>Courses</li>
-            {/* <li onClick={() => scrollToSection("instructors")}>Instructors</li> */}
-            <li onClick={() => scrollToSection("testimonials")}>Testimonials</li>
-            {/* <li onClick={() => scrollToSection("blog")}>Blog</li> */}
-            <li> <a href="#" className="thin-link">Policy & Terms</a> </li>
-
-
+            <li onClick={() => scrollToSection("testimonials")}>
+              Testimonials
+            </li>
+            <li>
+              <a href="#" className="thin-link">
+                Policy & Terms
+              </a>
+            </li>
           </ul>
         </div>
       </footer>
