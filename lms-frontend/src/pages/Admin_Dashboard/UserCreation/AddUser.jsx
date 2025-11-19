@@ -507,7 +507,7 @@ export default function AddUserPage() {
                   setNewUser({ ...newUser, role: e.target.value })
                 }
               >
-                <MenuItem value="student">Student</MenuItem>
+                <MenuItem value="student">User</MenuItem>
                 <MenuItem value="admin">Admin</MenuItem>
               </Select>
             </FormControl>

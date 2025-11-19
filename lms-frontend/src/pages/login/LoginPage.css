@@ -331,3 +331,148 @@
     fill: white;
   }
 }
+/* -----------------------------
+   Switch text (Login ↔ Register)
+------------------------------*/
+
+.switch-text {
+  margin-top: 15px;
+  text-align: center;
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+.switch-text .switch-link {
+  color: #0066ff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.switch-text .switch-link:hover {
+  color: #0041b3;
+  text-decoration: underline;
+}
+/* ------------------------------------
+   REGISTER MODE — Form Styling
+-------------------------------------*/
+
+/* Main container already exists (signin-container) */
+
+/* Title for Register Mode */
+.signin-title span {
+  color: #0066ff;
+  font-weight: 700;
+}
+
+/* Register form layout */
+.signin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Label styling */
+.signin-form label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Input field wrapper */
+.input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #d8d8d8;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: 0.2s ease;
+}
+
+.input-box:hover {
+  border-color: #0066ff;
+}
+
+/* Input field style */
+.input-box input {
+  border: none;
+  outline: none;
+  flex: 1;
+  font-size: 14px;
+  color: #444;
+  background: transparent;
+}
+
+/* File upload input */
+.input-box input[type="file"] {
+  padding: 3px;
+  font-size: 14px;
+}
+
+/* OTP mode input */
+.input-box input[maxlength="6"] {
+  text-align: center;
+  letter-spacing: 4px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* Submit button for Register, Verify OTP, Set Password */
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: #0066ff;
+  color: #fff;
+  font-size: 15px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.3s ease;
+}
+
+.login-btn:hover {
+  background: #004fcc;
+}
+
+/* Already have account? Login */
+.switch-text {
+  margin-top: 15px;
+  text-align: center;
+  font-size: 14px;
+  color: #555;
+  font-weight: 500;
+}
+
+.switch-text .switch-link {
+  color: #0066ff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.switch-text .switch-link:hover {
+  color: #0041b3;
+  text-decoration: underline;
+}
+
+/* Error Text */
+.error-text {
+  color: red;
+  font-size: 13px;
+}
+
+/* Responsive Improvement */
+@media (max-width: 768px) {
+  .signin-form {
+    gap: 15px;
+  }
+  .login-btn {
+    font-size: 14px;
+  }
+}

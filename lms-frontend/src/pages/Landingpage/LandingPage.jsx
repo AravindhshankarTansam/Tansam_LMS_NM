@@ -17,18 +17,11 @@ const LandingPage = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const token = localStorage.getItem("token");
-
         const res = await fetch(`${API_BASE}/dashboard/courses`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          credentials: "include",
         });
 
-        if (!res.ok) throw new Error("Failed to fetch courses");
         const data = await res.json();
-
         setCourses(data);
       } catch (err) {
         console.error("Error fetching courses:", err);
@@ -38,7 +31,8 @@ const LandingPage = () => {
     };
 
     fetchCourses();
-  }, []);
+}, []);
+
 
   // Scroll Helper
   const scrollToSection = (id) => {
