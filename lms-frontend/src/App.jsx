@@ -4,6 +4,7 @@ import { Routes, Route } from "react-router-dom";
 // Public Pages
 import LandingPage from "./pages/Landingpage/LandingPage.jsx";
 import LoginPage from "./pages/login/LoginPage.jsx";
+import CourseDetails from "./pages/Landingpage/CourseDetails.jsx";
 
 // Admin Pages
 import Dashboard from "./pages/Admin_Dashboard/Dashboard.jsx";
@@ -40,6 +41,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           {/* <Route path="/signup" element={<SignUpPage />} /> */}
+          <Route path="/courseinfo/:id" element={<CourseDetails />} />
 
           {/* --- Admin Routes --- */}
           <Route path="/dashboard" element={<Dashboard />} />

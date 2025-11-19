@@ -456,11 +456,11 @@
 .course-info .category {
   font-weight: 600;
   color: #00b894;
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .course-info h3 {
-  font-size: 16px;
+  font-size: 13px;
   margin: 8px 0;
   line-height: 1.4;
 }
@@ -487,6 +487,39 @@
 .price:hover {
   background: #019f82;
 }
+
+.course-info .description {
+  font-size: 13px;
+  line-height: 1.4em;           /* height of a single line */
+  height: 4.2em;                /* 1.4em * 3 lines */
+  overflow: hidden;             /* hide overflow */
+  margin-bottom: 10px;
+}
+
+
+
+.buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.more-btn {
+  background: transparent;
+  border: 1px solid #00b894;
+  color: #00b894;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.more-btn:hover {
+  background: #00b894;
+  color: #fff;
+}
+
 
 /* ===========================
    ANIMATIONS
