@@ -18,8 +18,11 @@ import {
 import Video1 from "../../../assets/Video-1.mp4";
 import FlowchartImg from "../../../assets/flowchart.png";
 import certificate from "../../../assets/certificate.jpeg";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
 
 const MyCourse = () => {
+  
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState({
     chapter1: true,
@@ -71,7 +74,7 @@ const MyCourse = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/dashboard/courses", {
+        const res =await fetch(`${API_BASE}/dashboard/courses`, {
           credentials: "include",
         });
         const data = await res.json();
