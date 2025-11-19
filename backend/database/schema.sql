@@ -1,48 +1,11 @@
 -- ===============================================
--- MASTER TABLES (HUD -> BLOCK -> HSC -> PHC)
--- ===============================================
-CREATE TABLE IF NOT EXISTS hud_master (
-  hud_id INT AUTO_INCREMENT PRIMARY KEY,
-  hud_name VARCHAR(255) NOT NULL,
-  hud_code VARCHAR(10) UNIQUE,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS block_master (
-  block_id INT AUTO_INCREMENT PRIMARY KEY,
-  block_name VARCHAR(255) NOT NULL,
-  block_code VARCHAR(10) UNIQUE,
-  hud_id INT NOT NULL,
-  FOREIGN KEY (hud_id) REFERENCES hud_master(hud_id) ON DELETE CASCADE,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS hsc_master (
-  hsc_id INT AUTO_INCREMENT PRIMARY KEY,
-  hsc_name VARCHAR(255) NOT NULL,
-  hsc_code VARCHAR(10) UNIQUE,
-  block_id INT NOT NULL,
-  FOREIGN KEY (block_id) REFERENCES block_master(block_id) ON DELETE CASCADE,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS phc_master (
-  phc_id INT AUTO_INCREMENT PRIMARY KEY,
-  phc_name VARCHAR(255) NOT NULL,
-  phc_code VARCHAR(10) UNIQUE,
-  hsc_id INT NOT NULL,
-  FOREIGN KEY (hsc_id) REFERENCES hsc_master(hsc_id) ON DELETE CASCADE,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
-
--- ===============================================
 -- USERS & ROLES
 -- ===============================================
 CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) PRIMARY KEY,
   username VARCHAR(100) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('superadmin', 'admin', 'student') NOT NULL,
+  role ENUM('superadmin', 'admin', 'user') NOT NULL,
   status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
   created_by VARCHAR(255),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -77,16 +40,8 @@ CREATE TABLE IF NOT EXISTS student_details (
   full_name VARCHAR(255),
   mobile_number VARCHAR(20),
   image_path TEXT,
-  student_type ENUM('doctor', 'staff_nurse') DEFAULT 'doctor',
-  hud_id INT,
-  block_id INT,
-  hsc_id INT,
-  phc_id INT,
-  FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE,
-  FOREIGN KEY (hud_id) REFERENCES hud_master(hud_id) ON DELETE SET NULL,
-  FOREIGN KEY (block_id) REFERENCES block_master(block_id) ON DELETE SET NULL,
-  FOREIGN KEY (hsc_id) REFERENCES hsc_master(hsc_id) ON DELETE SET NULL,
-  FOREIGN KEY (phc_id) REFERENCES phc_master(phc_id) ON DELETE SET NULL
+  user_type ENUM('internal', 'extenal') DEFAULT 'internal',
+  FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
 );
 
 -- ===============================================
