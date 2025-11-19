@@ -572,7 +572,7 @@
 
 
 /* ===================== ONLINE LEARNING SECTION ===================== */
-.online-learning {
+/* .online-learning {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -597,10 +597,10 @@
   margin-top: 30px;
   text-align: center;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
+} */
 
 /* === New Layout === */
-.video-layout {
+/* .video-layout {
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -648,10 +648,10 @@
   padding: 5px 10px;
   border-radius: 5px;
   font-size: 0.85rem;
-}
+} */
 
 /* === Buttons === */
-.video-buttons {
+/* .video-buttons {
   display: flex;
   justify-content: center;
   gap: 20px;
@@ -686,10 +686,10 @@
   font-weight: 500;
   color: #333;
   text-align: center;
-}
+} */
 
 /* === Features Section === */
-.features {
+/* .features {
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -707,7 +707,366 @@
   height: 35px;
   background: #2ecc71;
   border-radius: 8px;
+} */
+/* ============================
+   ONLINE LEARNING SECTION
+=============================== */
+/* =============================
+   ONLINE LEARNING — ENHANCED
+============================== */
+
+/* ==== MAIN CONTAINER – PREMIUM GRADIENT + SUBTLE DEPTH ==== */
+.online-learning {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 90px 8%;
+  gap: 60px;
+  flex-wrap: wrap;
+  background: linear-gradient(135deg, #f0fafa 0%, #f9fdfc 100%);
+  position: relative;
+  overflow: hidden;
 }
+
+/* Subtle animated background blobs */
+.online-learning::before {
+  content: '';
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: rgba(0, 204, 204, 0.06);
+  filter: blur(100px);
+  top: -20%;
+  left: -15%;
+  animation: blob 22s infinite ease-in-out;
+}
+@keyframes blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(10%, 15%) scale(1.1); }
+}
+
+/* ==== LEFT CONTAINER – IMAGES SLIDE IN FROM RIGHT ==== */
+.left-container {
+  flex: 1;
+  min-width: 340px;
+  opacity: 0;
+  animation: fadeInUp 1s ease-out 0.3s forwards;
+}
+
+@keyframes fadeInUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Main title - stronger gradient + shimmer */
+.left-container h2 {
+  font-size: 42px;
+  font-weight: 900;
+  margin-bottom: 28px;
+  background: linear-gradient(90deg, #004444 0%, #006666 30%, #00aaaa 70%, #00ffff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.2;
+  animation: titleGlow 4s infinite ease-in-out;
+}
+@keyframes titleGlow {
+  0%, 100% { filter: drop-shadow(0 0 12px rgba(0,204,204,0.3)); }
+  50% { filter: drop-shadow(0 0 25px rgba(0,255,255,0.6)); }
+}
+
+/* VIDEO LAYOUT */
+.video-layout {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* MAIN IMAGE & VIDEO CARDS – SLIDE IN FROM RIGHT */
+.main-img,
+.video-card {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  opacity: 0;
+  transform: translateX(120px); /* Start from right */
+  animation: slideInFromRight 1s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+.main-img { animation-delay: 0.4s; }
+.video-card:nth-child(1) { animation-delay: 0.6s; }
+.video-card:nth-child(2) { animation-delay: 0.7s; }
+.video-card:nth-child(3) { animation-delay: 0.8s; }
+
+@keyframes slideInFromRight {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Hover effects */
+.main-img:hover,
+.video-card:hover {
+  transform: translateY(-14px) scale(1.03);
+  box-shadow: 0 25px 50px rgba(0,0,0,0.22);
+}
+
+.main-img img,
+.video-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.8s ease;
+  display: block;
+}
+
+.video-card:hover img {
+  transform: scale(1.1);
+}
+
+/* Play icon overlay on hover */
+.video-card::after {
+  content: 'Play';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  color: white;
+  font-size: 48px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+  backdrop-filter: blur(2px);
+}
+.video-card:hover::after {
+  opacity: 1;
+}
+
+/* Instructor name with animated underline */
+.video-card p {
+  margin-top: 14px;
+  font-weight: 700;
+  color: #006666;
+  text-align: center;
+  font-size: 15px;
+  position: relative;
+  opacity: 0;
+  animation: fadeIn 1.2s ease-out forwards;
+  animation-delay: 1s;
+}
+.video-card p::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 50%;
+  width: 0;
+  height: 3px;
+  background: #ffbf00;
+  transition: all 0.5s ease;
+  transform: translateX(-50%);
+}
+.video-card:hover p::after {
+  width: 60%;
+}
+
+/* Side column (small cards) */
+.side-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* BUTTONS – MODERN GLASS + LIFT + RIPPLE */
+.video-buttons {
+  display: flex;
+  gap: 20px;
+  margin-top: 35px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: fadeInUp 1s ease-out 1.2s forwards;
+}
+
+.present-btn,
+.call-btn {
+  padding: 16px 36px;
+  border: none;
+  border-radius: 50px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  backdrop-filter: blur(10px);
+}
+
+.present-btn {
+  background: linear-gradient(135deg, #009999, #00cccc);
+  color: white;
+  box-shadow: 0 10px 30px rgba(0,153,153,0.4);
+}
+.present-btn:hover {
+  transform: translateY(-8px) scale(1.06);
+  box-shadow: 0 20px 40px rgba(0,153,153,0.6);
+}
+
+.call-btn {
+  background: linear-gradient(135deg, #ffbf00, #ffda44);
+  color: #222;
+  box-shadow: 0 10px 30px rgba(255,191,0,0.4);
+}
+.call-btn:hover {
+  transform: translateY(-8px) scale(1.06);
+  box-shadow: 0 20px 40px rgba(255,191,0,0.6);
+}
+
+/* Ripple effect on click */
+.present-btn::before,
+.call-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+  background: rgba(255,255,255,0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+.present-btn:active::before,
+.call-btn:active::before {
+  width: 300px; height: 300px;
+}
+
+.small-text {
+  margin-top: 12px;
+  font-size: 14.5px;
+  color: #555;
+  opacity: 0;
+  animation: fadeIn 1s ease-out 1.4s forwards;
+}
+
+/* ==== RIGHT CONTAINER – FEATURES SLIDE IN FROM LEFT ==== */
+.right-container {
+  flex: 1;
+  min-width: 340px;
+}
+
+.right-container h3 {
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 32px;
+  background: linear-gradient(90deg, #004444 0%, #00aaaa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+  transform: translateX(-80px);
+  animation: slideInFromLeft 1s ease-out 0.6s forwards;
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 18px;
+  background: white;
+  border: 1px solid rgba(0,204,204,0.15);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.07);
+  opacity: 0;
+  transform: translateX(-100px); /* Start from left */
+  animation: slideInFromLeft 0.9s ease-out forwards;
+  transition: all 0.4s ease;
+}
+
+/* Stagger animation for each feature */
+.feature:nth-child(1) { animation-delay: 0.8s; }
+.feature:nth-child(2) { animation-delay: 0.9s; }
+.feature:nth-child(3) { animation-delay: 1.0s; }
+.feature:nth-child(4) { animation-delay: 1.1s; }
+
+@keyframes slideInFromLeft {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.feature:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  border-color: #00cccc;
+}
+
+.icon-box {
+  width: 58px;
+  height: 58px;
+  background: linear-gradient(135deg, #00cccc, #006666);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: white;
+  animation: float 3.5s infinite ease-in-out;
+  box-shadow: 0 10px 25px rgba(0,204,204,0.3);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.feature p {
+  font-size: 16px;
+  color: #005555;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* ==== RESPONSIVE ==== */
+@media (max-width: 900px) {
+  .online-learning {
+    flex-direction: column;
+    text-align: center;
+    padding: 70px 5%;
+  }
+  .video-layout,
+  .side-column {
+    justify-content: center;
+  }
+  .side-column {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .left-container h2,
+  .right-container h3 {
+    font-size: 36px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .video-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+  .present-btn,
+  .call-btn {
+    width: 85%;
+  }
+}
+
+
 /* ===================== TRUSTED PEOPLE SECTION ===================== */
 .trusted-section {
   display: flex;
@@ -2058,3 +2417,44 @@
 .step:nth-child(4) .step-number::after {
   display: none;
 }
+
+.back-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid #fff; /* white border ring */
+  background: #009999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  cursor: pointer;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.back-to-top-circle {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 54px;
+  height: 54px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top: 2px solid #fff;
+  border-radius: 50%;
+  animation: spin-circle 1s linear infinite;
+}
+
+@keyframes spin-circle {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+

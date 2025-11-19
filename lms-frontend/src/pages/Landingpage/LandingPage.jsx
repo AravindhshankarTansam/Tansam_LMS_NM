@@ -4,6 +4,9 @@ import heroImg from "../../assets/main_lms.png";
 import herologo from "../../assets/tansamoldlogo.png";
 import { Link, useNavigate } from "react-router-dom";
 import PlansSection from "./PlansSection";
+import { ArrowDropUp } from "@mui/icons-material"; 
+import { CircularProgress } from "@mui/material";
+
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
@@ -12,6 +15,47 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showTopBtn, setShowTopBtn] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0); // 0 to 100
+
+
+ useEffect(() => {
+  const handleScroll = () => {
+    const totalScroll =
+      document.documentElement.scrollHeight -
+      document.documentElement.clientHeight;
+    const scroll = document.documentElement.scrollTop;
+    const scrolled = (scroll / totalScroll) * 100;
+
+    setScrollProgress(scrolled);
+    setShowTopBtn(scroll > 300);
+  };
+
+  window.addEventListener("scroll", handleScroll);
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
+
+// ADD THIS useEffect — Scroll-triggered animation for .online-learning section
+useEffect(() => {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+        // Add class when section enters viewport
+        entry.target.classList.add("in-view");
+        }
+      });
+    },
+    { threshold: 0.3 } // Trigger when 30% of section is visible
+  );
+
+  const section = document.querySelector(".online-learning");
+  if (section) observer.observe(section);
+
+  return () => {
+    if (section) observer.unobserve(section);
+  };
+}, []);
 
   // ✅ Fetch courses dynamically from backend
   useEffect(() => {
@@ -172,8 +216,12 @@ const LandingPage = () => {
                   <img src={heroImg} alt="Instructor" />
                   <p>Instructor</p>
                 </div>
-                <div className="video-card">
-                  <img src={heroImg} alt="Instructor" />
+                <div className="main-img slider">
+                  <div className="slide-track">
+                    <img src={heroImg} />
+                    <img src={heroImg} />
+                    <img src={heroImg} />
+                  </div>
                   <p>Instructor</p>
                 </div>
               </div>
@@ -302,6 +350,33 @@ const LandingPage = () => {
           </ul>
         </div>
       </footer>
+ {showTopBtn && (
+  <div
+    style={{
+      position: "fixed",
+      bottom: "30px",
+      right: "30px",
+      width: "50px",
+      height: "50px",
+      zIndex: 1000,
+      cursor: "pointer",
+      borderRadius: "50%",         
+      backgroundColor: "#009999",   
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+    onClick={() => scrollToSection("home")}
+  >
+    <CircularProgress
+      variant="determinate"
+      value={scrollProgress} 
+      size={50}
+      thickness={4}         
+      sx={{color: "rgba(255, 255, 255, 0.8)", position: "absolute",top: 0,left: 0,}} />
+    <ArrowDropUp sx={{ color: "#fff", position: "relative",fontSize: 48 }} />
+  </div>
+)}
     </div>
   );
 };
