@@ -1,7 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { connectDB } from "../config/db.js";
-import nodemailer from "nodemailer";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key_here";
 
@@ -110,55 +109,5 @@ export const getCurrentUser = async (req, res) => {
   } catch (err) {
     console.error("getCurrentUser error:", err);
     res.status(500).json({ error: "Server error" });
-  }
-};
-// Email transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
-// ----------------- REGISTER REQUEST -----------------
-export const registerRequest = async (req, res) => {
-  try {
-    const { full_name, email, mobile_number, image_base64 } = req.body;
-    const otp = Math.floor(100000 + Math.random() * 900000);
-    const db = await connectDB();
-
-    await db.execute(
-      "INSERT INTO user_temp (full_name, email, mobile_number, image_base64, otp) VALUES (?, ?, ?, ?, ?)",
-      [full_name, email, mobile_number, image_base64, otp]
-    );
-
-    // Send email (optional)
-    await transporter.sendMail({
-      from: process.env.MAIL_USER,
-      to: email,
-      subject: "Your OTP for TANSAM LMS",
-      text: `Your OTP is ${otp}`,
-    });
-
-    res.json({ message: "OTP sent successfully", otp });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// ----------------- SET PASSWORD -----------------
-export const setPassword = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const hashed = await bcrypt.hash(password, 10);
-    const db = await connectDB();
-
-    await db.execute("UPDATE users SET password=? WHERE email=?", [hashed, email]);
-
-    res.json({ message: "Account created successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
   }
 };

@@ -435,8 +435,6 @@
   transition: all 0.3s ease;
   cursor: pointer;
   animation: fadeInUp 0.8s ease;
-  width: 300px;
-
 }
 
 .course-card:hover {
@@ -447,7 +445,7 @@
 .course-card img {
   width: 100%;
   height: 280px;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .course-info {
