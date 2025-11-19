@@ -14,51 +14,73 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
+  const fromEnroll = location.state?.fromEnroll;
+const courseId = location.state?.courseId;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-    try {
-      const res = await fetch(`${AUTH_API}/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include", // ✅ Allow sending/receiving cookies
-        body: JSON.stringify({ email, password }),
-      });
+  try {
+    const res = await fetch(`${AUTH_API}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email, password }),
+    });
 
-      const data = await res.json();
-      setLoading(false);
+    const data = await res.json();
+    setLoading(false);
 
-      if (!res.ok) {
-        setError(data.error || "Invalid credentials");
-        return;
-      }
-
-      // ✅ Handle redirect if user came from "Enroll" button
-      const fromEnroll = location.state?.fromEnroll;
-      const courseId = location.state?.courseId;
-
-      if (fromEnroll && courseId) {
-        localStorage.setItem("enrolledCourse", courseId);
-        navigate("/course-player");
+    if (!res.ok) {
+      // Custom error message for invalid/non-existent users
+      if (data.error === "User not found" || data.error === "Invalid credentials") {
+        setError("You are not allowed to access this portal. Please register first. Kindly contact admin.");
       } else {
-        const role = data.user.role;
-        if (role === "superadmin" || role === "admin") {
-          navigate("/dashboard");
-        } else if (role === "student") {
-          navigate("/userdashboard");
-        } else {
-          navigate("/");
-        }
+        setError(data.error || "Something went wrong. Please try again.");
       }
-    } catch (err) {
-      console.error("Login error:", err);
-      setError("Server error. Please try again later.");
-      setLoading(false);
+      return;
     }
-  };
+
+    // Fetch user info
+    const meRes = await fetch(`${AUTH_API}/me`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    const meData = await meRes.json();
+
+    if (!meRes.ok || !meData.user) {
+      setError("You are not allowed to access this portal. Please register first. Kindly contact admin.");
+      return;
+    }
+
+    const role = meData.user.role;
+
+    // If coming from enroll
+    if (fromEnroll && courseId) {
+      navigate("/course-player", { state: { courseId } });
+      return;
+    }
+
+    // Normal login redirect
+    if (role === "superadmin" || role === "admin") {
+      navigate("/dashboard");
+    } else if (role === "student") {
+      navigate("/userdashboard");
+    } else {
+      navigate("/");
+    }
+
+  } catch (err) {
+    console.error("Login error:", err);
+    setError("Server error. Please try again later.");
+    setLoading(false);
+  }
+};
+
+
 
   return (
     <div className="signin-container">

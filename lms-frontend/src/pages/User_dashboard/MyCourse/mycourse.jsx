@@ -28,6 +28,8 @@ const MyCourse = () => {
     chapter4: false,
     chapter5: false,
   });
+  const [courses, setCourses] = useState([]);
+
   const [completed, setCompleted] = useState(new Set());
   const [enabledLessons, setEnabledLessons] = useState(new Set());
   const [activeLesson, setActiveLesson] = useState("");
@@ -66,7 +68,23 @@ const MyCourse = () => {
     { key: "c5_word", title: "DOC", type: "doc", src: "/word5.doc", chapter: 5, countForProgress: false },
     { key: "c5_quiz", title: "Questionnaire", type: "quiz", chapter: 5, countForProgress: true },
   ];
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/dashboard/courses", {
+          credentials: "include",
+        });
+        const data = await res.json();
+        setCourses(data);
+      } catch (err) {
+        console.error("Error fetching courses:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchCourses();
+  }, []);
   useEffect(() => {
     const courseStart = localStorage.getItem("courseStartDate");
     const now = new Date();
@@ -176,35 +194,55 @@ const MyCourse = () => {
     }}>
       <div className="mycourse-container">
         <div className="mycourse-grid">
-          <div className="left-section">
-            <h1 className="course-title">Network Segmentation & Access Control</h1>
-            <div className="video-player">
-              <div className="video-wrapper">{renderLessonContent()}</div>
-            </div>
-            <div className="tabs">
-              {["Course Overview", "Review"].map(tab => (
-                <button key={tab} className={`tab ${activeTab === tab ? "active" : ""}`} onClick={() => setActiveTab(tab)}>{tab}</button>
-              ))}
-            </div>
-            <div className="tab-content">
-              {activeTab === "Course Overview" && (
-                <>
-                  <h3>Course Overview</h3>
-                  <p>Learn about network segmentation, access control, and policies to protect enterprise infrastructures.</p>
-                </>
-              )}
-              {activeTab === "Review" && (
-                <>
-                  <h3>Your Review</h3>
-                  <ul>
-                    <li>Understanding of segmentation models is clear.</li>
-                    <li>Access control and policy configuration.</li>
-                    <li>Real-world cybersecurity practices.</li>
-                  </ul>
-                </>
-              )}
-            </div>
-          </div>
+         <div className="mycourse-grid">
+  <div className="left-section">
+    <h1 className="course-title">
+      {courses[0]?.course_name || "Loading..."}
+    </h1>
+    <div className="video-player">
+      <div className="video-wrapper">
+        {courses[0]?.course_video ? (
+          <video width="100%" height="auto" controls>
+            <source src={`http://localhost:5000/${courses[0].course_video}`} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        ) : (
+          "No video available"
+        )}
+      </div>
+    </div>
+    <div className="tabs">
+      {["Course Overview", "Review"].map(tab => (
+        <button 
+          key={tab}
+          className={`tab ${activeTab === tab ? "active" : ""}`}
+          onClick={() => setActiveTab(tab)}
+        >
+          {tab}
+        </button>
+      ))}
+    </div>
+    <div className="tab-content">
+      {activeTab === "Course Overview" && (
+        <>
+          <h3>Course Overview</h3>
+          <p>{courses[0]?.overview || "No overview available."}</p>
+        </>
+      )}
+      {activeTab === "Review" && (
+        <>
+          <h3>Your Review</h3>
+          <ul>
+            <li>Understanding of segmentation models is clear.</li>
+            <li>Access control and policy configuration.</li>
+            <li>Real-world cybersecurity practices.</li>
+          </ul>
+        </>
+      )}
+    </div>
+  </div>
+</div>
+
 
           <div className="right-section">
             <div className="progress-card">
