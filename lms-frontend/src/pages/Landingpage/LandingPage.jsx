@@ -22,7 +22,7 @@ const LandingPage = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/dashboard/courses", {
+        const res = await fetch(`${API_BASE}/dashboard/courses`, {
           credentials: "include",
         });
         const data = await res.json();
