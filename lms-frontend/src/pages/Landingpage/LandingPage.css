@@ -506,21 +506,23 @@
 }
 
 .more-btn {
-  background: transparent;
-  border: 1px solid #00b894;
-  color: #00b894;
-  padding: 6px 14px;
+  display: inline-block;
+  background: #00b894;
+  color: #fff;
+  padding: 10px 16px;
   border-radius: 6px;
   font-weight: 600;
-  cursor: pointer;
+  margin-top: 15px;
   transition: all 0.3s ease;
-  background-color: red;
+  margin-right: 10px;
 }
+
 
 .more-btn:hover {
   background: #00b894;
   color: #fff;
 }
+
 
 
 /* ===========================
@@ -622,6 +624,13 @@
   color: #fff;
 }
 
+.bottom-row {
+  display: flex;
+  justify-content: space-between; /* 👈 "More" moves left, "Enroll" moves right */
+  align-items: center;
+  width: 100%;
+  margin-top: 10px;
+}
 
 /* ===================== ONLINE LEARNING SECTION ===================== */
 .online-learning {
