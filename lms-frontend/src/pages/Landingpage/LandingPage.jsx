@@ -15,6 +15,10 @@ const LandingPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const coursesPerPage = 9; // 3x3 grid (9 courses per page)
 
+const handleMore = (course) => {
+  navigate(`/courseinfo/${course.course_id}`, { state: { course } });
+};
+
   // Fetch courses dynamically from backend
   useEffect(() => {
     const fetchCourses = async () => {
@@ -135,8 +139,7 @@ const LandingPage = () => {
                 />
                 <div className="course-info">
                   <p className="category">{course.course_name}</p>
-                  <h3>{course.description}</h3>
-                  {/* <p>{course.category_name}</p> */}
+                  <p className="description">{course.description}</p>
 
                   <div className="details">
                     <p>
@@ -152,6 +155,13 @@ const LandingPage = () => {
                   >
                     Enroll
                   </span>
+                  <button
+                    className="more-btn"
+                    onClick={() => handleMore(course)}
+                  >
+                    More
+                  </button>
+
                 </div>
               </div>
             );
