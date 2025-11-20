@@ -16,7 +16,8 @@ export const QUIZ_API = `${DASHBOARD_API}/quizzes`;
 // User Dashboard Endpoints
 export const USER_DASHBOARD_API = `${DASHBOARD_API}/userdashboard`;
 
-
+export const PROGRESS_API = `${DASHBOARD_API}/progress`;
+export const STUDENT_API = `${DASHBOARD_API}/student`;
 // Other Dashboard Modules
 export const TEST_API = `${USER_DASHBOARD_API}/tests`;
 export const CLASS_API = `${USER_DASHBOARD_API}/classes`;

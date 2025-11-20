@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./mycourse.css";
 import Sidebar from "../Sidebar/sidebar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+import { useLocation } from "react-router-dom";
 import {
   CheckCircle,
   Circle,
@@ -11,274 +13,582 @@ import {
   ChevronUp,
   FileText,
   Image as ImageIcon,
-  FileType,
+  FileType
 } from "lucide-react";
-  import { Box } from "@mui/material";
+import { Worker, Viewer } from "@react-pdf-viewer/core";
+import "@react-pdf-viewer/core/lib/styles/index.css";
+import mammoth from "mammoth";
 
-import Video1 from "../../../assets/Video-1.mp4";
-import FlowchartImg from "../../../assets/flowchart.png";
-import certificate from "../../../assets/certificate.jpeg";
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
-const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
+import certificateImg from "../../../assets/certificate.jpeg";
+import {
+  COURSE_API,
+  MODULE_API,
+  CHAPTER_API,
+  QUIZ_API,
+  PROGRESS_API,
+} from "../../../config/apiConfig";
 
 const MyCourse = () => {
-  
   const navigate = useNavigate();
-  const [expanded, setExpanded] = useState({
-    chapter1: true,
-    chapter2: false,
-    chapter3: false,
-    chapter4: false,
-    chapter5: false,
-  });
-  const [courses, setCourses] = useState([]);
-
+  const { courseId } = useParams();
+  const [course, setCourse] = useState(null);
+  const [modules, setModules] = useState([]);
+  const [chapters, setChapters] = useState({});
+  const [quizzes, setQuizzes] = useState({});
+  const [lessons, setLessons] = useState([]);
+  const [expanded, setExpanded] = useState({});
   const [completed, setCompleted] = useState(new Set());
   const [enabledLessons, setEnabledLessons] = useState(new Set());
   const [activeLesson, setActiveLesson] = useState("");
-  const [completedChapters, setCompletedChapters] = useState(new Set());
+  const [loading, setLoading] = useState(true);
   const [showCertificate, setShowCertificate] = useState(false);
-  const [showDownload, setShowDownload] = useState(false);
-  const [activeTab, setActiveTab] = useState("Course Overview");
   const videoRef = useRef(null);
+  const [pptSlides, setPptSlides] = useState([]);
+  const [docHtml, setDocHtml] = useState("");
+  const [customId, setCustomId] = useState("");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState("overview");
 
-  const lessons = [
-    // Chapter 1
-    { key: "c1_introVideo", title: "Introduction (Video)", type: "video", src: Video1, chapter: 1, countForProgress: true },
-    { key: "c1_pptLesson", title: "Network Segmentation (PPT)", type: "ppt", src: "/ppt1.pptx", chapter: 1, countForProgress: false },
-    { key: "c1_wordLesson", title: "Access Policy (DOC)", type: "doc", src: "/word1.doc", chapter: 1, countForProgress: false },
-    { key: "c1_flowchartLesson", title: "Segmentation Flowchart (Image)", type: "image", src: FlowchartImg, chapter: 1, countForProgress: false },
-    { key: "c1_quizLesson", title: "Questionnaire", type: "quiz", chapter: 1, countForProgress: true },
-    // Chapter 2
-    { key: "c2_video", title: "Advanced Concepts (Video)", type: "video", src: Video1, chapter: 2, countForProgress: true },
-    { key: "c2_ppt", title: "Chapter 2 PPT", type: "ppt", src: "/ppt2.pptx", chapter: 2, countForProgress: false },
-    { key: "c2_word", title: "Chapter 2 DOC", type: "doc", src: "/word2.doc", chapter: 2, countForProgress: false },
-    { key: "c2_flowchart", title: "Chapter 2 Flowchart", type: "image", src: FlowchartImg, chapter: 2, countForProgress: false },
-    { key: "c2_quiz", title: "Questionnaire", type: "quiz", chapter: 2, countForProgress: true },
-    // Chapter 3
-    { key: "c3_video", title: "Video", type: "video", src: Video1, chapter: 3, countForProgress: true },
-    { key: "c3_ppt", title: "PPT", type: "ppt", src: "/ppt3.pptx", chapter: 3, countForProgress: false },
-    { key: "c3_word", title: "DOC", type: "doc", src: "/word3.doc", chapter: 3, countForProgress: false },
-    { key: "c3_quiz", title: "Questionnaire", type: "quiz", chapter: 3, countForProgress: true },
-    // Chapter 4
-    { key: "c4_video", title: "Video", type: "video", src: Video1, chapter: 4, countForProgress: true },
-    { key: "c4_ppt", title: "PPT", type: "ppt", src: "/ppt4.pptx", chapter: 4, countForProgress: false },
-    { key: "c4_word", title: "DOC", type: "doc", src: "/word4.doc", chapter: 4, countForProgress: false },
-    { key: "c4_quiz", title: "Questionnaire", type: "quiz", chapter: 4, countForProgress: true },
-    // Chapter 5
-    { key: "c5_video", title: "Video", type: "video", src: Video1, chapter: 5, countForProgress: true },
-    { key: "c5_ppt", title: "PPT", type: "ppt", src: "/ppt5.pptx", chapter: 5, countForProgress: false },
-    { key: "c5_word", title: "DOC", type: "doc", src: "/word5.doc", chapter: 5, countForProgress: false },
-    { key: "c5_quiz", title: "Questionnaire", type: "quiz", chapter: 5, countForProgress: true },
-  ];
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const res =await fetch(`${API_BASE}/dashboard/courses`, {
-          credentials: "include",
-        });
-        const data = await res.json();
-        setCourses(data);
-      } catch (err) {
-        console.error("Error fetching courses:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchCourses();
-  }, []);
-  useEffect(() => {
-    const courseStart = localStorage.getItem("courseStartDate");
-    const now = new Date();
-
-    if (!courseStart) localStorage.setItem("courseStartDate", now.toISOString());
-
-    // Enable lessons based on saved scores
-    const savedScores = JSON.parse(localStorage.getItem("quizScores")) || {};
-    const enabled = new Set();
-    lessons.forEach((lesson) => {
-      if (lesson.chapter === 1) enabled.add(lesson.key);
-      else if (savedScores[lesson.chapter - 1] >= 60) enabled.add(lesson.key);
-    });
-    setEnabledLessons(enabled);
-
-    // Set first active lesson
-    const firstEnabledLesson = lessons.find((l) => enabled.has(l.key));
-    if (firstEnabledLesson) setActiveLesson(firstEnabledLesson.key);
-
-    // Load completed lessons
-    const completedSet = new Set();
-    lessons.forEach((lesson) => {
-      if (lesson.type !== "quiz" && localStorage.getItem(lesson.key))
-        completedSet.add(lesson.key);
-    });
-    setCompleted(completedSet);
-
-    // Show certificate if final chapter completed
-    if (savedScores[5] >= 60) setShowCertificate(true);
-  }, []);
-
-  const toggleExpand = (chapter) =>
-    setExpanded((prev) => ({ ...prev, [chapter]: !prev[chapter] }));
-
-  const getLessonIcon = (lesson) => {
-    if (lesson.countForProgress) return null;
-    switch (lesson.type) {
-      case "ppt": return <FileType size={16} color="#f59e0b" />;
-      case "doc": return <FileText size={16} color="#3b82f6" />;
-      case "image": return <ImageIcon size={16} color="#10b981" />;
-      default: return null;
+  /** Fetch course info */
+  const fetchCourse = async () => {
+    try {
+      const res = await fetch(`${COURSE_API}/${courseId}`, { credentials: "include" });
+      const data = await res.json();
+      if (res.ok) setCourse(data);
+      else toast.error("Failed to load course info");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load course info");
     }
   };
 
-  const markLessonComplete = (lessonKey) => setCompleted(prev => new Set([...prev, lessonKey]));
-  const handleVideoEnd = () => markLessonComplete(activeLesson);
+  /** Fetch modules */
+  const fetchModules = async () => {
+    try {
+      const res = await fetch(`${MODULE_API}/${courseId}`, { credentials: "include" });
+      const data = await res.json();
+      setModules(data);
 
+      const expandedMap = {};
+      data.forEach((m) => {
+        expandedMap[`module${m.module_id}`] = true;
+        fetchChapters(m.module_id);
+      });
+      setExpanded(expandedMap);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /** Fetch chapters */
+  const fetchChapters = async (moduleId) => {
+    try {
+      const res = await fetch(`${CHAPTER_API}/${moduleId}`, { credentials: "include" });
+      const data = await res.json();
+      const mappedData = data.map((chap) => ({
+        ...chap,
+        materials_json: chap.materials || []
+      }));
+      setChapters((prev) => ({ ...prev, [moduleId]: mappedData }));
+      mappedData.forEach((chap) => fetchQuizzes(chap.chapter_id));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /** Fetch quizzes */
+  const fetchQuizzes = async (chapterId) => {
+    try {
+      const res = await fetch(`${QUIZ_API}/${chapterId}`, { credentials: "include" });
+      const data = await res.json();
+      setQuizzes((prev) => ({ ...prev, [chapterId]: data }));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchCustomId = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/me", {
+        credentials: "include"
+      });
+      const data = await res.json();
+      if (res.ok && data?.user?.profile?.custom_id) {
+        setCustomId(data.user.profile.custom_id);
+      }
+    } catch (err) {
+      console.error("Failed to fetch custom_id", err);
+    }
+  };
+
+  /** Fetch progress from server and set completed set */
+  /** Fetch progress from server and set completed set */
+const fetchProgress = async () => {
+  if (!customId || lessons.length === 0) return;
+
+  try {
+    const res = await fetch(`${PROGRESS_API}/${customId}`, {
+      credentials: "include",
+    });
+    const data = await res.json();
+
+    // Find progress for this specific course
+    const courseProgressEntry = Array.isArray(data)
+      ? data.find((p) => p.course_id === Number(courseId))
+      : null;
+    const courseProgress = courseProgressEntry?.progress_percent || 0;
+
+    // Filter lessons that count toward progress (non-quiz and quiz)
+    const progressLessons = lessons.filter((l) => l.countForProgress);
+    const total = progressLessons.length;
+
+    // Calculate completed count using Math.round for better accuracy
+    const completedCount = Math.round((courseProgress / 100) * total);
+
+    // Mark the first completedCount as completed (sequential assumption)
+    const completedSet = new Set();
+    for (let i = 0; i < Math.min(completedCount, total); i++) {
+      completedSet.add(progressLessons[i].key);
+    }
+    setCompleted(completedSet);
+
+    // Enable up to the next lesson (or all if complete)
+    const enableCount = completedCount < total ? completedCount + 1 : total;
+    const enabledSet = new Set();
+    for (let i = 0; i < enableCount; i++) {
+      enabledSet.add(progressLessons[i].key);
+    }
+    setEnabledLessons(enabledSet);
+  } catch (err) {
+    console.error("Failed to fetch progress", err);
+    toast.error("Failed to fetch progress");
+  }
+};
+
+  /** Build lessons list */
+  const buildLessons = () => {
+    const list = [];
+    modules.forEach((mod) => {
+      const modChaps = chapters[mod.module_id] || [];
+      modChaps.forEach((chap) => {
+        chap.materials_json.forEach((mat, idx) => {
+          list.push({
+            key: `${chap.chapter_id}_mat${idx}`,
+            title: `${mat.material_type?.toUpperCase() || ""}: ${chap.chapter_name}`,
+            type: mat.material_type,
+            src: mat.file_path,
+            module_id: mod.module_id,
+            chapter_id: chap.chapter_id,
+            countForProgress: ["video", "pdf", "ppt", "doc", "image"].includes(mat.material_type)
+          });
+        });
+
+        const chapQuizzes = quizzes[chap.chapter_id] || [];
+        if (chapQuizzes.length) {
+          list.push({
+            key: `${chap.chapter_id}_quiz`,
+            title: "Quiz",
+            type: "quiz",
+            module_id: mod.module_id,
+            chapter_id: chap.chapter_id,
+            countForProgress: true
+          });
+        }
+      });
+    });
+
+    setLessons(list);
+    if (list.length > 0) {
+      // keep previously enabled lessons if any, otherwise enable first
+      setEnabledLessons((prev) => {
+        if (prev && prev.size > 0) return prev;
+        return new Set([list[0].key]);
+      });
+    }
+  };
+
+  /** Mark lesson complete (fixed: compute newCompleted before using it) */
+  const markLessonComplete = async (lessonKey) => {
+    const lesson = lessons.find((l) => l.key === lessonKey);
+    if (!lesson) return;
+    if (!customId) return;
+
+    // Build new completed set synchronously
+    const newCompleted = new Set(Array.from(completed));
+    newCompleted.add(lessonKey);
+    setCompleted(newCompleted);
+
+    // enable next lesson
+    const idx = lessons.findIndex((l) => l.key === lessonKey);
+    if (idx + 1 < lessons.length) {
+      setEnabledLessons((prev) => new Set([...Array.from(prev || []), lessons[idx + 1].key]));
+    }
+
+    const progressLessons = lessons.filter((l) => l.countForProgress);
+    // compute completed count from newCompleted
+    const completedCount = Array.from(newCompleted).filter((c) =>
+      progressLessons.some((l) => l.key === c)
+    ).length;
+    // percent based on actual completed items
+    const progressPercent = progressLessons.length > 0
+      ? Math.round((completedCount / progressLessons.length) * 100)
+      : 0;
+
+    try {
+      await fetch(`${PROGRESS_API}/${customId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          custom_id: customId,
+          course_id: courseId,
+          module_id: lesson.module_id,
+          chapter_id: lesson.chapter_id,
+          progress_percent: progressPercent
+        })
+      });
+    } catch (err) {
+      console.error("Failed to update progress", err);
+    }
+  };
+
+  /** Handle lesson click */
   const handleLessonClick = (lessonKey, type) => {
     if (!enabledLessons.has(lessonKey)) return;
 
+    const lesson = lessons.find((l) => l.key === lessonKey);
+    if (!lesson) return;
+
     if (type === "quiz") {
-      // Dynamic blur tracking for all chapters
-      const chapterMatch = lessonKey.match(/c(\d+)_/);
-      const chapterNum = chapterMatch ? chapterMatch[1] : "1";
-
-      const quizClickedChapters = JSON.parse(localStorage.getItem("quizClickedChapters")) || {};
-      quizClickedChapters[chapterNum] = true;
-      localStorage.setItem("quizClickedChapters", JSON.stringify(quizClickedChapters));
-
-      navigate("/quiz", { state: { lessonKey } });
+      // navigate to quiz — pass courseId and chapterId
+      navigate(`/quiz/${lesson.chapter_id}`, { state: { courseId, chapterId: lesson.chapter_id } });
       return;
     }
 
     setActiveLesson(lessonKey);
-    setShowDownload(false);
   };
 
+  /** Load all data */
+  useEffect(() => {
+    fetchCustomId();
+  }, []);
+
+  useEffect(() => {
+    if (!customId) return; // wait until custom ID is ready
+
+    const loadData = async () => {
+      setLoading(true);
+      await fetchCourse();
+      await fetchModules();
+      // fetchProgress will be called after lessons built (see next effect)
+      setLoading(false);
+    };
+
+    loadData();
+  }, [customId, courseId]);
+
+  // when modules/chapters/quizzes change -> build lessons
+  useEffect(() => {
+    if (modules.length > 0 && Object.keys(chapters).length > 0) {
+      buildLessons();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modules, chapters, quizzes]);
+
+  // AFTER lessons are built and customId available, fetch progress from server
+  useEffect(() => {
+    if (customId && lessons.length > 0) {
+      fetchProgress();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customId, lessons]);
+
+  /** Load PPT/DocX/PDF content */
+  useEffect(() => {
+    const lesson = lessons.find((l) => l.key === activeLesson);
+    if (!lesson) return;
+
+    const fileUrl = `http://localhost:5000/${lesson.src}`;
+    const fileExt = lesson.src?.split(".").pop().toLowerCase();
+
+    if (lesson.type === "ppt" && fileExt === "pptx") {
+      setPptSlides([`Preview of ${lesson.title}`]);
+      setTimeout(() => markLessonComplete(activeLesson), 5000);
+    }
+
+    if (lesson.type === "doc" && fileExt === "docx") {
+      const loadDoc = async () => {
+        try {
+          const response = await fetch(fileUrl);
+          const arrayBuffer = await response.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          setDocHtml(result.value);
+          setTimeout(() => markLessonComplete(activeLesson), 5000);
+        } catch (err) {
+          console.error("Failed to load DOC:", err);
+        }
+      };
+      loadDoc();
+    }
+
+    if (lesson.type === "pdf" && fileExt === "pdf") {
+      setTimeout(() => markLessonComplete(activeLesson), 5000);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLesson, lessons]);
+
+  /** Auto mark quiz complete if redirected from quiz page
+   *  Accept both patterns:
+   *   - { fromQuizSubmit: true, chapterId: ... }
+   *   - { chapterUnlocked: ... } (used by your Quiz.jsx)
+   */
+  useEffect(() => {
+    const fromQuizSubmit = location.state?.fromQuizSubmit;
+    const chapterIdFromState = location.state?.chapterId || location.state?.chapterUnlocked;
+
+    if (!chapterIdFromState) return;
+    if (lessons.length === 0) return; // wait until lessons exist
+
+    const quizLesson = lessons.find(
+      (l) => l.type === "quiz" && l.chapter_id === Number(chapterIdFromState)
+    );
+
+    if (quizLesson && !completed.has(quizLesson.key)) {
+      markLessonComplete(quizLesson.key);
+    }
+    // optional: clear history state so repeated mount doesn't re-trigger
+    // window.history.replaceState({}, document.title);
+  }, [location.state, lessons, completed, customId]);
+
+  /** Render lesson content */
   const renderLessonContent = () => {
     const lesson = lessons.find((l) => l.key === activeLesson);
     if (!lesson) return <p>Select a lesson to start learning.</p>;
 
-    const fileUrl = `${window.location.origin}${lesson.src}`;
-    const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+    const fileUrl = `http://localhost:5000/${lesson.src}`;
 
     switch (lesson.type) {
       case "video":
-        return <video ref={videoRef} width="100%" height="520" src={lesson.src} controls onEnded={handleVideoEnd} />;
+        return (
+          <video
+            ref={videoRef}
+            width="100%"
+            height="520"
+            src={fileUrl}
+            controls
+            controlsList="nodownload noremoteplayback"
+            onContextMenu={(e) => e.preventDefault()}
+            onEnded={() => markLessonComplete(activeLesson)}
+          />
+        );
       case "ppt":
+        return (
+          <div style={{ padding: "20px" }}>
+            {pptSlides.map((slide, idx) => (
+              <div
+                key={idx}
+                style={{
+                  height: "480px",
+                  width: "100%",
+                  marginBottom: "10px",
+                  backgroundColor: "#f3f3f3",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "12px",
+                  fontSize: "20px",
+                }}
+              >
+                {slide}
+              </div>
+            ))}
+          </div>
+        );
       case "doc":
         return (
-          <div>
-            <iframe src={viewerUrl} title={lesson.title} width="100%" height="520" style={{ border: "none", borderRadius: "12px", background: "#f9f9f9" }} onError={() => setShowDownload(true)} />
-            {showDownload && <p style={{ textAlign: "center", marginTop: 10 }}>⚠️ Preview not available. <a href={lesson.src} download>Download {lesson.title}</a></p>}
+          <div
+            style={{
+              height: "520px",
+              overflowY: "auto",
+              padding: "15px",
+              border: "1px solid #ccc",
+              borderRadius: "12px",
+              backgroundColor: "#f9f9f9",
+            }}
+          >
+            {docHtml || "Loading document..."}
+          </div>
+        );
+      case "pdf":
+        return (
+          <div style={{ height: "520px", width: "100%" }}>
+            <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+              <Viewer fileUrl={fileUrl} />
+            </Worker>
           </div>
         );
       case "image":
-        return <img src={lesson.src} alt="Flowchart" style={{ width: "100%", height: "520px", objectFit: "contain", borderRadius: "12px" }} />;
+        return (
+          <img
+            src={fileUrl}
+            alt={lesson.title}
+            style={{ width: "100%", height: "520px", objectFit: "contain", borderRadius: "12px" }}
+          />
+        );
       default:
         return <p>Select a lesson to start learning.</p>;
     }
   };
 
   const progressLessons = lessons.filter((l) => l.countForProgress);
-  const progressPercentage = Math.round((completed.size / progressLessons.length) * 100);
+  const progressPercent = progressLessons.length
+    ? Math.round((completed.size / progressLessons.length) * 100)
+    : 0;
+
+  if (loading) return <p>Loading course...</p>;
 
   return (
     <>
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
       <Sidebar />
       <ToastContainer />
-      <Box sx={{
-      flex: 1,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      p: 11,
-    }}>
       <div className="mycourse-container">
         <div className="mycourse-grid">
-         <div className="mycourse-grid">
-  <div className="left-section">
-    <h1 className="course-title">
-      {courses[0]?.course_name || "Loading..."}
-    </h1>
-    <div className="video-player">
-      <div className="video-wrapper">
-        {courses[0]?.course_video ? (
-          <video width="100%" height="auto" controls>
-            <source src={`http://localhost:5000/${courses[0].course_video}`} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        ) : (
-          "No video available"
-        )}
+          <div className="left-section">
+            <h1 className="course-title">{course?.course_name}</h1>
+            <div className="video-player">{renderLessonContent()}</div>
+             {/* ---- Add this OVERVIEW BLOCK below the video player ---- */}
+{/* ---- Udemy-like OVERVIEW SECTION ---- */}
+{/* ---- TAB NAVIGATION OVERVIEW + DESCRIPTION ---- */}
+{course && (
+  <div className="course-tabs-container">
+    {/* TAB HEADERS */}
+    <div className="tabs-header">
+      <div
+        className={`tab-item ${activeTab === "overview" ? "active" : ""}`}
+        onClick={() => setActiveTab("overview")}
+      >
+        Course Overview
+      </div>
+
+      <div
+        className={`tab-item ${activeTab === "description" ? "active" : ""}`}
+        onClick={() => setActiveTab("description")}
+      >
+        Description
       </div>
     </div>
-    <div className="tabs">
-      {["Course Overview", "Review"].map(tab => (
-        <button 
-          key={tab}
-          className={`tab ${activeTab === tab ? "active" : ""}`}
-          onClick={() => setActiveTab(tab)}
-        >
-          {tab}
-        </button>
-      ))}
-    </div>
-    <div className="tab-content">
-      {activeTab === "Course Overview" && (
-        <>
-          <h3>Course Overview</h3>
-          <p>{courses[0]?.overview || "No overview available."}</p>
-        </>
-      )}
-      {activeTab === "Review" && (
-        <>
-          <h3>Your Review</h3>
-          <ul>
-            <li>Understanding of segmentation models is clear.</li>
-            <li>Access control and policy configuration.</li>
-            <li>Real-world cybersecurity practices.</li>
-          </ul>
-        </>
-      )}
-    </div>
+
+    {/* DIVIDER LINE */}
+    <div className="tabs-divider"></div>
+
+    {/* CONTENT */}
+    <div className="tabs-content">
+  <div key={activeTab} className="tab-animation">
+    {activeTab === "overview" && (
+      <p>{course.overview || "No overview available."}</p>
+    )}
+
+    {activeTab === "description" && (
+      <p>{course.description || "No description available."}</p>
+    )}
   </div>
 </div>
 
+  </div>
+)}
+
+
+          </div>
 
           <div className="right-section">
             <div className="progress-card">
               <h3>Your Progress</h3>
               <div className="progress-bar-container">
                 <div className="progress-bar-bg">
-                  <div className="progress-bar-fill" style={{ width: `${progressPercentage}%` }}></div>
+                  <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }}></div>
                 </div>
-                <span className="progress-text">{progressPercentage}%</span>
+                <span className="progress-text">{progressPercent}%</span>
               </div>
             </div>
 
             <div className="lessons-list">
-              <h3>Lessons</h3>
-              {[1, 2, 3, 4, 5].map(chapterNum => (
-                <div key={chapterNum} className="lesson-group">
-                  <div className="lesson-header" onClick={() => toggleExpand(`chapter${chapterNum}`)}>
-                    {completedChapters.has(chapterNum) ? <CheckCircle size={20} color="#10b981" /> : <Circle size={20} color="#6b7280" />}
-                    <span>{`Chapter ${chapterNum}`}</span>
-                    {expanded[`chapter${chapterNum}`] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </div>
-                  {expanded[`chapter${chapterNum}`] && (
-                    <div className="sub-lessons open">
-                      {lessons.filter(l => l.chapter === chapterNum).map(lesson => (
-                        <div key={lesson.key} className={`sub-lesson ${completed.has(lesson.key) ? "completed" : ""} ${!enabledLessons.has(lesson.key) ? "disabled" : ""}`} onClick={() => handleLessonClick(lesson.key, lesson.type)}>
-                          {lesson.countForProgress ? (completed.has(lesson.key) ? <CheckCircle size={16} /> : <Circle size={16} />) : getLessonIcon(lesson)}
-                          <span>{lesson.title}</span>
-                        </div>
-                      ))}
+              <div className="course-name">{course?.course_name}</div>
+              {modules.map((mod) => {
+                const modChaps = chapters[mod.module_id] || [];
+
+                // per-module counts
+                let totalMaterialsInModule = 0;
+                let completedMaterialsInModule = 0;
+
+                modChaps.forEach((chap) => {
+                  const materialLessons = lessons.filter(
+                    (l) => l.chapter_id === chap.chapter_id && l.countForProgress && l.type !== "quiz"
+                  );
+                  totalMaterialsInModule += materialLessons.length;
+                  completedMaterialsInModule += materialLessons.filter((l) => completed.has(l.key)).length;
+                });
+
+                return (
+                  <div key={mod.module_id} className="lesson-group">
+                    <div
+                      className="lesson-header"
+                      onClick={() =>
+                        setExpanded((prev) => ({
+                          ...prev,
+                          [`module${mod.module_id}`]: !prev[`module${mod.module_id}`],
+                        }))
+                      }
+                    >
+                      <span>{mod.module_name}</span>
+
+                      <span style={{ marginLeft: "auto", marginRight: "10px", fontSize: "13px", color: "#555" }}>
+                        ({completedMaterialsInModule}/{totalMaterialsInModule})
+                      </span>
+
+                      {expanded[`module${mod.module_id}`] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {expanded[`module${mod.module_id}`] && (
+                      <div className="sub-lessons open">
+                        {modChaps.map((chap) => {
+                          const chapterLessons = lessons.filter((l) => l.chapter_id === chap.chapter_id);
+                          const materialLessons = chapterLessons.filter((l) => l.countForProgress && l.type !== "quiz");
+                          const totalMaterials = materialLessons.length;
+                          const completedMaterials = materialLessons.filter((l) => completed.has(l.key)).length;
+
+                          return (
+                            <div key={chap.chapter_id} className="chapter-block">
+                              {chapterLessons.map((lesson) => (
+                                <div
+                                  key={lesson.key}
+                                  className={`sub-lesson ${completed.has(lesson.key) ? "completed" : ""} ${!enabledLessons.has(lesson.key) ? "disabled" : ""}`}
+                                  onClick={() => handleLessonClick(lesson.key, lesson.type)}
+                                >
+                                  {lesson.countForProgress ? (
+                                    completed.has(lesson.key) ? (
+                                      <CheckCircle size={16} />
+                                    ) : (
+                                      <Circle size={16} />
+                                    )
+                                  ) : lesson.type === "ppt" ? (
+                                    <FileType size={16} color="#f59e0b" />
+                                  ) : lesson.type === "doc" ? (
+                                    <FileText size={16} color="#3b82f6" />
+                                  ) : lesson.type === "image" ? (
+                                    <ImageIcon size={16} color="#10b981" />
+                                  ) : null}
+                                  <span>{lesson.title}</span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -288,13 +598,11 @@ const MyCourse = () => {
             <div className="popup-content">
               <h2>🎉 Congratulations!</h2>
               <p>You’ve completed all chapters successfully!</p>
-              <img src={certificate} alt="Certificate" style={{ width: "100%", borderRadius: "12px" }} />
+              <img src={certificateImg} alt="Certificate" style={{ width: "100%", borderRadius: "12px" }} />
             </div>
           </div>
         )}
       </div>
-      </Box>
-     </Box>
     </>
   );
 };
