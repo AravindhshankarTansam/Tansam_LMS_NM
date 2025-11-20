@@ -16,70 +16,87 @@ const LoginPage = () => {
   const location = useLocation();
   const fromEnroll = location.state?.fromEnroll;
 const courseId = location.state?.courseId;
-
 const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError("");
-  setLoading(true);
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  try {
-    const res = await fetch(`${AUTH_API}/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch(`${AUTH_API}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await res.json();
-    setLoading(false);
+      const data = await res.json();
+      setLoading(false);
 
-    if (!res.ok) {
-      // Custom error message for invalid/non-existent users
-      if (data.error === "User not found" || data.error === "Invalid credentials") {
-        setError("You are not allowed to access this portal. Please register first. Kindly contact admin.");
-      } else {
-        setError(data.error || "Something went wrong. Please try again.");
+      if (!res.ok) {
+        setError(data.error || "Invalid credentials");
+        return;
       }
-      return;
+
+      const user = data.user;
+      const role = user.role; // superadmin | admin | student
+
+      const fromEnroll = location.state?.fromEnroll;
+      const courseId = location.state?.courseId;
+
+      // ------------------------------
+      // ONLY STUDENT SHOULD BE ENROLLED
+      // ------------------------------
+      if (fromEnroll && courseId) {
+        if (role === "student") {
+          try {
+            const enrollRes = await fetch(
+              "http://localhost:5000/api/dashboard/enrollments",
+              {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  custom_id: user.profile.custom_id,
+                  course_id: courseId,
+                }),
+              }
+            );
+
+            const enrollData = await enrollRes.json();
+
+            if (!enrollRes.ok) {
+              setError(enrollData.error || "Enrollment failed");
+              return;
+            }
+
+            // Enrolled successfully → go to course list page
+            navigate("/course-player");
+            return;
+          } catch (err) {
+            console.error("Enrollment error:", err);
+            setError("Enrollment failed");
+            return;
+          }
+        } else {
+          // Admin or superadmin clicked enroll → just redirect, no enrollment
+          navigate("/course-player");
+          return;
+        }
+      }
+
+      // -----------------------------------
+      // DEFAULT REDIRECT BY ROLE (NORMAL LOGIN)
+      // -----------------------------------
+      if (role === "superadmin" || role === "admin") navigate("/dashboard");
+      else if (role === "student") navigate("/userdashboard");
+      else navigate("/");
+
+    } catch (err) {
+      console.error(err);
+      setError("Server error. Please try again later.");
+      setLoading(false);
     }
-
-    // Fetch user info
-    const meRes = await fetch(`${AUTH_API}/me`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    const meData = await meRes.json();
-
-    if (!meRes.ok || !meData.user) {
-      setError("You are not allowed to access this portal. Please register first. Kindly contact admin.");
-      return;
-    }
-
-    const role = meData.user.role;
-
-    // If coming from enroll
-    if (fromEnroll && courseId) {
-      navigate("/course-player", { state: { courseId } });
-      return;
-    }
-
-    // Normal login redirect
-    if (role === "superadmin" || role === "admin") {
-      navigate("/dashboard");
-    } else if (role === "student") {
-      navigate("/userdashboard");
-    } else {
-      navigate("/");
-    }
-
-  } catch (err) {
-    console.error("Login error:", err);
-    setError("Server error. Please try again later.");
-    setLoading(false);
-  }
-};
-
+  };
 
 
   return (

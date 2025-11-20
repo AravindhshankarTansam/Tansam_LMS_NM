@@ -259,3 +259,4 @@ export const getCourseStructure = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
