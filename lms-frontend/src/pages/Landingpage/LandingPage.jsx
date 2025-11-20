@@ -250,19 +250,11 @@ useEffect(() => {
                   </div>
 
                   {/* ONLY these two are clickable - using your original class names */}
-                  <span
-                    className="price"
-                    onClick={() => handleEnroll(course.course_id)}
-                  >
-                    Enroll
-                  </span>
+                <div className="bottom-row">
+  <span className="price" onClick={() => handleEnroll(course.course_id)}>Enroll</span>
+  <button className="more-btn" onClick={() => handleMore(course)}>More</button>
+</div>
 
-                  <button
-                    className="more-btn"
-                    onClick={() => handleMore(course)}
-                  >
-                    More
-                  </button>
                 </div>
               </div>
             );

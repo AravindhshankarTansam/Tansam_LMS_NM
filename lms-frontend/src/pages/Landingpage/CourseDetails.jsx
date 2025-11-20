@@ -15,6 +15,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import "./CourseDetails.css";
+import herologo from "../../assets/tansamoldlogo.png";
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
 
@@ -63,18 +65,41 @@ const CourseDetails = () => {
   if (!course) return <Typography>Course not found.</Typography>;
 
   return (
-    <Box className="course-details-page" sx={{ px: { xs: 2, md: 4 }, py: 4 }}>
+   <Box className="course-details-page">
+
       {/* BACK BUTTON */}
-      <Box className="cd-back-btn">
-        <Button
-          variant="outlined"
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate("/")}
-          sx={{ borderRadius: 2, px: 3, fontWeight: 600 }}
-        >
-          Back
-        </Button>
-      </Box>
+   {/* ===== TOP HEADER NAVBAR ===== */}
+<nav className="cd-navbar">
+  <div className="cd-logo-container" onClick={() => navigate("/")}>
+    <img src={herologo} alt="Logo" className="cd-logo-img" />
+  </div>
+
+  <ul className="cd-nav-links">
+    <li onClick={() => navigate("/")}>Home</li>
+    <li onClick={() => navigate("/#courses")}>Courses</li>
+    <li onClick={() => navigate("/#testimonials")}>Testimonials</li>
+  </ul>
+
+  <Button
+    variant="contained"
+    className="cd-login-btn"
+    onClick={() => navigate("/login")}
+  >
+    Login
+  </Button>
+</nav>
+
+{/* BACK BUTTON SECTION */}
+<Box className="cd-back-btn">
+  <Button
+    variant="outlined"
+    startIcon={<ArrowBackIcon />}
+    onClick={() => navigate("/")}
+    sx={{ borderRadius: 2, px: 3, fontWeight: 600 }}
+  >
+    Back
+  </Button>
+</Box>
 
       {/* TOP SECTION */}
       <Box className="cd-top-new">
