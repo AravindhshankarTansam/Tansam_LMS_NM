@@ -24,7 +24,7 @@ const upload = uploadCourseMaterial.fields([
 ]);
 
 // ✅ Get all courses
-router.get("/", authenticateUser, getAllCourses);
+router.get("/", getAllCourses);
 
 // ✅ Create a new course (with image, video & is_active)
 router.post("/", authenticateUser, upload, createCourse);
