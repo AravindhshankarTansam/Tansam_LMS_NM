@@ -4,6 +4,9 @@ import heroImg from "../../assets/main_lms.png";
 import herologo from "../../assets/tansamoldlogo.png";
 import { Link, useNavigate } from "react-router-dom";
 import PlansSection from "./PlansSection";
+import FAQ from "./FAQ.jsx";
+import { ArrowDropUp } from "@mui/icons-material"; 
+import { CircularProgress } from "@mui/material";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
@@ -14,10 +17,96 @@ const LandingPage = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const coursesPerPage = 9; // 3x3 grid (9 courses per page)
+   const [showTopBtn, setShowTopBtn] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0); // 0 to 100
+
+  
+
+
+ useEffect(() => {
+  const handleScroll = () => {
+    const totalScroll =
+      document.documentElement.scrollHeight -
+      document.documentElement.clientHeight;
+    const scroll = document.documentElement.scrollTop;
+    const scrolled = (scroll / totalScroll) * 100;
+
+    setScrollProgress(scrolled);
+    setShowTopBtn(scroll > 300);
+  };
+
+  window.addEventListener("scroll", handleScroll);
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
+
+// ADD THIS useEffect — Scroll-triggered animation for .online-learning section
+useEffect(() => {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+        // Add class when section enters viewport
+        entry.target.classList.add("in-view");
+        }
+      });
+    },
+    { threshold: 0.3 } // Trigger when 30% of section is visible
+  );
+
+  const section = document.querySelector(".online-learning");
+  if (section) observer.observe(section);
+
+  return () => {
+    if (section) observer.unobserve(section);
+  };
+}, []);
 
 const handleMore = (course) => {
   navigate(`/courseinfo/${course.course_id}`, { state: { course } });
 };
+
+const stripHtml = (html) => {
+  if (!html) return "";
+  return html.replace(/<[^>]+>/g, ""); // removes all HTML tags
+};
+
+useEffect(() => {
+  const stats = document.querySelectorAll(".stats h3");
+
+  stats.forEach((el) => {
+    let targetStr = el.getAttribute("data-num"); // e.g., "12K+", "500+", "50+"
+    let suffix = "";
+    let target = 0;
+
+    // Detect and keep + sign
+    if (targetStr.endsWith("+")) {
+      suffix = "+";
+      targetStr = targetStr.slice(0, -1); // remove + for calculation
+    }
+
+    // Handle K and M
+    if (targetStr.toUpperCase().includes("K")) {
+      target = parseFloat(targetStr) * 1000;
+    } else if (targetStr.toUpperCase().includes("M")) {
+      target = parseFloat(targetStr) * 1000000;
+    } else {
+      target = parseInt(targetStr, 10);
+    }
+
+    let count = 0;
+    const increment = target > 100 ? Math.ceil(target / 200) : 1;
+
+    const interval = setInterval(() => {
+      count += increment;
+      if (count >= target) {
+        el.textContent = target.toLocaleString() + suffix;
+        clearInterval(interval);
+      } else {
+        el.textContent = count.toLocaleString() + suffix;
+      }
+    }, 20);
+  });
+}, []);
 
   // Fetch courses dynamically from backend
   useEffect(() => {
@@ -94,20 +183,22 @@ const handleMore = (course) => {
               Explore Courses
             </button>
 
-            <div className="stats">
+            <div class="stats">
               <div>
-                <h3>12K+</h3>
+                <h3 data-num="12K+">12K+</h3>
                 <p>Active Students</p>
               </div>
               <div>
-                <h3>500+</h3>
+                <h3 data-num="500+">500+</h3>
                 <p>College Collaborations</p>
               </div>
               <div>
-                <h3>50+</h3>
+                <h3 data-num="50+">50+</h3>
                 <p>Industries Collaborations</p>
               </div>
             </div>
+
+
           </div>
 
           <div className="image-content">
@@ -137,10 +228,19 @@ const handleMore = (course) => {
                   alt={course.course_name}
                   onError={(e) => (e.target.src = "/fallback.jpg")}
                 />
-                <div className="course-info">
-                  <p className="category">{course.course_name}</p>
-                  <p className="description">{course.description}</p>
 
+                <div className="course-info">
+                  {/* Course name - not clickable */}
+                  <p className="category">{course.course_name}</p>
+
+                  {/* Description - 3 lines only, NOT clickable */}
+                  <div
+                    className="description"
+                    dangerouslySetInnerHTML={{ __html: course.description || "" }}
+                    onClick={(e) => e.stopPropagation()}   // This prevents any click action
+                  />
+
+                  {/* Price text - just display, not clickable */}
                   <div className="details">
                     <p>
                       {course.pricing_type === "free"
@@ -149,19 +249,20 @@ const handleMore = (course) => {
                     </p>
                   </div>
 
+                  {/* ONLY these two are clickable - using your original class names */}
                   <span
                     className="price"
                     onClick={() => handleEnroll(course.course_id)}
                   >
                     Enroll
                   </span>
+
                   <button
                     className="more-btn"
                     onClick={() => handleMore(course)}
                   >
                     More
                   </button>
-
                 </div>
               </div>
             );
@@ -202,7 +303,7 @@ const handleMore = (course) => {
 
       {/* ===== INSTRUCTORS, TESTIMONIALS, FOOTER ===== */}
       {/* (no changes in these sections, keeping your original code) */}
-
+{/* 
       <section className="online-learning" id="instructors">
         <div className="left-container">
           <h2>Empowering Learners Through Digital Education</h2>
@@ -248,7 +349,8 @@ const handleMore = (course) => {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
+      <FAQ />
 
       <section className="trusted-section" id="testimonials">
         <div className="trusted-left">
@@ -347,8 +449,34 @@ const handleMore = (course) => {
           </ul>
         </div>
       </footer>
-    </div>
+       {showTopBtn && (
+  <div
+    style={{
+      position: "fixed",
+      bottom: "30px",
+      right: "30px",
+      width: "50px",
+      height: "50px",
+      zIndex: 1000,
+      cursor: "pointer",
+      borderRadius: "50%",         
+      backgroundColor: "#009999",   
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+    onClick={() => scrollToSection("home")}
+  >
+    <CircularProgress
+      variant="determinate"
+      value={scrollProgress} 
+      size={50}
+      thickness={4}         
+      sx={{color: "rgba(255, 255, 255, 0.8)", position: "absolute",top: 0,left: 0,}} />
+    <ArrowDropUp sx={{ color: "#fff", fontSize: 40 }} />
+        </div>
+      )}
+    </div> 
   );
 };
-
 export default LandingPage;

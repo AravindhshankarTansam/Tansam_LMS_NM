@@ -482,6 +482,7 @@
   font-weight: 600;
   margin-top: 15px;
   transition: all 0.3s ease;
+  margin-right: 10px;
 }
 
 .price:hover {
@@ -513,6 +514,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  background-color: red;
 }
 
 .more-btn:hover {
@@ -603,6 +605,22 @@
   }
 }
 
+.course-info .more-btn {
+  background-color:#ff6f61;; /* sets the red background */
+  color: #fff;   
+        /* white text for contrast */
+  border: none;          /* remove border */
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.course-info .more-btn:hover {
+  background-color: #ff6f61;; /* slightly darker on hover */
+  color: #fff;
+}
 
 
 /* ===================== ONLINE LEARNING SECTION ===================== */
@@ -2159,3 +2177,27 @@
   color: white;
   border-color: #009999;
 }
+
+/* Default: show 3 lines */
+.description {
+  font-size: 14px;
+  color: #555;
+  margin: 8px 0;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Expanded */
+.description.expand {
+  -webkit-line-clamp: unset;
+  max-height: none;
+  height: auto;
+  overflow: visible;
+}
+
