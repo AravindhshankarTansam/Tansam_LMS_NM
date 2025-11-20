@@ -8,14 +8,15 @@ import {
   deleteQuiz,
   submitQuiz,
   importQuizFromFile,
+  getQuizAttempts,
+  getQuizAttemptsByChapter,
 } from "../controllers/quizController.js";
 import { authenticateUser } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 /**
- * 📤 Upload or Create Quiz
- * Handles both JSON-based and file-based uploads
+ * 📤 Create Quiz (JSON) OR Import Quiz (File Upload)
  */
 router.post(
   "/",
@@ -24,11 +25,9 @@ router.post(
   async (req, res) => {
     try {
       if (req.file) {
-        // ✅ File-based upload
-        return importQuizFromFile(req, res);
+        return importQuizFromFile(req, res); // File upload path
       } else {
-        // ✅ JSON-based quiz creation
-        return createQuiz(req, res);
+        return createQuiz(req, res); // Normal JSON create quiz
       }
     } catch (err) {
       console.error("❌ Quiz upload error:", err);
@@ -38,12 +37,12 @@ router.post(
 );
 
 /**
- * 🧾 Get all quizzes by chapter
+ * 🧾 Get all quizzes for a chapter
  */
 router.get("/:chapter_id", authenticateUser, getQuizzesByChapter);
 
 /**
- * ✏️ Update existing quiz
+ * ✏️ Update quiz
  */
 router.put("/:id", authenticateUser, updateQuiz);
 
@@ -53,8 +52,26 @@ router.put("/:id", authenticateUser, updateQuiz);
 router.delete("/:id", authenticateUser, deleteQuiz);
 
 /**
- * ✅ Submit quiz answers
+ * 📝 Submit quiz attempts
  */
+router.post("/submit", authenticateUser, submitQuiz);
+
+/**
+ * 📊 Get ALL quiz attempts of a user
+ */
+router.get("/attempts/:custom_id", authenticateUser, getQuizAttempts);
+
+/**
+ * 📊 Get quiz attempts for a specific chapter (filtered)
+ */
+router.get(
+  "/attempts/:custom_id/chapter/:chapter_id",
+  authenticateUser,
+  getQuizAttemptsByChapter
+);
+
+
+
 router.post("/submit", authenticateUser, submitQuiz);
 
 export default router;

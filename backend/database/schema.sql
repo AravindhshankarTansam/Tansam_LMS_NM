@@ -161,16 +161,32 @@ CREATE TABLE IF NOT EXISTS quizzes (
   FOREIGN KEY (chapter_id) REFERENCES chapters(chapter_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS quiz_results (
+-- CREATE TABLE IF NOT EXISTS quiz_results (
+--   result_id INT AUTO_INCREMENT PRIMARY KEY,
+--   custom_id VARCHAR(50) NOT NULL,
+--   quiz_id INT NOT NULL,
+--   selected_answer TEXT,
+--   is_correct BOOLEAN,
+--   attempt_number INT DEFAULT 1,
+--   attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+--   FOREIGN KEY (quiz_id) REFERENCES quizzes(quiz_id) ON DELETE CASCADE
+-- );
+
+  CREATE TABLE IF NOT EXISTS quiz_results (
   result_id INT AUTO_INCREMENT PRIMARY KEY,
   custom_id VARCHAR(50) NOT NULL,
   quiz_id INT NOT NULL,
+  chapter_id INT NOT NULL,          -- Added
   selected_answer TEXT,
   is_correct BOOLEAN,
+  progress_percent INT DEFAULT 0,   -- Added
   attempt_number INT DEFAULT 1,
   attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (quiz_id) REFERENCES quizzes(quiz_id) ON DELETE CASCADE
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(quiz_id) ON DELETE CASCADE,
+  FOREIGN KEY (chapter_id) REFERENCES chapters(chapter_id) ON DELETE CASCADE
 );
+
+
 
 -- ===============================================
 -- COURSE ENROLLMENT & PROGRESS
@@ -195,6 +211,18 @@ CREATE TABLE IF NOT EXISTS user_progress (
   progress_percent DECIMAL(5,2) DEFAULT 0,
   FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS user_progress_logs (
+  log_id INT AUTO_INCREMENT PRIMARY KEY,
+  custom_id VARCHAR(50) NOT NULL,
+  course_id INT NOT NULL,
+  module_id INT NOT NULL,
+  chapter_id INT NOT NULL,
+  status ENUM('started','in_progress','completed') DEFAULT 'in_progress',
+  visited_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(course_id) REFERENCES courses(course_id) ON DELETE CASCADE
+);
+
 
 -- ===============================================
 -- FINAL COURSE QUIZZES

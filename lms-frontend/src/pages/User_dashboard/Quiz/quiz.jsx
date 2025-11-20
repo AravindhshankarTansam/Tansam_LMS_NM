@@ -1,211 +1,405 @@
-import React, { useState, useEffect } from 'react'; 
-import './quiz.css';
+import React, { useState, useEffect } from "react";
+import "./quiz.css";
 import Sidebar from "../Sidebar/sidebar";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { ToastContainer, toast, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { QUIZ_API, COURSE_API, MODULE_API } from "../../../config/apiConfig";
 
 export default function Quiz() {
   const navigate = useNavigate();
   const location = useLocation();
-  const lessonKey = location.state?.lessonKey || "";
+  const { chapterId } = useParams();
 
-  // Sample lessons (can be expanded or dynamic)
-  const lessons = [
-    { id: '01', title: 'Evaporative Cooling', type: 'play', time: 'Quiz - 8 Questions', active: true },
-    { id: '02', title: 'Vaporized Water Transform', type: 'document', time: '25 Minutes' },
-    { id: '03', title: 'Heat Specificity', type: 'play', time: '80 Minutes' },
-    { id: '04', title: 'Temperatures 101', type: 'play', time: '40 Minutes' },
-    { id: '05', title: 'State Changes, Part 1', type: 'play', time: '25 Minutes' },
-    { id: '06', title: 'State Changes, Part 2', type: 'document', time: '10 Questions' },
-    { id: '07', title: 'Water & Acids', type: 'play', time: '25 Minutes' },
-    { id: '08', title: 'Bases & Other Things', type: 'play', time: '110 Minutes' },
-  ];
+  const courseId = location.state?.courseId;
 
-  // Sample questions (replace with real ones)
-  const questions = [
-    { id: 1, text: 'Why does liquid water have such a high heat capacity?', correct: 'A' },
-    { id: 2, text: 'Question 2 text', correct: 'B' },
-    { id: 3, text: 'Question 3 text', correct: 'C' },
-    { id: 4, text: 'Question 4 text', correct: 'D' },
-    { id: 5, text: 'Question 5 text', correct: 'A' },
-  ];
+  const [customId, setCustomId] = useState("");
+  const [courseName, setCourseName] = useState("");
+  const [moduleName, setModuleName] = useState("");
+  const [questions, setQuestions] = useState([]);
 
-  const [currentLesson, setCurrentLesson] = useState('01');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState('');
+  const [selectedOption, setSelectedOption] = useState("");
   const [checkResult, setCheckResult] = useState(null);
+
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
+  const [isChecked, setIsChecked] = useState(false);
 
-  // Dynamic blur for all chapters
-  const [blurActive, setBlurActive] = useState(true);
+  // NEW: Store ALL answers
+  const [allAnswers, setAllAnswers] = useState([]);
 
+  // Attempt States
+  const [attemptCount, setAttemptCount] = useState(0);
+  const [attemptsLeft, setAttemptsLeft] = useState(3);
+
+  // Fetch user
   useEffect(() => {
-    const quizClickedChapters = JSON.parse(localStorage.getItem("quizClickedChapters")) || {};
-    const chapterNum = lessonKey.match(/c(\d+)_/) ? lessonKey.match(/c(\d+)_/)[1] : null;
+    const fetchUserProfile = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/auth/me", {
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (res.ok && data?.user?.profile?.custom_id) {
+          setCustomId(data.user.profile.custom_id);
+        }
+      } catch (err) {
+        console.error("❌ Error fetching user:", err);
+      }
+    };
 
-    if (chapterNum && quizClickedChapters[chapterNum]) {
-      setBlurActive(false); // remove blur
-      delete quizClickedChapters[chapterNum];
-      localStorage.setItem("quizClickedChapters", JSON.stringify(quizClickedChapters));
-    }
-  }, [lessonKey]);
+    fetchUserProfile();
+  }, []);
 
-  const handleLessonClick = (id) => {
-    setCurrentLesson(id);
-    setCurrentQuestionIndex(0);
-    setSelectedOption('');
+  // Fetch attempts
+  useEffect(() => {
+    if (!customId) return;
+
+    const fetchAttempts = async () => {
+      try {
+        const res = await fetch(
+          `${QUIZ_API}/getAttempts/${courseId}/${customId}`,
+          { credentials: "include" }
+        );
+
+        const data = await res.json();
+        const used = data?.attempts || 0;
+
+        setAttemptCount(used);
+        setAttemptsLeft(Math.max(3 - used, 0));
+      } catch (err) {
+        console.log("❌ Error fetching attempts:", err);
+      }
+    };
+
+    fetchAttempts();
+  }, [customId, chapterId]);
+
+  // Fetch course + module names
+  useEffect(() => {
+    const fetchCourseAndModule = async () => {
+      try {
+        const courseRes = await fetch(`${COURSE_API}/${courseId}`, {
+          credentials: "include",
+        });
+        const courseData = await courseRes.json();
+        if (courseRes.ok) setCourseName(courseData.course_name);
+
+        const moduleRes = await fetch(`${MODULE_API}/${courseId}`, {
+          credentials: "include",
+        });
+        const moduleData = await moduleRes.json();
+
+        if (moduleRes.ok && moduleData.length > 0) {
+          const foundModule = moduleData.find(
+            (m) => m.module_id === parseInt(chapterId)
+          );
+          setModuleName(foundModule?.module_name || "");
+        }
+      } catch (err) {
+        console.error("❌ Error fetching data:", err);
+      }
+    };
+
+    fetchCourseAndModule();
+  }, [courseId, chapterId]);
+
+  // Fetch quiz questions
+  useEffect(() => {
+    const fetchQuiz = async () => {
+      try {
+        const res = await fetch(`${QUIZ_API}/${chapterId}`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          setQuestions(data);
+        } else {
+          toast.error("No quiz found");
+        }
+      } catch (err) {
+        console.log("❌ Failed to load quiz:", err);
+      }
+    };
+
+    fetchQuiz();
+  }, [chapterId]);
+
+  // SELECT ANSWER — FIXED (stores all answers)
+  const handleOptionSelect = (label, text) => {
+    setSelectedOption({ label, text });
     setCheckResult(null);
-    setScore(0);
-    setShowResult(false);
-  };
+    setIsChecked(false);
 
-  const handleOptionSelect = (optionId) => {
-    setSelectedOption(optionId);
-    setCheckResult(null);
-  };
+    const q = questions[currentQuestionIndex];
 
-  const moveToNextQuestion = () => {
-    setSelectedOption('');
-    setCheckResult(null);
-    if (currentQuestionIndex + 1 < questions.length) {
-      setCurrentQuestionIndex(prev => prev + 1);
-    }
+    setAllAnswers((prev) => {
+      const filtered = prev.filter((a) => a.quiz_id !== q.quiz_id);
+      return [...filtered, { quiz_id: q.quiz_id, selected_answer: text }];
+    });
   };
 
   const handleCheck = () => {
-    if (!selectedOption) return;
+    if (!selectedOption?.text) return;
 
-    if (selectedOption === questions[currentQuestionIndex].correct) {
-      setScore(prev => prev + 1);
-      setCheckResult('correct');
+    const currentQ = questions[currentQuestionIndex];
+    const correct = currentQ.correct_answer.trim().toLowerCase();
+    const chosen = selectedOption.text.trim().toLowerCase();
+
+    if (correct === chosen) {
+      setScore((prev) => prev + 1);
+      setCheckResult("correct");
     } else {
-      setCheckResult('wrong');
+      setCheckResult("wrong");
     }
 
-    setTimeout(() => {
-      if (currentQuestionIndex + 1 < questions.length) {
-        setCurrentQuestionIndex(prev => prev + 1);
-        setSelectedOption('');
-        setCheckResult(null);
-      } else {
-        setShowResult(true);
-      }
-    }, 1200);
+    setIsChecked(true);
   };
 
-  const handleSkip = () => moveToNextQuestion();
-
-  const handleSubmit = () => {
-    setShowResult(true);
-
-    const percentage = Math.round((score / questions.length) * 100);
-    const chapter = lessonKey.match(/c(\d+)_/) ? parseInt(lessonKey.match(/c(\d+)_/)[1]) : 1;
-
-    const savedScores = JSON.parse(localStorage.getItem("quizScores")) || {};
-    savedScores[chapter] = percentage;
-    localStorage.setItem("quizScores", JSON.stringify(savedScores));
-
-    if (percentage >= 60) {
-      toast.success(`🎉 Congrats! You completed Chapter ${chapter}. Chapter ${chapter + 1} unlocked!`, {
-        position: "top-right",
-        autoClose: 2500,
-        theme: "colored",
-        transition: Slide,
-      });
-    } else {
-      toast.error(`⚠️ Your score is ${percentage}%. Retry Chapter ${chapter}!`, {
-        position: "top-right",
-        autoClose: 2500,
-        theme: "colored",
-        transition: Slide,
-      });
+  const handleNext = () => {
+    if (!selectedOption) {
+      toast.error("Select an answer first");
+      return;
     }
 
-    setTimeout(() => {
-      navigate(`/mycourse`);
-    }, 2600);
+    if (currentQuestionIndex + 1 < questions.length) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+      setSelectedOption("");
+      setIsChecked(false);
+      setCheckResult(null);
+    } else {
+      handleSubmit();
+    }
   };
 
-  const progressPercent = ((currentQuestionIndex + 1) / questions.length) * 100;
-  const totalPercentage = ((score / questions.length) * 100).toFixed(0);
+  // SUBMIT ANSWERS FIXED — now submitting ALL answers
+ // In Quiz.jsx
+// const handleSubmit = async () => {
+//   try {
+//     const payload = {
+//       custom_id: customId,
+//       answers: allAnswers,
+//     };
+//     await fetch(`${QUIZ_API}/submit`, {
+//       method: "POST",
+//       credentials: "include",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(payload),
+//     });
+
+//     const percentage = Math.round((score / questions.length) * 100);
+
+//     // ✅ Show toast notification with score
+//     toast.success(`🎉 Quiz Submitted! You scored ${percentage}%`, {
+//       position: "top-right",
+//       autoClose: 4000,
+//       hideProgressBar: false,
+//       closeOnClick: true,
+//       pauseOnHover: true,
+//       draggable: true,
+//       progress: undefined,
+//       transition: Slide,
+//     });
+
+//     setShowResult(true);
+
+//     setTimeout(() => {
+//       navigate(`/mycourse/${courseId}`, {
+//         state: { 
+//           chapterUnlocked: chapterId, 
+//           progressIncrement: 1,
+//         },
+//       });
+//     }, 2000);
+//   } catch (err) {
+//     console.error("❌ Submit failed:", err);
+//     toast.error("Failed to submit quiz");
+//   }
+// };
+const handleSubmit = async () => {
+  if (!customId) {
+    toast.error("User not found!");
+    return;
+  }
+
+  // 🟢 Build answers array that includes quiz_id + selected_answer + progress_percent
+  const payload = {
+    custom_id: customId,
+    answers: allAnswers.map((ans) => ({
+      quiz_id: ans.quiz_id,
+      selected_answer: ans.selected_answer,
+      progress_percent: Math.round((score / questions.length) * 100), 
+      chapter_id: chapterId
+    })),
+  };
+
+  try {
+    const res = await fetch(`${QUIZ_API}/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      toast.success("🎉 Quiz Submitted!");
+
+      // Navigate back with progress increment (merge-friendly)
+      navigate(`/mycourse/${courseId}`, {
+        state: {
+          chapterUnlocked: chapterId,
+          progressIncrement: 1,
+        },
+      });
+    } else {
+      toast.error(data.error || "Quiz submission failed");
+    }
+  } catch (error) {
+    toast.error("Network error");
+    console.error(error);
+  }
+};
+
+
+  const currentQ = questions[currentQuestionIndex];
+
+  const progressPercent =
+    questions.length > 0
+      ? ((currentQuestionIndex + 1) / questions.length) * 100
+      : 0;
 
   return (
     <>
       <Sidebar />
-      <ToastContainer position="top-right" autoClose={2500} hideProgressBar={false} newestOnTop closeOnClick pauseOnHover draggable theme="colored" transition={Slide} />
+      <ToastContainer />
 
-      <div className={`app ${blurActive ? 'blurred' : ''}`}>
+      <div className="app">
         <div className="lessonSection">
-          <div>
-            <span className="unitPath">Unit 3 Lesson 5</span>
-            <h1 className="unitTitle">Temperature & State Changes in Water</h1>
-          </div>
+          <span className="unitPath">{courseName}</span>
+          <h1 className="unitTitle">{moduleName}</h1>
 
-          <ul className="lessonList">
-            {lessons.map(lesson => (
-              <li key={lesson.id} className={`lesson ${currentLesson === lesson.id ? 'active' : ''}`} onClick={() => handleLessonClick(lesson.id)}>
-                <div className="lessonIcon">
-                  {lesson.type === 'play' ? (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7L8 5z" /></svg>
-                  ) : (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z" /></svg>
-                  )}
-                </div>
-                <div className="lessonInfo">
-                  <span className="lessonId">{lesson.id}:</span>
-                  <span className="lessonTitle">{lesson.title}</span>
-                </div>
-                <div className="lessonTime">{lesson.time}</div>
-              </li>
-            ))}
-          </ul>
+          <p className="attemptInfo">
+            Attempt: <strong>{attemptCount}</strong> / 3 — Left:{" "}
+            <strong>{attemptsLeft}</strong>
+          </p>
         </div>
 
         <div className="main">
-          <h2 className="quizTitle">Evaporative Cooling Quiz</h2>
-
-          {!showResult ? (
+          {currentQ && !showResult && (
             <>
+              <h2 className="quizTitle">{currentQ.question}</h2>
+
               <div className="questionBox">
-                <p className="questionText">{questions[currentQuestionIndex].text}</p>
-                <p className="instruction">Choose only 1 answer:</p>
+                <p className="instruction">Choose one answer:</p>
 
                 <div className="options">
-                  {['A','B','C','D','E'].map((opt,index) => (
-                    <label key={index} className={`option 
-                      ${selectedOption === opt ? 'selected' : ''} 
-                      ${checkResult==='correct' && selectedOption===opt ? 'correctBlink' : ''}
-                      ${checkResult==='wrong' && selectedOption===opt ? 'wrongBlink' : ''}`}
-                      onClick={() => handleOptionSelect(opt)}>
-                      <input type="radio" name="q1" checked={selectedOption===opt} readOnly />
-                      <span>Option {opt}</span>
-                    </label>
-                  ))}
-                </div>
+  {currentQ.question_type === "mcq"
+    ? ["option_a", "option_b", "option_c", "option_d"].map((key, idx) => {
+        const val = currentQ[key];
+        if (!val) return null;
+
+        const label = String.fromCharCode(65 + idx);
+        const isSelected = selectedOption?.label === label;
+
+        return (
+          <label
+            key={idx}
+            className={`option 
+              ${isSelected ? "selected" : ""} 
+              ${
+                checkResult === "correct" &&
+                isSelected &&
+                val.trim().toLowerCase() ===
+                  currentQ.correct_answer.trim().toLowerCase()
+                  ? "correctBlink"
+                  : ""
+              }
+              ${
+                checkResult === "wrong" && isSelected ? "wrongBlink" : ""
+              }`}
+            onClick={() => handleOptionSelect(label, val)}
+          >
+            <input type="radio" checked={isSelected} readOnly />
+            <span>{val}</span>
+          </label>
+        );
+      })
+    : // TRUE/FALSE Question
+      ["True", "False"].map((val, idx) => {
+        const label = idx === 0 ? "A" : "B";
+        const isSelected = selectedOption?.label === label;
+
+        return (
+          <label
+            key={idx}
+            className={`option 
+              ${isSelected ? "selected" : ""} 
+              ${
+                checkResult === "correct" &&
+                isSelected &&
+                val.trim().toLowerCase() ===
+                  currentQ.correct_answer.trim().toLowerCase()
+                  ? "correctBlink"
+                  : ""
+              }
+              ${
+                checkResult === "wrong" && isSelected ? "wrongBlink" : ""
+              }`}
+            onClick={() => handleOptionSelect(label, val)}
+          >
+            <input type="radio" checked={isSelected} readOnly />
+            <span>{val}</span>
+          </label>
+        );
+      })}
+</div>
+
               </div>
 
               <div className="footerBtns">
-                <button className="btnSkip" onClick={handleSkip}>Skip</button>
-                <button className="btnCheck" onClick={handleCheck}>Check</button>
-                {currentQuestionIndex === questions.length - 1 && (
-                  <button className="btnSubmit" onClick={handleSubmit}>Submit</button>
+                {!isChecked ? (
+                  <>
+                    <button className="btnSkip" onClick={handleNext}>
+                      Skip
+                    </button>
+                    <button className="btnCheck" onClick={handleCheck}>
+                      Check
+                    </button>
+                  </>
+                ) : (
+                  <button className="btnCheck" onClick={handleNext}>
+                    {currentQuestionIndex === questions.length - 1
+                      ? "Submit"
+                      : "Next"}
+                  </button>
                 )}
               </div>
 
               <div className="progressContainer">
                 <div className="progressBar">
-                  <div className="progressFill" style={{ width: `${progressPercent}%` }}></div>
+                  <div
+                    className="progressFill"
+                    style={{ width: `${progressPercent}%` }}
+                  ></div>
                 </div>
-                <span className="progressText">{currentQuestionIndex + 1}/{questions.length}</span>
+                <span className="progressText">
+                  {currentQuestionIndex + 1}/{questions.length}
+                </span>
               </div>
             </>
-          ) : (
+          )}
+
+          {showResult && (
             <div className="resultBox">
               <h3>Quiz Completed 🎉</h3>
-              <p>Your Score: <strong>{totalPercentage}%</strong></p>
-              <p>You answered {score} out of {questions.length} correctly.</p>
+              <p>
+                You scored:{" "}
+                <strong>{Math.round((score / questions.length) * 100)}%</strong>
+              </p>
             </div>
           )}
         </div>

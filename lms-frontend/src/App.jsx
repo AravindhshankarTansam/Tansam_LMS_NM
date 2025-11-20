@@ -57,6 +57,11 @@ function App() {
           <Route path="/course-player" element={<CoursePlayer />} />
           <Route path="/quiz" element={<QuizPage />} />
           <Route path="/mycourse" element={<MyCourse />} />
+          
+          <Route path="/quiz" element={<QuizPage />} />
+           <Route path="/quiz/:chapterId" element={<QuizPage />} />
+          <Route path="/mycourse" element={<MyCourse />} />
+          <Route path="/mycourse/:courseId" element={<MyCourse />} />
 
           {/* <Route path="/courses" element={<Courses />} /> */}
           {/* <Route path="/assignments" element={<Assignments />} /> */}

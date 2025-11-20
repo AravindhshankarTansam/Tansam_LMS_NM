@@ -90,35 +90,64 @@ export const deleteQuiz = async (req, res) => {
 export const submitQuiz = async (req, res) => {
   try {
     const db = await connectDB();
-    const { custom_id, answers } = req.body; // [{ quiz_id, selected_answer }]
+    const { custom_id, answers } = req.body; // [{ quiz_id, selected_answer, progress_percent }]
 
     if (!custom_id || !answers?.length) {
       return res.status(400).json({ error: "Invalid submission format" });
     }
 
     for (const ans of answers) {
-      const { quiz_id, selected_answer } = ans;
+      const { quiz_id, selected_answer, progress_percent } = ans;
 
+      // 1️⃣ Get quiz details including chapter_id
       const [[quiz]] = await db.query(
-        `SELECT correct_answer FROM quizzes WHERE quiz_id = ?`,
+        `SELECT correct_answer, chapter_id FROM quizzes WHERE quiz_id = ?`,
         [quiz_id]
       );
       if (!quiz) continue;
 
       const is_correct =
-        quiz.correct_answer.trim().toLowerCase() === selected_answer.trim().toLowerCase();
+        quiz.correct_answer.trim().toLowerCase() ===
+        selected_answer.trim().toLowerCase();
 
+      // 2️⃣ Determine attempt number
       const [[lastAttempt]] = await db.query(
-        "SELECT MAX(attempt_number) as last FROM quiz_results WHERE custom_id = ? AND quiz_id = ?",
+        `SELECT MAX(attempt_number) AS last 
+         FROM quiz_results 
+         WHERE custom_id = ? AND quiz_id = ?`,
         [custom_id, quiz_id]
       );
       const attempt_number = (lastAttempt?.last || 0) + 1;
 
-      await db.query(
-        `INSERT INTO quiz_results (custom_id, quiz_id, selected_answer, is_correct, attempt_number)
-         VALUES (?, ?, ?, ?, ?)`,
-        [custom_id, quiz_id, selected_answer, is_correct, attempt_number]
+      // 3️⃣ Check if a row for this chapter already exists
+      const [[existing]] = await db.query(
+        `SELECT * FROM quiz_results
+         WHERE custom_id = ? AND chapter_id = ?
+         ORDER BY attempted_at DESC LIMIT 1`,
+        [custom_id, quiz.chapter_id]
       );
+
+      // 4️⃣ Merge progress
+      const addedProgress = progress_percent || 0;
+      const finalProgress = Math.min((existing?.progress_percent || 0) + addedProgress, 100);
+
+      if (existing) {
+        // ✅ Update existing chapter row
+        await db.query(
+          `UPDATE quiz_results
+           SET selected_answer = ?, is_correct = ?, progress_percent = ?, attempt_number = ?
+           WHERE result_id = ?`,
+          [selected_answer, is_correct, finalProgress, attempt_number, existing.result_id]
+        );
+      } else {
+        // ✅ Insert new row if none exists for this chapter
+        await db.query(
+          `INSERT INTO quiz_results
+            (custom_id, quiz_id, chapter_id, selected_answer, is_correct, progress_percent, attempt_number)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [custom_id, quiz_id, quiz.chapter_id, selected_answer, is_correct, finalProgress, attempt_number]
+        );
+      }
     }
 
     res.json({ message: "✅ Quiz submitted successfully" });
@@ -127,6 +156,7 @@ export const submitQuiz = async (req, res) => {
     res.status(500).json({ error: "Failed to submit quiz" });
   }
 };
+
 
 // ==========================================
 // ✅ Import quizzes via Excel / Word (Admin)
@@ -185,5 +215,53 @@ export const importQuizFromFile = async (req, res) => {
   } catch (error) {
     console.error("❌ Import error:", error);
     res.status(500).json({ error: "Failed to import quizzes" });
+  }
+};
+
+// ==========================================
+// 📊 GET all quiz attempts of a user
+// ==========================================
+export const getQuizAttempts = async (req, res) => {
+  try {
+    const db = await connectDB();
+    const { custom_id } = req.params;
+
+    const [rows] = await db.query(
+      `SELECT qr.*, q.question, q.correct_answer
+       FROM quiz_results qr
+       JOIN quizzes q ON qr.quiz_id = q.quiz_id
+       WHERE qr.custom_id = ?
+       ORDER BY qr.attempted_at DESC`,
+      [custom_id]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error("❌ Error fetching quiz attempts:", error);
+    res.status(500).json({ error: "Failed to fetch quiz attempts" });
+  }
+};
+
+// ==========================================
+// 📊 GET quiz attempts of a user FOR A CHAPTER
+// ==========================================
+export const getQuizAttemptsByChapter = async (req, res) => {
+  try {
+    const db = await connectDB();
+    const { custom_id, chapter_id } = req.params;
+
+    const [rows] = await db.query(
+      `SELECT qr.*, q.question, q.correct_answer
+       FROM quiz_results qr
+       JOIN quizzes q ON qr.quiz_id = q.quiz_id
+       WHERE qr.custom_id = ? AND q.chapter_id = ?
+       ORDER BY qr.attempted_at DESC`,
+      [custom_id, chapter_id]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error("❌ Error fetching chapter quiz attempts:", error);
+    res.status(500).json({ error: "Failed to fetch chapter quiz attempts" });
   }
 };
