@@ -4,6 +4,7 @@ import heroImg from "../../assets/main_lms.png";
 import herologo from "../../assets/tansamoldlogo.png";
 import { Link, useNavigate } from "react-router-dom";
 import PlansSection from "./PlansSection";
+import Features from "./Features";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
@@ -189,6 +190,8 @@ const LandingPage = () => {
       </section>
 
       <PlansSection />
+
+      <Features />
 
       {/* ===== INSTRUCTORS, TESTIMONIALS, FOOTER ===== */}
       {/* (no changes in these sections, keeping your original code) */}
