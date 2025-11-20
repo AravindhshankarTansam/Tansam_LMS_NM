@@ -8,6 +8,7 @@ import progressRoutes from "./progressRoutes.js";
 import rewardRoutes from "./rewardRoutes.js";
 import certificateRoutes from "./certificateRoutes.js";
 import courseCategoryRoutes from "./courseCategoryRoutes.js"; // ✅ fixed path
+import enrollmentRoutes from "./enrollmentRoutes.js";
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use("/progress", progressRoutes);
 router.use("/rewards", rewardRoutes);
 router.use("/certificate", certificateRoutes);
 router.use("/course-categories", courseCategoryRoutes); // ✅ Correctly added here
+router.use("/enrollments", enrollmentRoutes);
 
 export default router;
