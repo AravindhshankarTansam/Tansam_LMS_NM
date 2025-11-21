@@ -12,7 +12,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+  
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,20 +41,19 @@ const LoginPage = () => {
       }
 
       const user = data.user;
-      const role = user.role; // superadmin | admin | student
+      const role = user.role;
 
-      // ----------------------------------
-      // BLOCK ADMIN + SUPERADMIN FROM LOGIN
-      // ----------------------------------
-      if (role === "superadmin" || role === "admin") {
-        setError("Please check your email or password.");
-        return;
-      }
-
-      // ------------------------------
-      // STUDENT ENROLL FLOW
-      // ------------------------------
+      // ------------------------------------------------
+      // 1️⃣ LOGIN FROM ENROLL BUTTON (SPECIAL RULES)
+      // ------------------------------------------------
       if (fromEnroll && courseId) {
+        if (role !== "student") {
+          // Admin / Superadmin cannot log in through enroll
+          setError("Please check your email or password.");
+          return;
+        }
+
+        // Student enrollment logic
         try {
           const enrollRes = await fetch(
             "http://localhost:5000/api/dashboard/enrollments",
@@ -85,10 +84,20 @@ const LoginPage = () => {
         }
       }
 
-      // -----------------------------------
-      // DEFAULT STUDENT LOGIN REDIRECT
-      // -----------------------------------
-      navigate("/userdashboard");
+      // ------------------------------------------------
+      // 2️⃣ NORMAL LOGIN (WORKS EXACTLY AS BEFORE)
+      // ------------------------------------------------
+      if (role === "superadmin" || role === "admin") {
+        navigate("/dashboard");
+        return;
+      }
+
+      if (role === "student") {
+        navigate("/userdashboard");
+        return;
+      }
+
+      navigate("/");
 
     } catch (err) {
       console.error(err);
@@ -145,29 +154,11 @@ const LoginPage = () => {
         <button type="button" className="cta" onClick={() => navigate("/")}>
           <span className="span">BACK TO HOME</span>
           <span className="second">
-            <svg
-              width="50px"
-              height="20px"
-              viewBox="0 0 66 43"
-              version="1.1"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <g id="arrow" fill="none" fillRule="evenodd">
-                <path
-                  className="one"
-                  d="M40.154...Z"
-                  fill="#FFFFFF"
-                ></path>
-                <path
-                  className="two"
-                  d="M20.154...Z"
-                  fill="#FFFFFF"
-                ></path>
-                <path
-                  className="three"
-                  d="M0.154...Z"
-                  fill="#FFFFFF"
-                ></path>
+            <svg width="50px" height="20px" viewBox="0 0 66 43">
+              <g fill="none" fillRule="evenodd">
+                <path className="one" fill="#fff" d="M40.15..." />
+                <path className="two" fill="#fff" d="M20.15..." />
+                <path className="three" fill="#fff" d="M0.15..." />
               </g>
             </svg>
           </span>
