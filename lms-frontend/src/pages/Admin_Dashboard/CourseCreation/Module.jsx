@@ -180,17 +180,21 @@ export default function ModuleList() {
 
   return (
     
-    <Box sx={{ p: 4 }}>
-      <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9f9f9" }}>
-      {/* Sidebar */}
-      <Sidebar />
+       <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9f9f9" }}>
+      {/* Sticky Sidebar */}
+      <Box sx={{ position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
+        <Sidebar />
+      </Box>
 
       {/* Main Content */}
-      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        {/* Header */}
-        <Header />
+      <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        {/* Sticky Header */}
+        <Box sx={{ position: "sticky", top: 0, zIndex: 1000, bgcolor: "#fff" }}>
+          <Header />
+        </Box>
 
-        {/* <Box sx={{ flexGrow: 1, p: 4 }}></Box> */}
+        {/* Scrollable Content with left padding */}
+        <Box sx={{ flex: 1, overflowY: "auto", p: 3, pl: 5 }}>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="h5" fontWeight="bold">
           Modules for Course #{courseId}
@@ -199,7 +203,6 @@ export default function ModuleList() {
           Back
         </Button>
       </Stack>
-
       <Divider sx={{ my: 2 }} />
 
       {/* ✅ Add New Module */}
@@ -364,6 +367,6 @@ export default function ModuleList() {
       )}
       </Box>
       </Box>
-    </Box>
+      </Box>
   );
 }
