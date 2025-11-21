@@ -57,6 +57,18 @@
   color: #00b894;
 }
 
+.nav-links li a {
+  color: #ffffff;           /* your desired navbar text color */
+  text-decoration: none;    /* remove underline */
+  transition: color 0.3s;
+}
+
+.nav-links li a:hover {
+  color: #00b894;           /* hover color */
+}
+
+
+
 .contact-btns {
   background: transparent;
   border: 2px solid #fff;

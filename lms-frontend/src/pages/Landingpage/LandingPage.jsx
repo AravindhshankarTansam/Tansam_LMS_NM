@@ -160,7 +160,9 @@ useEffect(() => {
           </div>
           <ul className="nav-links">
             <li onClick={() => scrollToSection("home")}>Home</li>
-            <li onClick={() => scrollToSection("courses")}>Courses</li>
+            <li>
+              <Link to="/courseslist">Courses</Link>  {/* Navigate to courses page */}
+            </li>
             <li onClick={() => scrollToSection("testimonials")}>Testimonials</li>
           </ul>
           <Link to="/login">
