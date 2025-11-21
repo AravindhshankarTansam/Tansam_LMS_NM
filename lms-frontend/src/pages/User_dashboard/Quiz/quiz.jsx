@@ -59,7 +59,7 @@ export default function Quiz() {
     const fetchAttempts = async () => {
       try {
         const res = await fetch(
-          `${QUIZ_API}/getAttempts/${courseId}/${customId}`,
+          `${QUIZ_API}/attempts/${courseId}/${customId}`,
           { credentials: "include" }
         );
 

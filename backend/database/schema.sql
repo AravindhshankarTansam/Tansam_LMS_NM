@@ -270,3 +270,10 @@ CREATE TABLE IF NOT EXISTS notifications (
   status ENUM('unread','read') DEFAULT 'unread',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+
+-- ALTER TABLE `quiz_results`
+--   ADD COLUMN `chapter_id` int(11) NOT NULL AFTER `quiz_id`;
+
+-- ALTER TABLE `quiz_results`
+--   ADD COLUMN `progress_percent` int(3) DEFAULT 0 AFTER `is_correct`;

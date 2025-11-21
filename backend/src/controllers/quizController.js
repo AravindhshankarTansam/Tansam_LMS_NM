@@ -87,73 +87,68 @@ export const deleteQuiz = async (req, res) => {
 // ==========================================
 // ✅ Submit quiz answers (students)
 // ==========================================
+// submitQuiz (fixed)
 export const submitQuiz = async (req, res) => {
   try {
     const db = await connectDB();
-    const { custom_id, answers } = req.body; // [{ quiz_id, selected_answer, progress_percent }]
+    const { custom_id, answers } = req.body; // expected: { custom_id, answers: [{ quiz_id, selected_answer, progress_percent?, chapter_id? }] }
 
-    if (!custom_id || !answers?.length) {
-      return res.status(400).json({ error: "Invalid submission format" });
+    console.log("📥 submitQuiz payload:", JSON.stringify(req.body));
+
+    if (!custom_id || !Array.isArray(answers) || answers.length === 0) {
+      return res.status(400).json({ error: "Invalid submission format: custom_id and answers are required" });
     }
 
+    // Process each answer and insert a separate row for each quiz question attempt
     for (const ans of answers) {
-      const { quiz_id, selected_answer, progress_percent } = ans;
+      const { quiz_id, selected_answer } = ans;
+      let progress_percent = ans.progress_percent || 0;
+      let chapter_id_from_payload = ans.chapter_id || null;
 
-      // 1️⃣ Get quiz details including chapter_id
-      const [[quiz]] = await db.query(
-        `SELECT correct_answer, chapter_id FROM quizzes WHERE quiz_id = ?`,
+      if (!quiz_id || typeof selected_answer === "undefined" || selected_answer === null) {
+        // skip malformed answer items
+        console.warn("⚠️ Skipping malformed answer item:", ans);
+        continue;
+      }
+
+      // 1) Get quiz details (correct_answer, chapter_id)
+      const [[quizRow]] = await db.query(
+        `SELECT quiz_id, correct_answer, chapter_id FROM quizzes WHERE quiz_id = ? LIMIT 1`,
         [quiz_id]
       );
-      if (!quiz) continue;
 
-      const is_correct =
-        quiz.correct_answer.trim().toLowerCase() ===
-        selected_answer.trim().toLowerCase();
+      if (!quizRow) {
+        console.warn(`⚠️ No quiz found for quiz_id=${quiz_id}, skipping.`);
+        continue;
+      }
 
-      // 2️⃣ Determine attempt number
+      const correct_answer = (quizRow.correct_answer || "").toString().trim().toLowerCase();
+      const chosen = (selected_answer || "").toString().trim().toLowerCase();
+      const is_correct = correct_answer !== "" && correct_answer === chosen ? 1 : 0;
+
+      // prefer chapter_id returned by quizzes table if payload not provided
+      const chapter_id = chapter_id_from_payload || quizRow.chapter_id;
+
+      // 2) Compute attempt_number per user + quiz (so each new submission increments attempt for that quiz)
       const [[lastAttempt]] = await db.query(
-        `SELECT MAX(attempt_number) AS last 
-         FROM quiz_results 
-         WHERE custom_id = ? AND quiz_id = ?`,
+        `SELECT MAX(attempt_number) AS last FROM quiz_results WHERE custom_id = ? AND quiz_id = ?`,
         [custom_id, quiz_id]
       );
       const attempt_number = (lastAttempt?.last || 0) + 1;
 
-      // 3️⃣ Check if a row for this chapter already exists
-      const [[existing]] = await db.query(
-        `SELECT * FROM quiz_results
-         WHERE custom_id = ? AND chapter_id = ?
-         ORDER BY attempted_at DESC LIMIT 1`,
-        [custom_id, quiz.chapter_id]
+      // 3) Insert a new row for this quiz attempt
+      await db.query(
+        `INSERT INTO quiz_results
+         (custom_id, quiz_id, chapter_id, selected_answer, is_correct, progress_percent, attempt_number)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [custom_id, quiz_id, chapter_id, selected_answer, is_correct, progress_percent, attempt_number]
       );
-
-      // 4️⃣ Merge progress
-      const addedProgress = progress_percent || 0;
-      const finalProgress = Math.min((existing?.progress_percent || 0) + addedProgress, 100);
-
-      if (existing) {
-        // ✅ Update existing chapter row
-        await db.query(
-          `UPDATE quiz_results
-           SET selected_answer = ?, is_correct = ?, progress_percent = ?, attempt_number = ?
-           WHERE result_id = ?`,
-          [selected_answer, is_correct, finalProgress, attempt_number, existing.result_id]
-        );
-      } else {
-        // ✅ Insert new row if none exists for this chapter
-        await db.query(
-          `INSERT INTO quiz_results
-            (custom_id, quiz_id, chapter_id, selected_answer, is_correct, progress_percent, attempt_number)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [custom_id, quiz_id, quiz.chapter_id, selected_answer, is_correct, finalProgress, attempt_number]
-        );
-      }
     }
 
-    res.json({ message: "✅ Quiz submitted successfully" });
+    return res.json({ message: "✅ Quiz submitted successfully" });
   } catch (error) {
     console.error("❌ Error submitting quiz:", error);
-    res.status(500).json({ error: "Failed to submit quiz" });
+    return res.status(500).json({ error: "Failed to submit quiz" });
   }
 };
 
