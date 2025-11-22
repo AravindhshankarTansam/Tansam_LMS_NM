@@ -1,21 +1,22 @@
 import React, { useEffect, useState } from "react";
-import "./CoursePlayer.css";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../Sidebar/sidebar";
 import { Box } from "@mui/material";
+import "./CoursePlayer.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
 
 export default function CoursePlayer() {
+  const navigate = useNavigate();
+
   const [courses, setCourses] = useState([]);
   const [filteredCourses, setFilteredCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-
   const [currentPage, setCurrentPage] = useState(1);
-  const coursesPerPage = 12; // ⭐ 12 courses per page
+  const coursesPerPage = 12;
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -47,12 +48,12 @@ export default function CoursePlayer() {
     if (categoryValue !== "all") {
       result = result.filter(
         (course) =>
-          course.category?.toLowerCase() === categoryValue.toLowerCase()
+          course.category_name?.toLowerCase() === categoryValue.toLowerCase()
       );
     }
 
     setFilteredCourses(result);
-    setCurrentPage(1); // reset to first page after filter
+    setCurrentPage(1);
   };
 
   const handleSearch = (value) => {
@@ -65,9 +66,13 @@ export default function CoursePlayer() {
     applyFilters(search, value);
   };
 
+  const openCourse = (course) => {
+    navigate(`/mycourse/${course.course_id}`);
+  };
+
   if (loading) return <p>Loading...</p>;
 
-  // Pagination logic
+  // Pagination
   const indexOfLastCourse = currentPage * coursesPerPage;
   const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
   const currentCourses = filteredCourses.slice(indexOfFirstCourse, indexOfLastCourse);
@@ -80,15 +85,11 @@ export default function CoursePlayer() {
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
       <Sidebar />
-
       <div className="cp-dashboard">
         <div className="cp-container">
-
           <section className="cp-section">
             <div className="cp-header-row">
-
               <h2 className="cp-title">All Courses</h2>
-
               <div className="cp-header-controls">
                 <input
                   type="text"
@@ -97,7 +98,6 @@ export default function CoursePlayer() {
                   value={search}
                   onChange={(e) => handleSearch(e.target.value)}
                 />
-
                 <select
                   className="cp-filter-dropdown"
                   value={category}
@@ -125,14 +125,19 @@ export default function CoursePlayer() {
                   />
                   <div className="cp-info">
                     <h3>{course.course_name}</h3>
-                    <p>{course.description}</p>
-                    <button className="cp-start-btn">Start Learning</button>
+                      <p
+    dangerouslySetInnerHTML={{
+      __html: course.description || ""
+    }}
+  ></p>
+                    <button className="cp-start-btn" onClick={() => openCourse(course)}>
+                      Start Learning
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Pagination */}
             <div className="cp-pagination">
               <button
                 className="cp-pagination-btn"
@@ -160,9 +165,7 @@ export default function CoursePlayer() {
                 Next
               </button>
             </div>
-
           </section>
-
         </div>
       </div>
     </Box>

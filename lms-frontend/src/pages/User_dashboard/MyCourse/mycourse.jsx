@@ -51,17 +51,28 @@ const MyCourse = () => {
 
 
   /** Fetch course info */
-  const fetchCourse = async () => {
-    try {
-      const res = await fetch(`${COURSE_API}/${courseId}`, { credentials: "include" });
-      const data = await res.json();
-      if (res.ok) setCourse(data);
-      else toast.error("Failed to load course info");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load course info");
+const fetchCourse = async () => {
+  try {
+    const res = await fetch("http://localhost:5000/api/dashboard/courses", {
+      credentials: "include",
+    });
+    const data = await res.json();
+
+    if (res.ok && Array.isArray(data)) {
+      const selectedCourse = data.find((c) => c.course_id === Number(courseId));
+      if (selectedCourse) {
+        setCourse(selectedCourse);
+      } else {
+        toast.error("Course not found");
+      }
+    } else {
+      toast.error("Failed to load courses");
     }
-  };
+  } catch (err) {
+    console.error("Fetch course error:", err);
+    toast.error("Failed to load courses");
+  }
+};
 
   /** Fetch modules */
   const fetchModules = async () => {
