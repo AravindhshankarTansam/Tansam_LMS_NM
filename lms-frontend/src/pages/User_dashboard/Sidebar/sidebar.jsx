@@ -49,14 +49,14 @@ const Sidebar = () => {
           <FaUsers />
         </Link>
 
-        <Link
+        {/* <Link
           to="/quiz"
           className={`menu-item ${
             location.pathname === "/quiz" ? "active" : ""
           }`}
         >
           <FaChartBar />
-        </Link>
+        </Link> */}
 
         <Link
           to="/mycourse"
