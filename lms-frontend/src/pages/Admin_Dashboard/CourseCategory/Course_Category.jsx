@@ -160,13 +160,21 @@ const CourseCategoryPage = () => {
 
   // ✅ Render UI
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9f9f9" }}>
-      <Sidebar />
+      <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9f9f9" }}>
+      {/* Sticky Sidebar */}
+      <Box sx={{ position: "sticky", top: 0, height: "100vh" }}>
+        <Sidebar />
+      </Box>
 
+      {/* Main Column */}
       <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        <Header />
+        {/* Sticky Header */}
+        <Box sx={{ position: "sticky", top: 0, zIndex: 1000 }}>
+          <Header />
+        </Box>
 
-        <Box sx={{ flexGrow: 1, p: 4 }}>
+        {/* Scrollable Content */}
+        <Box sx={{ flexGrow: 1, overflowY: "auto", p: 4 }}>
           {/* Header */}
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
             <Typography variant="h4" sx={{ fontWeight: "bold" }}>

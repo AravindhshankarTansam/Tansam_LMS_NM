@@ -23,6 +23,7 @@ import Course from "./pages/User_dashboard/course_page/course";
 import CoursePlayer from "./pages/User_dashboard/course_player/CoursePlayer.jsx";
 import QuizPage from "./pages/User_dashboard/Quiz/quiz";
 import MyCourse from "./pages/User_dashboard/MyCourse/mycourse.jsx";
+import CoursesPage from "./pages/Landingpage/CourseList.jsx";
 
 // import SignUpPage from "./pages/SignUpPage";
 // import Courses from "./pages/Student_Dashboard/Courses.jsx";
@@ -42,6 +43,9 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           {/* <Route path="/signup" element={<SignUpPage />} /> */}
           <Route path="/courseinfo/:id" element={<CourseDetails />} />
+
+          <Route path="/courseslist" element={<CoursesPage />} />
+
 
           {/* --- Admin Routes --- */}
           <Route path="/dashboard" element={<Dashboard />} />

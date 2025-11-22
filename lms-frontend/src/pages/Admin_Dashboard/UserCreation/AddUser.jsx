@@ -220,35 +220,49 @@ export default function AddUserPage() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
-      <ToastContainer position="top-right" autoClose={2000} />
-      <Sidebar />
-      <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-        <Header userName="Bagus" />
-        <Box sx={{ flexGrow: 1, p: 4 }}>
-          {/* Header */}
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 2,
-            }}
-          >
-            <Typography variant="h4" fontWeight="600">
-              👥 User Management
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<PersonAdd />}
-              onClick={() => {
-                resetForm();
-                setEditMode(false);
-                setOpenModal(true);
-              }}
-            >
-              Add User
-            </Button>
+  <ToastContainer position="top-right" autoClose={2000} />
+
+  {/* --- Sticky Sidebar --- */}
+  <Box sx={{ position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
+    <Sidebar />
+  </Box>
+
+  {/* --- Right Content --- */}
+  <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+    
+    {/* --- Sticky Header --- */}
+    <Box sx={{ position: "sticky", top: 0, zIndex: 1000 }}>
+      <Header userName="Bagus" />
+    </Box>
+
+    {/* --- Scrollable Content --- */}
+    <Box sx={{ flexGrow: 1, p: 4, overflowY: "auto" }}>
+      
+      {/* Page Title + Add User Button */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2,
+        }}
+      >
+        <Typography variant="h4" fontWeight="600">
+          👥 User Management
+        </Typography>
+
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<PersonAdd />}
+          onClick={() => {
+            resetForm();
+            setEditMode(false);
+            setOpenModal(true);
+          }}
+        >
+          Add User
+        </Button>
           </Box>
 
           {/* Filters */}

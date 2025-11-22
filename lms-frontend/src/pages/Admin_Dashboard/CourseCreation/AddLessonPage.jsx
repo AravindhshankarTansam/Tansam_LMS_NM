@@ -202,17 +202,21 @@ const handleSaveChapter = async () => {
   // ===========================
   return (
 
-      <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* Sidebar */}
-      <Sidebar />
+       <Box sx={{ display: "flex", minHeight: "100vh" }}>
+      {/* Sticky Sidebar */}
+      <Box sx={{ position: "sticky", top: 0, height: "100vh", flexShrink: 0 }}>
+        <Sidebar />
+      </Box>
 
-      {/* Main content */}
+      {/* Main Content */}
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        {/* Header */}
-        <Header />
+        {/* Sticky Header */}
+        <Box sx={{ position: "sticky", top: 0, zIndex: 1000, bgcolor: "#fff" }}>
+          <Header />
+        </Box>
 
-        {/* Page content */}
-        <Box sx={{ flex: 1, p: 3 }}>
+        {/* Scrollable Page Content */}
+        <Box sx={{ flex: 1, overflowY: "auto", p: 3, pl: 5 }}>
           <Button
             startIcon={<ArrowBack />}
             sx={{ mb: 2 }}

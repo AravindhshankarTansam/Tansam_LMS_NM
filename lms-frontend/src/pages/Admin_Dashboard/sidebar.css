@@ -83,6 +83,7 @@
   padding: 14px 8px;
   gap: 12px;
   justify-content: space-between;
+  height: 100vh;
 }
 
 .leftnav {
