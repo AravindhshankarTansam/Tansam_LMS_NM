@@ -3,8 +3,9 @@ import {
   getAllCourses,
   createCourse,
   updateCourse,
+  // enrollCourse,
   deleteCourse,
-  getCourseStructure,
+  getCourseById,
 } from "../controllers/courseController.js";
 import { authenticateUser } from "../middleware/authMiddleware.js";
 import { uploadCourseMaterial } from "../middleware/courseMiddleware.js";
@@ -24,7 +25,12 @@ const upload = uploadCourseMaterial.fields([
 ]);
 
 // ✅ Get all courses
-router.get("/", getAllCourses);
+router.get("/", authenticateUser, getAllCourses);
+// ✅ Protected: get a single course by ID
+router.get("/:id", authenticateUser, getCourseById);
+
+// ✅ Enroll a student
+// router.post("/enroll", authenticateUser, enrollCourse);
 
 // ✅ Create a new course (with image, video & is_active)
 router.post("/", authenticateUser, upload, createCourse);
@@ -34,7 +40,5 @@ router.put("/:id", authenticateUser, upload, updateCourse);
 
 // ✅ Delete a course
 router.delete("/:id", authenticateUser, deleteCourse);
-
-router.get("/course-structure/:course_id", getCourseStructure);
 
 export default router;
