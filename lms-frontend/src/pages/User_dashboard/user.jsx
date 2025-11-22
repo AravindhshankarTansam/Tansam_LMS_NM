@@ -287,7 +287,7 @@ const getDisplayedDays = () => {
   </div>
 
   {/* ===== Completed Questionnaires Card ===== */}
-  <div className="questionnaire-card">
+  {/* <div className="questionnaire-card">
     <h3>Completed Questionnaires</h3>
     <p style={{ marginBottom: "10px", color: "#444", fontSize: "14px" }}>
       Total quizzes completed: {completedChapters.length}
@@ -307,7 +307,7 @@ const getDisplayedDays = () => {
   <p>No questionnaires completed yet.</p>
 )}
 
-{/* Pagination Controls */}
+
 {completedChapters.length > ITEMS_PER_PAGE && (
   <div className="pagination-controls">
     <button onClick={() => setQuestionnairePage(prev => Math.max(prev - 1, 0))} disabled={questionnairePage === 0}>◀</button>
@@ -317,7 +317,7 @@ const getDisplayedDays = () => {
 )}
 
     </div>
-  </div>
+  </div> */}
 </div>
 
 
