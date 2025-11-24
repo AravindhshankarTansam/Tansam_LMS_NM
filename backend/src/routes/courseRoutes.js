@@ -25,7 +25,7 @@ const upload = uploadCourseMaterial.fields([
 ]);
 
 // ✅ Get all courses
-router.get("/", authenticateUser, getAllCourses);
+router.get("/", getAllCourses);
 // ✅ Protected: get a single course by ID
 router.get("/:id", authenticateUser, getCourseById);
 

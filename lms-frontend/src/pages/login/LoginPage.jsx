@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { AUTH_API } from "../../config/apiConfig";
 import doctorImage from "../../assets/background.png";
 import logoImage from "../../assets/tansamoldlogo.png";
+import { ENROLLMENT_API } from "../../config/apiConfig";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -53,23 +54,20 @@ const handleSubmit = async (e) => {
     // ------------------------------------------------
     if (fromEnroll && courseId) {
       if (role !== "student") {
-        setError("Please check your email or password.");
+        setError("You are an admin not provisioned to student access.");
         return;
       }
 
       try {
-        const enrollRes = await fetch(
-          "http://localhost:5000/api/dashboard/enrollments",
-          {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              custom_id: user.profile.custom_id,
-              course_id: courseId,
-            }),
-          }
-        );
+        const enrollRes = await fetch(ENROLLMENT_API, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            custom_id: user.profile.custom_id,
+            course_id: courseId,
+          }),
+        });
 
         const enrollData = await enrollRes.json();
 

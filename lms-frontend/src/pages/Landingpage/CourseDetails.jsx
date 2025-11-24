@@ -119,13 +119,10 @@ const CourseDetails = () => {
         {course.course_image && (
           <div className="cd-image-wrapper-new">
             <img
-              src={
-                course.course_image.startsWith("http")
-                  ? course.course_image
-                  : `http://localhost:5000/${course.course_image}`
-              }
+              src={`${UPLOADS_BASE}/${course.course_image.replace(/^.*uploads\//, "")}`}
               alt={course.course_name}
               className="cd-image-new"
+              onError={(e) => (e.target.src = "/fallback.jpg")}
             />
           </div>
         )}

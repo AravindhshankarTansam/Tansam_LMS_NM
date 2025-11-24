@@ -26,6 +26,7 @@ import {
   CHAPTER_API,
   QUIZ_API,
   PROGRESS_API,
+  AUTH_API,
 } from "../../../config/apiConfig";
 
 const MyCourse = () => {
@@ -111,19 +112,21 @@ const MyCourse = () => {
     }
   };
 
-  const fetchCustomId = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/api/auth/me", {
-        credentials: "include"
-      });
-      const data = await res.json();
-      if (res.ok && data?.user?.profile?.custom_id) {
-        setCustomId(data.user.profile.custom_id);
-      }
-    } catch (err) {
-      console.error("Failed to fetch custom_id", err);
+ const fetchCustomId = async () => {
+  try {
+    const resUser = await fetch(`${AUTH_API}/me`, {
+      credentials: "include"
+    });
+
+    const data = await resUser.json();   // ✅ FIXED
+
+    if (resUser.ok && data?.user?.profile?.custom_id) {
+      setCustomId(data.user.profile.custom_id);
     }
-  };
+  } catch (err) {
+    console.error("Failed to fetch custom_id", err);
+  }
+};
 
   /** Fetch progress from server and set completed set */
   /** Fetch progress from server and set completed set */

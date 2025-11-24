@@ -3,6 +3,11 @@ import React, { useEffect, useState } from "react";
 import "./user.css";
 import Sidebar from "./Sidebar/sidebar";
 import { FaLock, FaCheckCircle, FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { AUTH_API ,ADMIN_API} from "../../config/apiConfig";
+
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
 
 const DashboardContent = () => {
   const [userData, setUserData] = useState(null);
@@ -21,7 +26,7 @@ const DashboardContent = () => {
     const fetchData = async () => {
       try {
         // 1️⃣ Fetch user session
-        const resUser = await fetch("http://localhost:5000/api/auth/me", {
+       const resUser = await fetch(`${AUTH_API}/me`, {
           method: "GET",
           credentials: "include",
         });
@@ -37,7 +42,7 @@ const DashboardContent = () => {
 
         // 2️⃣ Fetch remaining chapters from API
         const remRes = await fetch(
-          `http://localhost:5000/api/admin/student/${custom_id}/remaining-chapters?course_id=${course_id}`
+          `${ADMIN_API}/student/${custom_id}/remaining-chapters?course_id=${course_id}`
         );
         const remJson = await remRes.json();
         const remainingChaptersList = remJson.remaining_chapters || [];
@@ -98,7 +103,8 @@ const DashboardContent = () => {
       if (!custom_id) return;
 
       const res = await fetch(
-        `http://localhost:5000/api/admin/student/${custom_id}/progress/day?date=${dateKey}`
+        `${ADMIN_API}/student/${custom_id}/progress/day?date=${dateKey}`
+
       );
       const json = await res.json();
       const completedList = json.completed_chapters || [];
@@ -151,12 +157,13 @@ const DashboardContent = () => {
               <img
                 src={
                   profile.image_path
-                    ? `http://localhost:5000/${profile.image_path.replace("\\", "/")}`
+                    ? `${UPLOADS_BASE}/${profile.image_path.replace(/\\/g, "/")}`
                     : "https://i.pravatar.cc/100"
                 }
                 alt="User"
                 className="user-avatar-large"
               />
+
               <div>
                 <h2>{profile.full_name || "Unknown User"} 🎓</h2>
                 <p>{profile.custom_id || "N/A"}</p>

@@ -620,20 +620,21 @@
 }
 
 .course-info .more-btn {
-  background-color:#ff6f61;; /* sets the red background */
-  color: #fff;   
-        /* white text for contrast */
-  border: none;          /* remove border */
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-weight: 600;
+  background-color: #ff6f61;
+  color: #fff;
+  border: none;
+  border-radius: 6px;       /* SAME */
+  padding: 8px 14px;        /* SAME */
+  font-weight: 600;         /* SAME */
   cursor: pointer;
   transition: all 0.3s ease;
+  margin-top: 15px;         /* SAME TOP */
+  margin-right: 10px;       /* SAME RIGHT */
+  display: inline-block;    /* SAME */
 }
 
 .course-info .more-btn:hover {
-  background-color: #ff6f61;; /* slightly darker on hover */
-  color: #fff;
+  background-color: #e85b52;
 }
 
 .bottom-row {

@@ -13,6 +13,7 @@ export const  COURSE_API = `${API_BASE}/dashboard/courses`;
 export const MODULE_API = `${DASHBOARD_API}/modules`;
 export const CHAPTER_API = `${DASHBOARD_API}/chapters`; 
 export const QUIZ_API = `${DASHBOARD_API}/quizzes`; 
+export const ENROLLMENT_API = `${DASHBOARD_API}/enrollments`;
 // User Dashboard Endpoints
 export const USER_DASHBOARD_API = `${DASHBOARD_API}/userdashboard`;
 
