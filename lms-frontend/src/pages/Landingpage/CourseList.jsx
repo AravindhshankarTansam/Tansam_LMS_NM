@@ -9,6 +9,7 @@ import {
   Paper,
 } from "@mui/material";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
+import { useNavigate } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
@@ -17,6 +18,7 @@ const CoursesPage = () => {
   const [courses, setCourses] = useState([]);
   const [selectedFilters, setSelectedFilters] = useState([]);
   const [inputValue, setInputValue] = useState("");
+   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -184,23 +186,22 @@ const CoursesPage = () => {
               </p>
 
               {/* VIEW COURSE BUTTON */}
-              <Link to={`/courseinfo/${course.course_id}`}>
-                <button
-                  style={{
-                    backgroundColor: "#1976d2",
-                    color: "white",
-                    width: "100%",
-                    padding: "10px",
-                    border: "none",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    fontSize: "1rem",
-                    fontWeight: "500",
-                  }}
-                >
-                  View Course
-                </button>
-              </Link>
+              <button
+                style={{
+                  backgroundColor: "#1976d2",
+                  color: "white",
+                  width: "100%",
+                  padding: "10px",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "1rem",
+                  fontWeight: "500",
+                }}
+                onClick={() => navigate(`/courseinfo/${course.course_id}`, { state: { course } })}
+              >
+                View Course
+              </button>
             </div>
           );
         })}

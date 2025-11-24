@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+
 import { useLocation } from "react-router-dom";
 import {
   CheckCircle,
@@ -28,6 +29,8 @@ import {
   PROGRESS_API,
   AUTH_API,
 } from "../../../config/apiConfig";
+
+const FILE_BASE = import.meta.env.VITE_UPLOADS_BASE;
 
 const MyCourse = () => {
   const navigate = useNavigate();
@@ -315,7 +318,7 @@ const fetchProgress = async () => {
     const lesson = lessons.find((l) => l.key === activeLesson);
     if (!lesson) return;
 
-    const fileUrl = `http://localhost:5000/${lesson.src}`;
+    const fileUrl = `${FILE_BASE}/${lesson.src}`;
     const fileExt = lesson.src?.split(".").pop().toLowerCase();
 
     if (lesson.type === "ppt" && fileExt === "pptx") {
@@ -372,7 +375,7 @@ const fetchProgress = async () => {
     const lesson = lessons.find((l) => l.key === activeLesson);
     if (!lesson) return <p>Select a lesson to start learning.</p>;
 
-    const fileUrl = `http://localhost:5000/${lesson.src}`;
+    const fileUrl = `${FILE_BASE}/${lesson.src}`;
 
     switch (lesson.type) {
       case "video":
