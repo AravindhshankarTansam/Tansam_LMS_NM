@@ -309,11 +309,11 @@ export default function ModuleList() {
                         key={chapter.chapter_id || idx}
                         secondaryAction={
                           <>
-                            <IconButton
+                             <IconButton
                               color="primary"
                               onClick={() =>
                                 navigate(
-                                  `/admin/course/chapter/edit/${chapter.chapter_id}`
+                                  `/admin/course/module/${module.module_id}/add-lesson?chapterId=${chapter.chapter_id}`
                                 )
                               }
                             >

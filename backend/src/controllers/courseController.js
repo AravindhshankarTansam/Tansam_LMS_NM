@@ -1,5 +1,6 @@
 import { connectDB } from "../config/db.js";
 import path from "path";
+import fs from "fs";
 
 // ✅ Helper: get relative path from absolute file path
 const getRelativePath = (filePath) => {
@@ -132,10 +133,13 @@ export const createCourse = async (req, res) => {
 };
 
 // ✅ Update existing course (with image + video + is_active)
+
+
 export const updateCourse = async (req, res) => {
   try {
     const db = await connectDB();
     const { id } = req.params;
+
     const {
       course_name,
       category_id,
@@ -147,52 +151,69 @@ export const updateCourse = async (req, res) => {
       is_active,
     } = req.body;
 
-    // ✅ Get existing course
-    const [rows] = await db.execute("SELECT * FROM courses WHERE course_id = ?", [id]);
+    // Get existing course
+    const [rows] = await db.execute(
+      "SELECT * FROM courses WHERE course_id = ?",
+      [id]
+    );
+
     if (rows.length === 0)
       return res.status(404).json({ message: "Course not found" });
+
     const existing = rows[0];
 
-    // ✅ Update with new files only if provided
+    // =============== FILE HANDLING ===============
+
     let course_image = existing.course_image;
     let course_video = existing.course_video;
 
-    if (req.files && req.files.course_image && req.files.course_image.length > 0) {
+    // --- Replace image ---
+    if (req.files?.course_image?.length > 0) {
+      if (existing.course_image) {
+        const oldImage = path.join(process.cwd(), existing.course_image);
+        if (fs.existsSync(oldImage)) fs.unlinkSync(oldImage);
+      }
+
       course_image = getRelativePath(req.files.course_image[0].path);
     }
 
-      if (req.files && req.files.course_video && req.files.course_video.length > 0) {
+    // --- Replace video ---
+    if (req.files?.course_video?.length > 0) {
+      if (existing.course_video) {
+        const oldVideo = path.join(process.cwd(), existing.course_video);
+        if (fs.existsSync(oldVideo)) fs.unlinkSync(oldVideo);
+      }
+
       course_video = getRelativePath(req.files.course_video[0].path);
     }
 
-
+    // =============== UPDATE COURSE ===============
     await db.execute(
       `
-      UPDATE courses 
-      SET 
-        course_name = ?, 
-        category_id = ?, 
-        course_image = ?, 
-        course_video = ?, 
-        description = ?, 
-        requirements = ?, 
-        overview = ?, 
-        pricing_type = ?, 
-        price_amount = ?, 
+      UPDATE courses SET
+        course_name = ?,
+        category_id = ?,
+        course_image = ?,
+        course_video = ?,
+        description = ?,
+        requirements = ?,
+        overview = ?,
+        pricing_type = ?,
+        price_amount = ?,
         is_active = ?
       WHERE course_id = ?
       `,
       [
-        safeValue(course_name, existing.course_name),
-        safeValue(category_id, existing.category_id),
+        course_name || existing.course_name,
+        category_id || existing.category_id,
         course_image,
         course_video,
-        safeValue(description, existing.description),
-        safeValue(requirements, existing.requirements),
-        safeValue(overview, existing.overview),
-        safeValue(pricing_type, existing.pricing_type),
-        safeValue(price_amount, existing.price_amount),
-        safeValue(is_active, existing.is_active),
+        description || existing.description,
+        requirements || existing.requirements,
+        overview || existing.overview,
+        pricing_type || existing.pricing_type,
+        price_amount || existing.price_amount,
+        is_active || existing.is_active,
         id,
       ]
     );

@@ -24,8 +24,8 @@
 }
 
 .faq-item.open {
-  background: #fff4f4;
-  border-left: 4px solid #ff5a5a;
+  background: #e6f9f9;            /* light teal background */
+  border-left: 4px solid #009999; /* teal border */
 }
 
 .faq-question {

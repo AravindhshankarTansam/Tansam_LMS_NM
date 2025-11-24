@@ -4,7 +4,7 @@ import Sidebar from "../Sidebar/sidebar";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { ToastContainer, toast, Slide } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { QUIZ_API, COURSE_API, MODULE_API } from "../../../config/apiConfig";
+import { QUIZ_API, COURSE_API, MODULE_API,AUTH_API } from "../../../config/apiConfig";
 
 export default function Quiz() {
   const navigate = useNavigate();
@@ -37,7 +37,7 @@ export default function Quiz() {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/auth/me", {
+        const res = await fetch(`${AUTH_API}/me`, {
           credentials: "include",
         });
         const data = await res.json();

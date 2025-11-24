@@ -85,13 +85,46 @@ export const updateChapter = async (req, res) => {
   const db = await connectDB();
   const { chapter_id } = req.params;
   const { chapter_name, order_index } = req.body;
+  const files = req.files;
 
   try {
+    // 1️⃣ Update chapter name and order
     await db.query(
       `UPDATE chapters SET chapter_name=?, order_index=? WHERE chapter_id=?`,
       [chapter_name, order_index || 0, chapter_id]
     );
-    res.json({ message: "📝 Chapter updated" });
+
+    // 2️⃣ If new files are uploaded, delete old materials
+    if (files && files.length > 0) {
+      // Fetch existing materials
+      const [existingMaterials] = await db.query(
+        `SELECT file_path FROM chapter_materials WHERE chapter_id=?`,
+        [chapter_id]
+      );
+
+      // Delete files from disk
+      for (const m of existingMaterials) {
+        if (fs.existsSync(m.file_path)) fs.unlinkSync(m.file_path);
+      }
+
+      // Delete materials from DB
+      await db.query(`DELETE FROM chapter_materials WHERE chapter_id=?`, [chapter_id]);
+
+      // 3️⃣ Insert new materials
+      for (const file of files) {
+        const material_type = detectMaterialType(file.originalname);
+        const file_size_kb = (file.size / 1024).toFixed(2);
+
+        await db.query(
+          `INSERT INTO chapter_materials 
+           (chapter_id, material_type, file_name, file_path, file_size_kb)
+           VALUES (?, ?, ?, ?, ?)`,
+          [chapter_id, material_type, file.originalname, file.path, file_size_kb]
+        );
+      }
+    }
+
+    res.json({ message: "📝 Chapter updated successfully" });
   } catch (err) {
     console.error("❌ Error updating chapter:", err);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -139,6 +172,67 @@ export const deleteChapter = async (req, res) => {
     res.json({ message: "🗑️ Chapter deleted and indexes reordered" });
   } catch (err) {
     console.error("❌ Error deleting chapter:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+
+export const getChapterById = async (req, res) => {
+  const db = await connectDB();
+  const { chapter_id } = req.params;
+
+  try {
+    const [[chapter]] = await db.query(
+      `SELECT chapter_id, module_id, chapter_name, order_index, materials_json
+       FROM chapters WHERE chapter_id = ?`,
+      [chapter_id]
+    );
+
+    if (!chapter) return res.status(404).json({ message: "Chapter not found" });
+
+    // Make sure to remove any automatic population of materials
+    delete chapter.materials;
+
+    res.json(chapter);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// Get materials only for a chapter
+export const getMaterialsByChapterId = async (req, res) => {
+  const db = await connectDB();
+  const { chapter_id } = req.params;
+
+  try {
+    const [materials] = await db.query(
+      `SELECT * FROM chapter_materials WHERE chapter_id = ?`,
+      [chapter_id]
+    );
+
+    res.json(materials);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+export const getQuizzesByChapter = async (req, res) => {
+  const db = await connectDB();
+  const { chapter_id } = req.params;
+
+  try {
+    const [quizzes] = await db.query(
+      `SELECT quiz_id, question, option_a, option_b, option_c, option_d, correct_answer, question_type
+       FROM quizzes
+       WHERE chapter_id = ?`,
+      [chapter_id]
+    );
+
+    res.json(quizzes); // <- return array directly
+  } catch (err) {
+    console.error("❌ Error fetching quizzes:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };

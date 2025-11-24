@@ -4,6 +4,10 @@ import {
   createChapter,
   updateChapter,
   deleteChapter,
+  getChapterById,
+  getMaterialsByChapterId,
+  getQuizzesByChapter,
+  
 } from "../controllers/chapterController.js";
 import { authenticateUser } from "../middleware/authMiddleware.js";
 import { upload } from "../utils/fileHandler.js"; // Multer config
@@ -31,5 +35,16 @@ router.put(
 
 // ❌ Delete a chapter
 router.delete("/:chapter_id", authenticateUser, deleteChapter);
+
+// 📗 Get chapter info (without materials)
+router.get("/id/:chapter_id", authenticateUser, getChapterById);
+
+// Get materials only for a chapter
+router.get("/:chapter_id/materials", getMaterialsByChapterId);
+
+// Fetch quizzes for a chapter
+router.get("/:chapter_id/quizzes", authenticateUser, getQuizzesByChapter);
+
+
 
 export default router;
