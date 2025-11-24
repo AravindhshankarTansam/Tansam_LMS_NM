@@ -53,6 +53,20 @@ const MyCourse = () => {
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
 
+  const getFileUrl = (src) => {
+  if (!src) return "";
+
+  // Normalize path: replace backslashes with forward slashes
+  let cleanSrc = src.replace(/\\/g, "/");
+
+  // Remove any leading "uploads/" (one or more times)
+  cleanSrc = cleanSrc.replace(/^(\/?uploads\/)+/, "");
+
+  // Ensure no double slash in base
+  const base = FILE_BASE.endsWith("/") ? FILE_BASE.slice(0, -1) : FILE_BASE;
+
+  return `${base}/${cleanSrc}`;
+};
 
   /** Fetch course info */
   
@@ -318,7 +332,7 @@ const fetchProgress = async () => {
     const lesson = lessons.find((l) => l.key === activeLesson);
     if (!lesson) return;
 
-    const fileUrl = `${FILE_BASE}/${lesson.src}`;
+    const fileUrl = getFileUrl(lesson.src);
     const fileExt = lesson.src?.split(".").pop().toLowerCase();
 
     if (lesson.type === "ppt" && fileExt === "pptx") {
@@ -375,7 +389,7 @@ const fetchProgress = async () => {
     const lesson = lessons.find((l) => l.key === activeLesson);
     if (!lesson) return <p>Select a lesson to start learning.</p>;
 
-    const fileUrl = `${FILE_BASE}/${lesson.src}`;
+    const fileUrl = getFileUrl(lesson.src);
 
     switch (lesson.type) {
       case "video":
