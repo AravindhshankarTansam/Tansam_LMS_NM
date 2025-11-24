@@ -51,6 +51,9 @@ const MyCourse = () => {
 
 
   /** Fetch course info */
+  
+
+  /** Fetch course info */
   const fetchCourse = async () => {
     try {
       const res = await fetch(`${COURSE_API}/${courseId}`, { credentials: "include" });

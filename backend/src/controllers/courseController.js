@@ -216,46 +216,57 @@ export const deleteCourse = async (req, res) => {
   }
 };
 
-// ✅ Get course modules along with chapter names
-// GET /api/course-structure/:course_id
-export const getCourseStructure = async (req, res) => {
-  const db = await connectDB();
-  const { course_id } = req.params;
 
+export const getCourseById = async (req, res) => {
   try {
-    // 1️⃣ Fetch course info
-    const [courses] = await db.query(
-      `SELECT course_id, course_name, description, pricing_type, price_amount, course_image
-       FROM courses
-       WHERE course_id=?`,
-      [course_id]
-    );
+    const db = await connectDB();
+    const { id } = req.params;
 
-    if (!courses.length) {
+    const [rows] = await db.query("SELECT * FROM courses WHERE course_id = ?", [id]);
+
+    if (rows.length === 0)
       return res.status(404).json({ message: "Course not found" });
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("Error fetching course:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+// ✅ Enroll a student in a course
+export const enrollCourse = async (req, res) => {
+  try {
+    const db = await connectDB();
+
+    // ✅ Extract course_id from body
+    const { course_id } = req.body;
+    const custom_id = req.user?.custom_id; // comes from authMiddleware
+
+    if (!custom_id || !course_id) {
+      return res.status(400).json({ message: "Missing custom_id or course_id" });
     }
 
-    const course = courses[0];
-
-    // 2️⃣ Fetch modules for the course
-    const [modules] = await db.query(
-      `SELECT module_id, module_name FROM modules WHERE course_id=? ORDER BY order_index ASC`,
-      [course_id]
+    // ✅ Check if already enrolled
+    const [existing] = await db.execute(
+      `SELECT * FROM course_enrollments WHERE custom_id = ? AND course_id = ?`,
+      [custom_id, course_id]
     );
 
-    // 3️⃣ For each module, fetch its chapters
-    for (const mod of modules) {
-      const [chapters] = await db.query(
-        `SELECT chapter_id, chapter_name FROM chapters WHERE module_id=? ORDER BY order_index ASC`,
-        [mod.module_id]
-      );
-      mod.chapters = chapters;
+    if (existing.length > 0) {
+      return res.status(200).json({ message: "Already enrolled in this course" });
     }
 
-    // 4️⃣ Return course info + modules with chapters
-    res.json({ course, modules });
-  } catch (err) {
-    console.error("❌ Error fetching course structure:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    // ✅ Enroll new student
+    await db.execute(
+      `INSERT INTO course_enrollments (custom_id, course_id) VALUES (?, ?)`,
+      [custom_id, course_id]
+    );
+
+    res.status(201).json({ message: "✅ Enrolled successfully", course_id });
+  } catch (error) {
+    console.error("❌ Error enrolling in course:", error);
+    res.status(500).json({ error: "Failed to enroll in course" });
   }
 };
