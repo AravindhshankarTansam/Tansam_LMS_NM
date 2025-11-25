@@ -462,7 +462,7 @@
   }
   .progress-bar-fill {
     height: 100%;
-    background: #5561ee;
+    background:red;
     transition: width 0.4s ease;
   }
   .progress-text {
