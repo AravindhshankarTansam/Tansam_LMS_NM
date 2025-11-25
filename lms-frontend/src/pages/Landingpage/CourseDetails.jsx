@@ -11,7 +11,7 @@ import {
   ListItem,
   ListItemText,
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+// import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import "./CourseDetails.css";
@@ -90,7 +90,7 @@ const CourseDetails = () => {
 </nav>
 
 {/* BACK BUTTON SECTION */}
-<Box className="cd-back-btn">
+{/* <Box className="cd-back-btn">
   <Button
     variant="outlined"
     startIcon={<ArrowBackIcon />}
@@ -99,7 +99,7 @@ const CourseDetails = () => {
   >
     Back
   </Button>
-</Box>
+</Box> */}
 
       {/* TOP SECTION */}
       <Box className="cd-top-new">
