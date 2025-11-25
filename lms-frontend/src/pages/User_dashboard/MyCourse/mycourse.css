@@ -206,31 +206,38 @@
 }
 
 /* RIGHT SECTION */
+/* RIGHT SECTION */
 .right-section {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.progress-card {
+/* New class for this card */
+.user-progress-card {
   background: white;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-.progress-card h3 {
+.user-progress-card h3 {
   margin: 0 0 16px 0;
   font-size: 18px;
+  color: #2c2f4a;
 }
 
-.progress-bar-container {
+/* Progress bar container */
+.user-progress-card .progress-bar-container {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.progress-bar-bg {
+.user-progress-card .progress-bar-bg {
   flex: 1;
   height: 8px;
   background: #e5e7eb;
@@ -238,18 +245,19 @@
   overflow: hidden;
 }
 
-.progress-bar-fill {
+.user-progress-card .progress-bar-fill {
   height: 100%;
   background: #ef4444;
   border-radius: 4px;
   transition: width 0.3s ease;
 }
 
-.progress-text {
+.user-progress-card .progress-text {
   font-weight: 600;
   color: #ef4444;
   font-size: 14px;
 }
+
 
 /* Lessons List */
 .lessons-list {

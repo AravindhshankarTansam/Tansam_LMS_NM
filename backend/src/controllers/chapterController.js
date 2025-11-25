@@ -236,3 +236,94 @@ export const getQuizzesByChapter = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+export const getCourseProgress = async (req, res) => {
+  const db = await connectDB();
+  const { custom_id } = req.params; // like STU_C003
+
+  try {
+    // 1️⃣ Get all enrolled courses
+    const [enrolledCourses] = await db.execute(
+      `SELECT c.course_id, c.course_name
+       FROM course_enrollments e
+       JOIN courses c ON e.course_id = c.course_id
+       WHERE e.custom_id = ?`,
+      [custom_id]
+    );
+
+    if (enrolledCourses.length === 0) {
+      return res.json({
+        success: true,
+        message: "No enrolled courses found",
+        data: []
+      });
+    }
+
+    const results = [];
+
+    for (const course of enrolledCourses) {
+      const courseId = course.course_id;
+
+      // 2️⃣ Total chapters count
+      const [totalRows] = await db.execute(
+        `SELECT COUNT(*) AS total
+         FROM chapters ch
+         JOIN modules m ON ch.module_id = m.module_id
+         WHERE m.course_id = ?`,
+        [courseId]
+      );
+      const totalChapters = totalRows[0].total;
+
+      // 3️⃣ Watched chapters count from user_progress
+      const [watchedRows] = await db.execute(
+        `SELECT COUNT(*) AS watched
+         FROM user_progress
+         WHERE custom_id = ? AND course_id = ?`,
+        [custom_id, courseId]
+      );
+      const watchedChapters = watchedRows[0].watched;
+
+      const remainingChapters = totalChapters - watchedChapters;
+
+      // 4️⃣ Fetch all chapter names
+      const [chapterRows] = await db.execute(
+        `SELECT ch.chapter_id, ch.chapter_name
+         FROM chapters ch
+         JOIN modules m ON ch.module_id = m.module_id
+         WHERE m.course_id = ?
+         ORDER BY m.module_id, ch.order_index ASC`,
+        [courseId]
+      );
+
+      // 5️⃣ Split into completed vs locked based on count
+      const completedChapters = chapterRows
+        .slice(0, watchedChapters)
+        .map(ch => ch.chapter_name);
+
+      const lockedChapters = chapterRows
+        .slice(watchedChapters)
+        .map(ch => ch.chapter_name);
+
+      results.push({
+        course_id: courseId,
+        course_name: course.course_name,
+        totalChapters,
+        watchedChapters,
+        remainingChapters,
+        completedChapters,
+        lockedChapters
+      });
+    }
+
+    return res.json({ success: true, data: results });
+
+  } catch (error) {
+    console.error("Progress error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching progress for all courses",
+      error: error.message
+    });
+  }
+};
+

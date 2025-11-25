@@ -44,6 +44,20 @@
     box-shadow: 0 0 15px rgba(91, 108, 255, 0.6);
   }
 
+  .user-avatar-initial {
+  width: 70px;
+  height: 70px;
+  background: #4a90e2;
+  color: white;
+  font-size: 2rem;
+  font-weight: bold;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
   .user-infos h2 {
     font-size: 22px;
     margin: 0;
@@ -688,19 +702,48 @@
 
 
 /* Container for stacked cards */
-.main-cards {
+/* .main-cards {
   display: flex;
-  flex-direction: column;
-  gap: 25px; /* space between cards */
-}
+  flex-direction: column; */
+  /* gap: 30px; 
+/* } */
 
 /* ===== Your Course Progress Card ===== */
-.progress-card {
+/* .progress-card {
   background: white;
   border-radius: 16px;
   padding: 30px 25px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+} */
+
+/* Container for stacked cards -> make them responsive row grid */
+.main-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 cards per row */
+  gap: 20px; /* space between cards */
 }
+
+
+.progress-card {
+  flex: 1 1 300px;          /* grow/shrink, min width 300px */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+@media (max-width: 1024px) {
+  .main-cards {
+    grid-template-columns: repeat(2, 1fr); /* 2 cards per row on tablets */
+  }
+}
+
+@media (max-width: 640px) {
+  .main-cards {
+    grid-template-columns: 1fr; /* 1 card per row on mobile */
+  }
+}
+
+
+
 
 .progress-card h3 {
   font-size: 20px;
@@ -775,4 +818,72 @@
   font-size: 13px;
   color: #333;
   font-weight: 500;
+}
+
+/* ===== Bottom row for card ===== */
+.card-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb; /* subtle separator */
+  gap: 10px;
+}
+
+/* Vertical progress bar container */
+.progress-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Vertical progress bar background */
+.progress-bar-bg-vertical {
+  width: 12px;
+  height: 60px;
+  background: #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Vertical fill */
+.progress-bar-fill-vertical {
+  width: 100%;
+  background: #5561ee;
+  position: absolute;
+  bottom: 0;
+  transition: height 0.4s ease;
+  border-radius: 6px 6px 0 0;
+}
+
+/* Progress text under vertical bar */
+.progress-text-vertical {
+  font-size: 0.85rem;
+  color: #333;
+  font-weight: 500;
+}
+
+/* Start Learning Button */
+.start-learning-btn {
+  background: #5561ee;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.start-learning-btn:hover {
+  background: #3f4cd9;
+  transform: translateY(-2px);
+}
+
+.start-learning-btn:active {
+  transform: translateY(1px);
 }
