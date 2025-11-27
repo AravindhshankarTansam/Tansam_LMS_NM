@@ -6,6 +6,7 @@ import {
   // enrollCourse,
   deleteCourse,
   getCourseById,
+  getCourseStructure
 } from "../controllers/courseController.js";
 import { authenticateUser } from "../middleware/authMiddleware.js";
 import { uploadCourseMaterial } from "../middleware/courseMiddleware.js";
@@ -40,5 +41,8 @@ router.put("/:id", authenticateUser, upload, updateCourse);
 
 // ✅ Delete a course
 router.delete("/:id", authenticateUser, deleteCourse);
+
+//get list of modules and lessons for a course
+router.get("/course-structure/:course_id", getCourseStructure);
 
 export default router;

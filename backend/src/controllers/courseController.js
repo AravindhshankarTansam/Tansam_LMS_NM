@@ -291,3 +291,46 @@ export const enrollCourse = async (req, res) => {
     res.status(500).json({ error: "Failed to enroll in course" });
   }
 };
+
+// GET /api/course-structure/:course_id
+export const getCourseStructure = async (req, res) => {
+  const db = await connectDB();
+  const { course_id } = req.params;
+
+  try {
+    // 1️⃣ Fetch course info
+    const [courses] = await db.query(
+      `SELECT course_id, course_name, description, pricing_type, price_amount, course_image
+       FROM courses
+       WHERE course_id=?`,
+      [course_id]
+    );
+
+    if (!courses.length) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    const course = courses[0];
+
+    // 2️⃣ Fetch modules for the course
+    const [modules] = await db.query(
+      `SELECT module_id, module_name FROM modules WHERE course_id=? ORDER BY order_index ASC`,
+      [course_id]
+    );
+
+    // 3️⃣ For each module, fetch its chapters
+    for (const mod of modules) {
+      const [chapters] = await db.query(
+        `SELECT chapter_id, chapter_name FROM chapters WHERE module_id=? ORDER BY order_index ASC`,
+        [mod.module_id]
+      );
+      mod.chapters = chapters;
+    }
+
+    // 4️⃣ Return course info + modules with chapters
+    res.json({ course, modules });
+  } catch (err) {
+    console.error("❌ Error fetching course structure:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
