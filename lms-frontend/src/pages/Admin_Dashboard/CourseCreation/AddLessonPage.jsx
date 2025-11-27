@@ -19,8 +19,17 @@ import {
   FormControlLabel,
   Checkbox,
 } from "@mui/material";
-import { Add, Delete, ExpandMore, UploadFile, Save } from "@mui/icons-material";
+import {
+  Add,
+  Delete,
+  ExpandMore,
+  UploadFile,
+  Save,
+  ArrowBack,
+} from "@mui/icons-material";
 import { CHAPTER_API, QUIZ_API } from "../../../config/apiConfig";
+import Sidebar from "../Sidebar";
+import Header from "../Header";
 
 export default function AddLessonPage() {
   const { moduleId } = useParams();
@@ -33,50 +42,49 @@ export default function AddLessonPage() {
   const [materials, setMaterials] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
 
+  const UPLOADS_BASE =
+    import.meta.env.VITE_UPLOADS_BASE || "http://localhost:5000/uploads";
+
   // ===========================
-  // Fetch chapter info & materials
+  // Fetch chapter & materials
   // ===========================
   useEffect(() => {
-  if (!chapterId) return;
+    if (!chapterId) return;
 
-  // Fetch chapter info
-  fetch(`${CHAPTER_API}/id/${chapterId}`, { credentials: "include" })
-    .then((res) => res.json())
-    .then((data) => setChapterName(data.chapter_name || ""))
-    .catch(console.error);
+    fetch(`${CHAPTER_API}/id/${chapterId}`, { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => setChapterName(data.chapter_name || ""))
+      .catch(console.error);
 
-  // Fetch materials
-  fetch(`${CHAPTER_API}/${chapterId}/materials`, { credentials: "include" })
-    .then((res) => res.json())
-    .then((data) =>
-      setMaterials(
-        (data || []).map((m) => ({
-          id: m.material_id,
-          material_type: m.material_type,
-          file: null,
-          file_name: m.file_name,
-          file_path: m.file_path,
-        }))
+    fetch(`${CHAPTER_API}/${chapterId}/materials`, { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) =>
+        setMaterials(
+          (data || []).map((m) => ({
+            id: m.material_id,
+            material_type: m.material_type,
+            file: null,
+            file_name: m.file_name,
+            file_path: m.file_path,
+          }))
+        )
       )
-    )
-    .catch(console.error);
+      .catch(console.error);
 
-  // Fetch quizzes
-  fetch(`${CHAPTER_API}/${chapterId}/quizzes`, { credentials: "include" })
-    .then(async (res) => await res.json())
-    .then((data) => {
-      // Prefill quizzes
-      const prefilled = (data.quizzes || []).map((q) => ({
-        id: q.quiz_id,
-        quiz_type: q.question_type === "mcq" ? "multiple_choice" : q.question_type,
-        question: q.question,
-        options: [q.option_a, q.option_b, q.option_c, q.option_d].filter(Boolean),
-        correct_answers: [q.correct_answer].filter(Boolean), // important!
-      }));
-      setQuizzes(prefilled);
-    })
-    .catch((err) => console.error("❌ Error fetching quizzes:", err));
-}, [chapterId]);
+    fetch(`${CHAPTER_API}/${chapterId}/quizzes`, { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => {
+        const prefilled = (data.quizzes || []).map((q) => ({
+          id: q.quiz_id,
+          quiz_type: q.question_type === "mcq" ? "multiple_choice" : q.question_type,
+          question: q.question,
+          options: [q.option_a, q.option_b, q.option_c, q.option_d].filter(Boolean),
+          correct_answers: [q.correct_answer].filter(Boolean),
+        }));
+        setQuizzes(prefilled);
+      })
+      .catch(console.error);
+  }, [chapterId]);
 
   // ===========================
   // Material handlers
@@ -190,6 +198,14 @@ export default function AddLessonPage() {
   // ===========================
   // Render file preview
   // ===========================
+  const getFileUrl = (filePath) => {
+    if (!filePath) return "";
+    let cleanPath = filePath.replace(/\\/g, "/");
+    cleanPath = cleanPath.replace(/^uploads\//, "");
+    const base = UPLOADS_BASE.endsWith("/") ? UPLOADS_BASE.slice(0, -1) : UPLOADS_BASE;
+    return `${base}/${cleanPath}`;
+  };
+
   const renderPreview = (m) => {
     if (m.file) {
       const url = URL.createObjectURL(m.file);
@@ -198,7 +214,8 @@ export default function AddLessonPage() {
       return <Typography mt={1}>{m.file.name}</Typography>;
     }
     if (m.file_path) {
-      const url = `http://localhost:5000/${m.file_path.replaceAll("\\", "/")}`;
+      const url = getFileUrl(m.file_path);
+      console.log("Preview URL:", url);
       if (m.material_type === "video") return <video src={url} controls width="280" />;
       if (m.material_type === "flowchart") return <img src={url} alt="preview" width="250" />;
       return <Typography mt={1}>{m.file_name}</Typography>;
@@ -210,168 +227,147 @@ export default function AddLessonPage() {
   // Render UI
   // ===========================
   return (
-    <Box p={3}>
-      <Card sx={{ p: 4, borderRadius: 4, boxShadow: 5 }}>
-        <Typography variant="h5" fontWeight={700} mb={3}>
-          {chapterId ? "✏️ Edit Lesson" : "➕ Create New Lesson"}
-        </Typography>
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+      {/* Sidebar */}
+      <Sidebar />
 
-        <Stack spacing={3}>
-          <TextField
-            label="Lesson Name"
-            fullWidth
-            value={chapterName}
-            onChange={(e) => setChapterName(e.target.value)}
-          />
+      {/* Main content */}
+      <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        {/* Header */}
+        <Header />
 
-          {/* MATERIALS */}
-          <Accordion defaultExpanded>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography variant="h6" fontWeight={600}>Chapter Materials</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                {materials.map((m) => (
-                  <Paper key={m.id} sx={{ p: 2, borderRadius: 3, boxShadow: 2 }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
-                      <Typography fontWeight={600}>Material</Typography>
-                      <IconButton color="error" onClick={() => removeMaterial(m.id)}><Delete /></IconButton>
-                    </Stack>
+        {/* Scrollable content */}
+        <Box sx={{ flex: 1, overflowY: "auto", p: 3 }}>
+          <Button
+            startIcon={<ArrowBack />}
+            sx={{ mb: 2 }}
+            onClick={() => navigate(-1)}
+          >
+            Back
+          </Button>
 
-                    <FormControl fullWidth>
-                      <InputLabel>Material Type</InputLabel>
-                      <Select
-                        value={m.material_type}
-                        onChange={(e) => updateMaterial(m.id, "material_type", e.target.value)}
-                      >
-                        <MenuItem value="video">Video</MenuItem>
-                        <MenuItem value="pdf">PDF</MenuItem>
-                        <MenuItem value="ppt">PPT</MenuItem>
-                        <MenuItem value="doc">DOC</MenuItem>
-                        <MenuItem value="flowchart">Flowchart</MenuItem>
-                      </Select>
-                    </FormControl>
+          <Card sx={{ p: 4, borderRadius: 4, boxShadow: 5 }}>
+            <Typography variant="h5" fontWeight={700} mb={3}>
+              {chapterId ? "✏️ Edit Lesson" : "➕ Add Lesson"}
+            </Typography>
 
-                    <Button sx={{ mt: 1 }} variant="outlined" component="label" startIcon={<UploadFile />}>
-                      Upload File
-                      <input type="file" hidden onChange={(e) => updateMaterial(m.id, "file", e.target.files[0])} />
-                    </Button>
+            <Stack spacing={3}>
+              <TextField
+                label="Lesson Name"
+                fullWidth
+                value={chapterName}
+                onChange={(e) => setChapterName(e.target.value)}
+              />
 
-                    {renderPreview(m)}
-                  </Paper>
-                ))}
-                <Button startIcon={<Add />} variant="contained" onClick={handleAddMaterial}>Add Material</Button>
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
+              {/* Materials */}
+              <Accordion defaultExpanded>
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                  <Typography variant="h6" fontWeight={600}>Materials</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Stack spacing={2}>
+                    {materials.map((m) => (
+                      <Paper key={m.id} sx={{ p: 2, borderRadius: 3, boxShadow: 2 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
+                          <Typography fontWeight={600}>Material</Typography>
+                          <IconButton color="error" onClick={() => removeMaterial(m.id)}>
+                            <Delete />
+                          </IconButton>
+                        </Stack>
+                        <FormControl fullWidth>
+                          <InputLabel>Material Type</InputLabel>
+                          <Select
+                            value={m.material_type}
+                            onChange={(e) => updateMaterial(m.id, "material_type", e.target.value)}
+                          >
+                            <MenuItem value="video">Video</MenuItem>
+                            <MenuItem value="pdf">PDF</MenuItem>
+                            <MenuItem value="ppt">PPT</MenuItem>
+                            <MenuItem value="doc">DOC</MenuItem>
+                            <MenuItem value="flowchart">Flowchart</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <Button sx={{ mt: 1 }} variant="outlined" component="label" startIcon={<UploadFile />}>
+                          Upload File
+                          <input type="file" hidden onChange={(e) => updateMaterial(m.id, "file", e.target.files[0])} />
+                        </Button>
+                        {renderPreview(m)}
+                      </Paper>
+                    ))}
+                    <Button startIcon={<Add />} variant="contained" onClick={handleAddMaterial}>Add Material</Button>
+                  </Stack>
+                </AccordionDetails>
+              </Accordion>
 
-          {/* QUIZZES */}
-          <Accordion defaultExpanded>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography variant="h6" fontWeight={600}>Add Quizzes</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Stack spacing={2}>
-                {quizzes.map((quiz, idx) => (
-                  <Paper key={quiz.id} sx={{ p: 2, borderRadius: 3, boxShadow: 3 }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
-                      <Typography fontWeight={600}>Quiz {idx + 1}</Typography>
-                      <IconButton color="error" onClick={() => removeQuiz(quiz.id)}><Delete /></IconButton>
-                    </Stack>
+              {/* Quizzes */}
+              <Accordion defaultExpanded>
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                  <Typography variant="h6" fontWeight={600}>Quizzes</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Stack spacing={2}>
+                    {quizzes.map((quiz, idx) => (
+                      <Paper key={quiz.id} sx={{ p: 2, borderRadius: 3, boxShadow: 3 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
+                          <Typography fontWeight={600}>Quiz {idx + 1}</Typography>
+                          <IconButton color="error" onClick={() => removeQuiz(quiz.id)}><Delete /></IconButton>
+                        </Stack>
 
-                    <FormControl fullWidth>
-                      <InputLabel>Quiz Type</InputLabel>
-                      <Select
-                        value={quiz.quiz_type}
-                        onChange={(e) => updateQuiz(quiz.id, "quiz_type", e.target.value)}
-                      >
-                        <MenuItem value="multiple_choice">Multiple Choice</MenuItem>
-                        <MenuItem value="short_answer">Short Answer</MenuItem>
-                        <MenuItem value="true_false">True / False</MenuItem>
-                      </Select>
-                    </FormControl>
+                        <FormControl fullWidth>
+                          <InputLabel>Quiz Type</InputLabel>
+                          <Select value={quiz.quiz_type} onChange={(e) => updateQuiz(quiz.id, "quiz_type", e.target.value)}>
+                            <MenuItem value="multiple_choice">Multiple Choice</MenuItem>
+                            <MenuItem value="short_answer">Short Answer</MenuItem>
+                            <MenuItem value="true_false">True / False</MenuItem>
+                          </Select>
+                        </FormControl>
 
-                    <TextField
-                      label="Question"
-                      fullWidth
-                      sx={{ mt: 2 }}
-                      value={quiz.question}
-                      onChange={(e) => updateQuiz(quiz.id, "question", e.target.value)}
-                    />
+                        <TextField label="Question" fullWidth sx={{ mt: 2 }} value={quiz.question} onChange={(e) => updateQuiz(quiz.id, "question", e.target.value)} />
 
-                    {/* Multiple Choice */}
-                    {quiz.quiz_type === "multiple_choice" && (
-                      <>
-                        {quiz.options.map((opt, i) => (
-                          <TextField
-                            key={i}
-                            sx={{ mt: 1 }}
-                            label={`Option ${i + 1}`}
-                            value={opt}
-                            onChange={(e) => {
-                              const opts = [...quiz.options];
-                              opts[i] = e.target.value;
-                              updateQuiz(quiz.id, "options", opts);
-                            }}
-                            fullWidth
-                          />
-                        ))}
-                        <Button size="small" sx={{ mt: 1 }} onClick={() => addOption(quiz.id)}>+ Add Option</Button>
-
-                        <Typography variant="subtitle2" mt={1} fontWeight={600}>Correct Answer(s)</Typography>
-                        {quiz.options.map((opt, i) =>
-                          opt && (
-                            <FormControlLabel
-                              key={i}
-                              control={<Checkbox checked={quiz.correct_answers.includes(opt)} onChange={() => toggleCorrectAnswer(quiz.id, opt)} />}
-                              label={opt}
-                            />
-                          )
+                        {quiz.quiz_type === "multiple_choice" && (
+                          <>
+                            {quiz.options.map((opt, i) => (
+                              <TextField key={i} sx={{ mt: 1 }} label={`Option ${i + 1}`} value={opt} onChange={(e) => {
+                                const opts = [...quiz.options]; opts[i] = e.target.value; updateQuiz(quiz.id, "options", opts);
+                              }} fullWidth />
+                            ))}
+                            <Button size="small" sx={{ mt: 1 }} onClick={() => addOption(quiz.id)}>+ Add Option</Button>
+                            <Typography variant="subtitle2" mt={1} fontWeight={600}>Correct Answer(s)</Typography>
+                            {quiz.options.map((opt, i) => opt && (
+                              <FormControlLabel key={i} control={<Checkbox checked={quiz.correct_answers.includes(opt)} onChange={() => toggleCorrectAnswer(quiz.id, opt)} />} label={opt} />
+                            ))}
+                          </>
                         )}
-                      </>
-                    )}
 
-                    {/* Short Answer */}
-                    {quiz.quiz_type === "short_answer" && (
-                      <TextField
-                        sx={{ mt: 2 }}
-                        label="Correct Answer"
-                        fullWidth
-                        value={quiz.correct_answers[0] || ""}
-                        onChange={(e) => updateQuiz(quiz.id, "correct_answers", [e.target.value])}
-                      />
-                    )}
+                        {quiz.quiz_type === "short_answer" && (
+                          <TextField sx={{ mt: 2 }} label="Correct Answer" fullWidth value={quiz.correct_answers[0] || ""} onChange={(e) => updateQuiz(quiz.id, "correct_answers", [e.target.value])} />
+                        )}
 
-                    {/* True/False */}
-                    {quiz.quiz_type === "true_false" && (
-                      <FormControl fullWidth sx={{ mt: 2 }}>
-                        <InputLabel>Correct Answer</InputLabel>
-                        <Select
-                          value={quiz.correct_answers[0] || ""}
-                          onChange={(e) => updateQuiz(quiz.id, "correct_answers", [e.target.value])}
-                        >
-                          <MenuItem value="True">True</MenuItem>
-                          <MenuItem value="False">False</MenuItem>
-                        </Select>
-                      </FormControl>
-                    )}
-                  </Paper>
-                ))}
+                        {quiz.quiz_type === "true_false" && (
+                          <FormControl fullWidth sx={{ mt: 2 }}>
+                            <InputLabel>Correct Answer</InputLabel>
+                            <Select value={quiz.correct_answers[0] || ""} onChange={(e) => updateQuiz(quiz.id, "correct_answers", [e.target.value])}>
+                              <MenuItem value="True">True</MenuItem>
+                              <MenuItem value="False">False</MenuItem>
+                            </Select>
+                          </FormControl>
+                        )}
+                      </Paper>
+                    ))}
+                    <Button startIcon={<Add />} variant="contained" color="primary" onClick={handleAddQuiz}>Add Quiz</Button>
+                  </Stack>
+                </AccordionDetails>
+              </Accordion>
 
-                <Button startIcon={<Add />} variant="contained" color="primary" onClick={handleAddQuiz}>
-                  Add Quiz
+              <Stack direction="row" justifyContent="flex-end">
+                <Button variant="contained" color="success" size="large" startIcon={<Save />} onClick={handleSaveChapter}>
+                  {chapterId ? "Update Lesson" : "Save Lesson"}
                 </Button>
               </Stack>
-            </AccordionDetails>
-          </Accordion>
-
-          <Stack direction="row" justifyContent="flex-end">
-            <Button variant="contained" color="success" size="large" startIcon={<Save />} onClick={handleSaveChapter}>
-              {chapterId ? "Update Lesson" : "Save Lesson"}
-            </Button>
-          </Stack>
-        </Stack>
-      </Card>
+            </Stack>
+          </Card>
+        </Box>
+      </Box>
     </Box>
   );
 }

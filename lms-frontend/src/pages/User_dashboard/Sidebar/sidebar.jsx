@@ -4,18 +4,32 @@ import {
   FaChartBar,
   FaUsers,
   FaBookOpen,
-  FaSignOutAlt, // ✅ Logout icon
+  FaSignOutAlt,
 } from "react-icons/fa";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./sidebar.css";
+import herologo from "../../../assets/tansamoldlogo.png";
 
-const Sidebar = () => {
+const Sidebar = ({ activeCourse }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = () => {
-    // Clear user session data if needed
     navigate("/"); // Redirect to landing page
+  };
+
+  const handleCourseClick = () => {
+    if (activeCourse) {
+      navigate(`/mycourse/${activeCourse.course_id}`);
+    }
+  };
+
+  // Helper to check active state
+  const isActive = (path) => {
+    if (path === "/mycourse") {
+      return location.pathname.startsWith("/mycourse");
+    }
+    return location.pathname === path;
   };
 
   return (
@@ -23,64 +37,56 @@ const Sidebar = () => {
       {/* ===== Logo ===== */}
       <div className="sidebar-logo">
         <div className="logo-circle">
-          <span role="img" aria-label="logo">
-            🦉
-          </span>
+          <img src={herologo} alt="Logo" className="logo-img" />
         </div>
       </div>
 
       {/* ===== Menu ===== */}
       <div className="sidebar-menu">
-        <Link
-          to="/userdashboard"
-          className={`menu-item ${
-            location.pathname === "/userdashboard" ? "active" : ""
-          }`}
+        <div
+          className={`menu-item ${isActive("/userdashboard") ? "active" : ""}`}
+          onClick={() => navigate("/userdashboard")}
+          title="Dashboard"
         >
           <FaBook />
-        </Link>
+        </div>
 
-        <Link
-          to="/course-player"
+        <div
           className={`menu-item ${
-            location.pathname === "/course-player" ? "active" : ""
+            location.pathname.startsWith("/course-player") ? "active" : ""
           }`}
+          onClick={() => navigate("/course-player")}
+          title="Courses"
         >
           <FaUsers />
-        </Link>
+        </div>
 
-        {/* <Link
-          to="/quiz"
-          className={`menu-item ${
-            location.pathname === "/quiz" ? "active" : ""
-          }`}
+        {/* Optional quiz icon (commented for now) */}
+        {/* <div
+          className={`menu-item ${isActive("/quiz") ? "active" : ""}`}
+          onClick={() => navigate("/quiz")}
+          title="Quiz"
         >
           <FaChartBar />
-        </Link> */}
+        </div> */}
 
-        <Link
-          to="/mycourse"
-          className={`menu-item ${
-            location.pathname === "/mycourse" ? "active" : ""
-          }`}
-        >
-          <FaBookOpen />
-        </Link>
+        {/* MyCourse icon - only shows when a course is selected */}
+        {activeCourse && (
+          <div
+            className={`menu-item ${isActive("/mycourse") ? "active" : ""}`}
+            onClick={handleCourseClick}
+            title={activeCourse.course_name}
+          >
+            <FaBookOpen />
+          </div>
+        )}
       </div>
 
-      {/* ===== Bottom Section (Logout + User Avatar) ===== */}
+      {/* ===== Bottom Section ===== */}
       <div className="sidebar-bottom">
         <button className="logout-btn" onClick={handleLogout} title="Logout">
           <FaSignOutAlt />
         </button>
-
-        <img
-          src="https://i.pravatar.cc/60?img=5"
-          alt="user"
-          className="user-avatar"
-          onClick={() => navigate("/userprofile")}
-          title="Profile"
-        />
       </div>
     </div>
   );

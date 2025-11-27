@@ -54,22 +54,22 @@ const MyCourse = () => {
   const [activeTab, setActiveTab] = useState("overview");
 
   const getFileUrl = (src) => {
-  if (!src) return "";
+    if (!src) return "";
 
-  // Normalize path: replace backslashes with forward slashes
-  let cleanSrc = src.replace(/\\/g, "/");
+    // Normalize path: replace backslashes with forward slashes
+    let cleanSrc = src.replace(/\\/g, "/");
 
-  // Remove any leading "uploads/" (one or more times)
-  cleanSrc = cleanSrc.replace(/^(\/?uploads\/)+/, "");
+    // Remove any leading "uploads/" (one or more times)
+    cleanSrc = cleanSrc.replace(/^(\/?uploads\/)+/, "");
 
-  // Ensure no double slash in base
-  const base = FILE_BASE.endsWith("/") ? FILE_BASE.slice(0, -1) : FILE_BASE;
+    // Ensure no double slash in base
+    const base = FILE_BASE.endsWith("/") ? FILE_BASE.slice(0, -1) : FILE_BASE;
 
-  return `${base}/${cleanSrc}`;
-};
+    return `${base}/${cleanSrc}`;
+  };
 
   /** Fetch course info */
-  
+
 
   /** Fetch course info */
   const fetchCourse = async () => {
@@ -129,65 +129,65 @@ const MyCourse = () => {
     }
   };
 
- const fetchCustomId = async () => {
-  try {
-    const resUser = await fetch(`${AUTH_API}/me`, {
-      credentials: "include"
-    });
+  const fetchCustomId = async () => {
+    try {
+      const resUser = await fetch(`${AUTH_API}/me`, {
+        credentials: "include"
+      });
 
-    const data = await resUser.json();   // ✅ FIXED
+      const data = await resUser.json();   // ✅ FIXED
 
-    if (resUser.ok && data?.user?.profile?.custom_id) {
-      setCustomId(data.user.profile.custom_id);
+      if (resUser.ok && data?.user?.profile?.custom_id) {
+        setCustomId(data.user.profile.custom_id);
+      }
+    } catch (err) {
+      console.error("Failed to fetch custom_id", err);
     }
-  } catch (err) {
-    console.error("Failed to fetch custom_id", err);
-  }
-};
+  };
 
   /** Fetch progress from server and set completed set */
   /** Fetch progress from server and set completed set */
-const fetchProgress = async () => {
-  if (!customId || lessons.length === 0) return;
+  const fetchProgress = async () => {
+    if (!customId || lessons.length === 0) return;
 
-  try {
-    const res = await fetch(`${PROGRESS_API}/${customId}`, {
-      credentials: "include",
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch(`${PROGRESS_API}/${customId}`, {
+        credentials: "include",
+      });
+      const data = await res.json();
 
-    // Find progress for this specific course
-    const courseProgressEntry = Array.isArray(data)
-      ? data.find((p) => p.course_id === Number(courseId))
-      : null;
-    const courseProgress = courseProgressEntry?.progress_percent || 0;
+      // Find progress for this specific course
+      const courseProgressEntry = Array.isArray(data)
+        ? data.find((p) => p.course_id === Number(courseId))
+        : null;
+      const courseProgress = courseProgressEntry?.progress_percent || 0;
 
-    // Filter lessons that count toward progress (non-quiz and quiz)
-    const progressLessons = lessons.filter((l) => l.countForProgress);
-    const total = progressLessons.length;
+      // Filter lessons that count toward progress (non-quiz and quiz)
+      const progressLessons = lessons.filter((l) => l.countForProgress);
+      const total = progressLessons.length;
 
-    // Calculate completed count using Math.round for better accuracy
-    const completedCount = Math.round((courseProgress / 100) * total);
+      // Calculate completed count using Math.round for better accuracy
+      const completedCount = Math.round((courseProgress / 100) * total);
 
-    // Mark the first completedCount as completed (sequential assumption)
-    const completedSet = new Set();
-    for (let i = 0; i < Math.min(completedCount, total); i++) {
-      completedSet.add(progressLessons[i].key);
+      // Mark the first completedCount as completed (sequential assumption)
+      const completedSet = new Set();
+      for (let i = 0; i < Math.min(completedCount, total); i++) {
+        completedSet.add(progressLessons[i].key);
+      }
+      setCompleted(completedSet);
+
+      // Enable up to the next lesson (or all if complete)
+      const enableCount = completedCount < total ? completedCount + 1 : total;
+      const enabledSet = new Set();
+      for (let i = 0; i < enableCount; i++) {
+        enabledSet.add(progressLessons[i].key);
+      }
+      setEnabledLessons(enabledSet);
+    } catch (err) {
+      console.error("Failed to fetch progress", err);
+      toast.error("Failed to fetch progress");
     }
-    setCompleted(completedSet);
-
-    // Enable up to the next lesson (or all if complete)
-    const enableCount = completedCount < total ? completedCount + 1 : total;
-    const enabledSet = new Set();
-    for (let i = 0; i < enableCount; i++) {
-      enabledSet.add(progressLessons[i].key);
-    }
-    setEnabledLessons(enabledSet);
-  } catch (err) {
-    console.error("Failed to fetch progress", err);
-    toast.error("Failed to fetch progress");
-  }
-};
+  };
 
   /** Build lessons list */
   const buildLessons = () => {
@@ -480,52 +480,52 @@ const fetchProgress = async () => {
           <div className="left-section">
             <h1 className="course-title">{course?.course_name}</h1>
             <div className="video-player">{renderLessonContent()}</div>
-             {/* ---- Add this OVERVIEW BLOCK below the video player ---- */}
-{/* ---- Udemy-like OVERVIEW SECTION ---- */}
-{/* ---- TAB NAVIGATION OVERVIEW + DESCRIPTION ---- */}
-{course && (
-  <div className="course-tabs-container">
-    {/* TAB HEADERS */}
-    <div className="tabs-header">
-      <div
-        className={`tab-item ${activeTab === "overview" ? "active" : ""}`}
-        onClick={() => setActiveTab("overview")}
-      >
-        Course Overview
-      </div>
+            {/* ---- Add this OVERVIEW BLOCK below the video player ---- */}
+            {/* ---- Udemy-like OVERVIEW SECTION ---- */}
+            {/* ---- TAB NAVIGATION OVERVIEW + DESCRIPTION ---- */}
+            {course && (
+              <div className="course-tabs-container">
+                {/* TAB HEADERS */}
+                <div className="tabs-header">
+                  <div
+                    className={`tab-item ${activeTab === "overview" ? "active" : ""}`}
+                    onClick={() => setActiveTab("overview")}
+                  >
+                    Course Overview
+                  </div>
 
-      <div
-        className={`tab-item ${activeTab === "description" ? "active" : ""}`}
-        onClick={() => setActiveTab("description")}
-      >
-        Description
-      </div>
-    </div>
+                  <div
+                    className={`tab-item ${activeTab === "description" ? "active" : ""}`}
+                    onClick={() => setActiveTab("description")}
+                  >
+                    Description
+                  </div>
+                </div>
 
-    {/* DIVIDER LINE */}
-    <div className="tabs-divider"></div>
+                {/* DIVIDER LINE */}
+                <div className="tabs-divider"></div>
 
-    {/* CONTENT */}
-    <div className="tabs-content">
-  <div key={activeTab} className="tab-animation">
-    {activeTab === "overview" && (
-      <p>{course.overview || "No overview available."}</p>
-    )}
+                {/* CONTENT */}
+                <div className="tabs-content">
+                  <div key={activeTab} className="tab-animation">
+                    {activeTab === "overview" && (
+                      <p>{course.overview || "No overview available."}</p>
+                    )}
 
-    {activeTab === "description" && (
-      <p>{course.description || "No description available."}</p>
-    )}
-  </div>
-</div>
+                    {activeTab === "description" && (
+                      <p>{course.description || "No description available."}</p>
+                    )}
+                  </div>
+                </div>
 
-  </div>
-)}
+              </div>
+            )}
 
 
           </div>
 
           <div className="right-section">
-            <div className="progress-card">
+            <div className="user-progress-card">
               <h3>Your Progress</h3>
               <div className="progress-bar-container">
                 <div className="progress-bar-bg">
@@ -534,6 +534,8 @@ const fetchProgress = async () => {
                 <span className="progress-text">{progressPercent}%</span>
               </div>
             </div>
+
+
 
             <div className="lessons-list">
               <div className="course-name">{course?.course_name}</div>

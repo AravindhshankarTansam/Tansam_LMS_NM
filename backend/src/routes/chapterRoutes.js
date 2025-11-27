@@ -7,6 +7,8 @@ import {
   getChapterById,
   getMaterialsByChapterId,
   getQuizzesByChapter,
+  getCourseProgress,
+ 
   
 } from "../controllers/chapterController.js";
 import { authenticateUser } from "../middleware/authMiddleware.js";
@@ -44,6 +46,12 @@ router.get("/:chapter_id/materials", getMaterialsByChapterId);
 
 // Fetch quizzes for a chapter
 router.get("/:chapter_id/quizzes", authenticateUser, getQuizzesByChapter);
+
+// router.get("/progress/:user_id/:course_id", getCourseProgress);
+router.get("/progress/:custom_id", getCourseProgress);
+
+
+
 
 
 
