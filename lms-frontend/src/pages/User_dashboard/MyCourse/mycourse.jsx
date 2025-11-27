@@ -30,6 +30,12 @@ import {
   AUTH_API,
 } from "../../../config/apiConfig";
 
+import IconButton from "@mui/material/IconButton";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
+import ZoomOutIcon from "@mui/icons-material/ZoomOut";
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
+
 const FILE_BASE = import.meta.env.VITE_UPLOADS_BASE;
 
 const MyCourse = () => {
@@ -47,12 +53,40 @@ const MyCourse = () => {
   const [loading, setLoading] = useState(true);
   const [showCertificate, setShowCertificate] = useState(false);
   const videoRef = useRef(null);
+  const lessonContentRef = useRef(null); 
+  const lessonDisplayRef = useRef(null); 
   const [pptSlides, setPptSlides] = useState([]);
   const [docHtml, setDocHtml] = useState("");
   const [customId, setCustomId] = useState("");
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [zoom, setZoom] = useState(1)
+  const [screenshotOverlay, setScreenshotOverlay] = useState(false);
 
+   /** Disable right-click */
+  useEffect(() => {
+    const handleContextMenu = (e) => e.preventDefault();
+    document.addEventListener("contextmenu", handleContextMenu);
+    return () => document.removeEventListener("contextmenu", handleContextMenu);
+  }, []);
+
+  /** Full-screen toggle for lesson content only */
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      lessonDisplayRef.current?.requestFullscreen();
+      setIsFullScreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullScreen(false);
+    }
+  };
+
+  /** Zoom in/out */
+  const zoomIn = () => setZoom((prev) => Math.min(prev + 0.2, 3));
+  const zoomOut = () => setZoom((prev) => Math.max(prev - 0.2, 0.5));
+   
+  
   const getFileUrl = (src) => {
     if (!src) return "";
 
@@ -67,9 +101,6 @@ const MyCourse = () => {
 
     return `${base}/${cleanSrc}`;
   };
-
-  /** Fetch course info */
-
 
   /** Fetch course info */
   const fetchCourse = async () => {
@@ -191,90 +222,99 @@ const MyCourse = () => {
 
   /** Build lessons list */
   const buildLessons = () => {
-    const list = [];
-    modules.forEach((mod) => {
-      const modChaps = chapters[mod.module_id] || [];
-      modChaps.forEach((chap) => {
-        chap.materials_json.forEach((mat, idx) => {
-          list.push({
-            key: `${chap.chapter_id}_mat${idx}`,
-            title: `${mat.material_type?.toUpperCase() || ""}: ${chap.chapter_name}`,
-            type: mat.material_type,
-            src: mat.file_path,
-            module_id: mod.module_id,
-            chapter_id: chap.chapter_id,
-            countForProgress: ["video", "pdf", "ppt", "doc", "image"].includes(mat.material_type)
-          });
+  const list = [];
+  modules.forEach((mod) => {
+    const modChaps = chapters[mod.module_id] || [];
+    modChaps.forEach((chap) => {
+      chap.materials_json.forEach((mat, idx) => {
+        list.push({
+          key: `${chap.chapter_id}_mat${idx}`,
+          title: `${mat.material_type?.toUpperCase() || ""}: ${chap.chapter_name}`,
+          type: mat.material_type,
+          src: mat.file_path,
+          module_id: mod.module_id,
+          chapter_id: chap.chapter_id,
+          countForProgress: ["video", "pdf", "ppt", "doc", "image"].includes(mat.material_type)
         });
-
-        const chapQuizzes = quizzes[chap.chapter_id] || [];
-        if (chapQuizzes.length) {
-          list.push({
-            key: `${chap.chapter_id}_quiz`,
-            title: "Quiz",
-            type: "quiz",
-            module_id: mod.module_id,
-            chapter_id: chap.chapter_id,
-            countForProgress: true
-          });
-        }
       });
+
+      const chapQuizzes = quizzes[chap.chapter_id] || [];
+      if (chapQuizzes.length) {
+        list.push({
+          key: `${chap.chapter_id}_quiz`,
+          title: "Quiz",
+          type: "quiz",
+          module_id: mod.module_id,
+          chapter_id: chap.chapter_id,
+          countForProgress: true
+        });
+      }
     });
+  });
 
-    setLessons(list);
-    if (list.length > 0) {
-      // keep previously enabled lessons if any, otherwise enable first
-      setEnabledLessons((prev) => {
-        if (prev && prev.size > 0) return prev;
-        return new Set([list[0].key]);
-      });
-    }
-  };
+  // Set lessons list
+  setLessons(list);
+
+  // ✅ AUTO OPEN FIRST LESSON (ONLY IF NOT OPENED YET)
+  if (list.length > 0 && !activeLesson) {
+    setActiveLesson(list[0].key);
+  }
+
+  // Enable first lesson if nothing enabled yet
+  if (list.length > 0) {
+    setEnabledLessons((prev) => {
+      if (prev && prev.size > 0) return prev;
+      return new Set([list[0].key]);
+    });
+  }
+};
+
 
   /** Mark lesson complete (fixed: compute newCompleted before using it) */
   const markLessonComplete = async (lessonKey) => {
-    const lesson = lessons.find((l) => l.key === lessonKey);
-    if (!lesson) return;
-    if (!customId) return;
+  const lesson = lessons.find((l) => l.key === lessonKey);
+  if (!lesson) return;
+  if (!customId) return;
 
-    // Build new completed set synchronously
-    const newCompleted = new Set(Array.from(completed));
-    newCompleted.add(lessonKey);
-    setCompleted(newCompleted);
+  const newCompleted = new Set(completed);
+  newCompleted.add(lessonKey);
+  setCompleted(newCompleted);
 
-    // enable next lesson
-    const idx = lessons.findIndex((l) => l.key === lessonKey);
-    if (idx + 1 < lessons.length) {
-      setEnabledLessons((prev) => new Set([...Array.from(prev || []), lessons[idx + 1].key]));
-    }
+  const idx = lessons.findIndex((l) => l.key === lessonKey);
 
-    const progressLessons = lessons.filter((l) => l.countForProgress);
-    // compute completed count from newCompleted
-    const completedCount = Array.from(newCompleted).filter((c) =>
-      progressLessons.some((l) => l.key === c)
-    ).length;
-    // percent based on actual completed items
-    const progressPercent = progressLessons.length > 0
-      ? Math.round((completedCount / progressLessons.length) * 100)
-      : 0;
+  // ENABLE + AUTO OPEN NEXT LESSON
+  if (idx + 1 < lessons.length) {
+      const nextKey = lessons[idx + 1].key;
+      setEnabledLessons((prev) => new Set([...prev, nextKey]));
+      setActiveLesson(nextKey);   // 🔥 THIS OPENS NEXT LESSON AUTOMATICALLY
+  }
 
-    try {
-      await fetch(`${PROGRESS_API}/${customId}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          custom_id: customId,
-          course_id: courseId,
-          module_id: lesson.module_id,
-          chapter_id: lesson.chapter_id,
-          progress_percent: progressPercent
-        })
-      });
-    } catch (err) {
-      console.error("Failed to update progress", err);
-    }
-  };
+  const progressLessons = lessons.filter((l) => l.countForProgress);
+  const completedCount = Array.from(newCompleted).filter((c) =>
+    progressLessons.some((l) => l.key === c)
+  ).length;
+
+  const progressPercent = progressLessons.length
+    ? Math.round((completedCount / progressLessons.length) * 100)
+    : 0;
+
+  try {
+    await fetch(`${PROGRESS_API}/${customId}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        custom_id: customId,
+        course_id: courseId,
+        module_id: lesson.module_id,
+        chapter_id: lesson.chapter_id,
+        progress_percent: progressPercent,
+      }),
+    });
+  } catch (err) {
+    console.error("Failed to update progress", err);
+  }
+};
 
   /** Handle lesson click */
   const handleLessonClick = (lessonKey, type) => {
@@ -385,91 +425,113 @@ const MyCourse = () => {
   }, [location.state, lessons, completed, customId]);
 
   /** Render lesson content */
-  const renderLessonContent = () => {
-    const lesson = lessons.find((l) => l.key === activeLesson);
-    if (!lesson) return <p>Select a lesson to start learning.</p>;
+ const renderLessonContent = () => {
+  const lesson = lessons.find((l) => l.key === activeLesson);
+  if (!lesson) return <p>Select a lesson to start learning.</p>;
 
-    const fileUrl = getFileUrl(lesson.src);
+  const fileUrl = getFileUrl(lesson.src);
 
-    switch (lesson.type) {
-      case "video":
-        return (
-          <video
-            ref={videoRef}
-            width="100%"
-            height="520"
-            src={fileUrl}
-            controls
-            controlsList="nodownload noremoteplayback"
-            onContextMenu={(e) => e.preventDefault()}
-            onEnded={() => markLessonComplete(activeLesson)}
-          />
-        );
-      case "ppt":
-        return (
-          <div style={{ padding: "20px" }}>
-            {pptSlides.map((slide, idx) => (
-              <div
-                key={idx}
-                style={{
-                  height: "480px",
-                  width: "100%",
-                  marginBottom: "10px",
-                  backgroundColor: "#f3f3f3",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "12px",
-                  fontSize: "20px",
-                }}
-              >
-                {slide}
-              </div>
-            ))}
-          </div>
-        );
-      case "doc":
-        return (
-          <div
-            style={{
-              height: "520px",
-              overflowY: "auto",
-              padding: "15px",
-              border: "1px solid #ccc",
-              borderRadius: "12px",
-              backgroundColor: "#f9f9f9",
-            }}
-          >
-            {docHtml || "Loading document..."}
-          </div>
-        );
-      case "pdf":
-        return (
-          <div style={{ height: "520px", width: "100%" }}>
-            <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-              <Viewer fileUrl={fileUrl} />
-            </Worker>
-          </div>
-        );
-      case "image":
-        return (
-          <img
-            src={fileUrl}
-            alt={lesson.title}
-            style={{ width: "100%", height: "520px", objectFit: "contain", borderRadius: "12px" }}
-          />
-        );
-      default:
-        return <p>Select a lesson to start learning.</p>;
-    }
+  // Common style for zoom and smooth transform
+  const commonStyle = {
+    transform: `scale(${zoom})`,
+    transformOrigin: "top left",
+    transition: "transform 0.2s ease-in-out",
+    width: "100%",
+    height: "100%",
   };
 
-  const progressLessons = lessons.filter((l) => l.countForProgress);
-  const progressPercent = progressLessons.length
-    ? Math.round((completed.size / progressLessons.length) * 100)
-    : 0;
+  switch (lesson.type) {
+    case "video":
+      return (
+        <video
+          ref={videoRef}
+          src={fileUrl}
+          controls
+          controlsList="nodownload noremoteplayback"
+          onEnded={() => markLessonComplete(activeLesson)}
+          style={{ ...commonStyle, maxHeight: "520px" }}
+          onContextMenu={(e) => e.preventDefault()}
+        />
+      );
 
-  if (loading) return <p>Loading course...</p>;
+    case "ppt":
+      return (
+        <div style={{ padding: "20px", ...commonStyle }}>
+          {pptSlides.map((slide, idx) => (
+            <div
+              key={idx}
+              style={{
+                height: "480px",
+                width: "100%",
+                marginBottom: "10px",
+                backgroundColor: "#f3f3f3",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "12px",
+                fontSize: "20px",
+              }}
+            >
+              {slide}
+            </div>
+          ))}
+        </div>
+      );
+
+    case "doc":
+      return (
+        <div
+          style={{
+            height: "520px",
+            overflowY: "auto",
+            padding: "15px",
+            border: "1px solid #ccc",
+            borderRadius: "12px",
+            backgroundColor: "#f9f9f9",
+            ...commonStyle,
+          }}
+        >
+          {docHtml || "Loading document..."}
+        </div>
+      );
+
+    case "pdf":
+      return (
+        <div style={{ height: "520px", width: "100%", ...commonStyle }}>
+          <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+            <Viewer fileUrl={fileUrl} />
+          </Worker>
+        </div>
+      );
+
+    case "image":
+      return (
+        <img
+          src={fileUrl}
+          alt={lesson.title}
+          style={{
+            width: "100%",
+            height: "520px",
+            objectFit: "contain",
+            borderRadius: "12px",
+            ...commonStyle,
+          }}
+        />
+      );
+
+    default:
+      return <p>Select a lesson to start learning.</p>;
+  }
+};
+
+  // Calculate progress percent
+const progressLessons = lessons.filter(l => l.countForProgress && l.type !== "quiz");
+const completedCount = Array.from(completed).filter(c =>
+  progressLessons.some(l => l.key === c)
+).length;
+const progressPercent = progressLessons.length > 0
+  ? Math.round((completedCount / progressLessons.length) * 100)
+  : 0;
 
   return (
     <>
@@ -479,7 +541,29 @@ const MyCourse = () => {
         <div className="mycourse-grid">
           <div className="left-section">
             <h1 className="course-title">{course?.course_name}</h1>
-            <div className="video-player">{renderLessonContent()}</div>
+            <div className="video-player" ref={lessonDisplayRef} style={{ position: "relative" }}>
+              {renderLessonContent()}
+
+              {/* Zoom & Fullscreen Controls */}
+              <div style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                display: "flex",
+                gap: "10px",
+                backgroundColor: "rgba(0,0,0,0.5)",
+                padding: "5px",
+                borderRadius: "8px",
+                zIndex: 10,
+              }}>
+                <IconButton onClick={zoomIn} sx={{ color: "#fff" }} size="small"><ZoomInIcon /></IconButton>
+                <IconButton onClick={zoomOut} sx={{ color: "#fff" }} size="small"><ZoomOutIcon /></IconButton>
+                <IconButton onClick={toggleFullScreen} sx={{ color: "#fff" }} size="small">
+                  {isFullScreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+                </IconButton>
+              </div>
+            </div>
+
             {/* ---- Add this OVERVIEW BLOCK below the video player ---- */}
             {/* ---- Udemy-like OVERVIEW SECTION ---- */}
             {/* ---- TAB NAVIGATION OVERVIEW + DESCRIPTION ---- */}
