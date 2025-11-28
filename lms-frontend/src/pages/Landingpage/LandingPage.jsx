@@ -74,14 +74,14 @@ useEffect(() => {
   const stats = document.querySelectorAll(".stats h3");
 
   stats.forEach((el) => {
-    let targetStr = el.getAttribute("data-num"); // e.g., "12K+", "500+", "50+"
+    let targetStr = el.getAttribute("data-num") || ""; // fallback to empty string
     let suffix = "";
     let target = 0;
 
-    // Detect and keep + sign
+    // Detect and keep + sign safely
     if (targetStr.endsWith("+")) {
       suffix = "+";
-      targetStr = targetStr.slice(0, -1); // remove + for calculation
+      targetStr = targetStr.replace(/\+$/, ""); // removes the trailing '+'
     }
 
     // Handle K and M
@@ -90,7 +90,7 @@ useEffect(() => {
     } else if (targetStr.toUpperCase().includes("M")) {
       target = parseFloat(targetStr) * 1000000;
     } else {
-      target = parseInt(targetStr, 10);
+      target = parseInt(targetStr, 10) || 0; // fallback to 0 if parse fails
     }
 
     let count = 0;
@@ -107,6 +107,7 @@ useEffect(() => {
     }, 20);
   });
 }, []);
+
 
   // Fetch courses dynamically from backend
   useEffect(() => {
@@ -129,16 +130,19 @@ useEffect(() => {
 
   // Pagination logic
   const indexOfLastCourse = currentPage * coursesPerPage;
-  const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
-  const currentCourses = courses.slice(indexOfFirstCourse, indexOfLastCourse);
+const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
+const currentCourses = courses.filter((_, index) => 
+  index >= indexOfFirstCourse && index < indexOfLastCourse
+);
 
-  const totalPages = Math.ceil(courses.length / coursesPerPage);
+const totalPages = Math.ceil(courses.length / coursesPerPage);
 
-  const changePage = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
+const changePage = (page) => {
+  if (page >= 1 && page <= totalPages) {
+    setCurrentPage(page);
+  }
+};
+
 
   // Scroll Helper
   const scrollToSection = (id) => {
