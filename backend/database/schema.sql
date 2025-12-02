@@ -209,6 +209,7 @@ CREATE TABLE IF NOT EXISTS user_progress (
   last_chapter_id INT,
   last_visited_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   progress_percent DECIMAL(5,2) DEFAULT 0,
+  UNIQUE KEY unique_progress (custom_id, course_id),
   FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
 );
 
@@ -269,4 +270,29 @@ CREATE TABLE IF NOT EXISTS notifications (
   message TEXT NOT NULL,
   status ENUM('unread','read') DEFAULT 'unread',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS material_completion (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  custom_id VARCHAR(50) NOT NULL,
+  material_id INT NOT NULL,
+  chapter_id INT NOT NULL,
+  course_id INT NOT NULL,
+  completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY ux_material_user (custom_id, material_id),
+  FOREIGN KEY (material_id) REFERENCES chapter_materials(material_id) ON DELETE CASCADE,
+  FOREIGN KEY (chapter_id) REFERENCES chapters(chapter_id) ON DELETE CASCADE,
+  FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS chapter_completion (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  custom_id VARCHAR(50) NOT NULL,
+  course_id INT NOT NULL,
+  chapter_id INT NOT NULL,
+  completed TINYINT(1) DEFAULT 1,
+  completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_user_chapter (custom_id, chapter_id),
+  FOREIGN KEY (chapter_id) REFERENCES chapters(chapter_id) ON DELETE CASCADE,
+  FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
 );
