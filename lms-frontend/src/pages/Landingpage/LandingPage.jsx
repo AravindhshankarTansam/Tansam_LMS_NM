@@ -129,11 +129,14 @@ useEffect(() => {
   }, []);
 
   // Pagination logic
-  const indexOfLastCourse = currentPage * coursesPerPage;
+// Pagination logic (NO slice, NO filter)
+const indexOfLastCourse = currentPage * coursesPerPage;
 const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
-const currentCourses = courses.filter((_, index) => 
-  index >= indexOfFirstCourse && index < indexOfLastCourse
-);
+
+const currentCourses = Array.from(
+  { length: coursesPerPage },
+  (_, i) => courses[indexOfFirstCourse + i]
+).filter(Boolean); // keeps undefined away safely
 
 const totalPages = Math.ceil(courses.length / coursesPerPage);
 
@@ -142,6 +145,7 @@ const changePage = (page) => {
     setCurrentPage(page);
   }
 };
+
 
 
   // Scroll Helper
