@@ -55,24 +55,48 @@ export const getQuizzesByChapter = async (req, res) => {
 export const updateQuiz = async (req, res) => {
   const db = await connectDB();
   const { id } = req.params;
-  const { question, quiz_type, options, correct_answers } = req.body;
 
-  const [option_a, option_b, option_c, option_d] =
-    typeof options === "string" ? JSON.parse(options) : options;
+  let { question, quiz_type, options, correct_answers } = req.body;
 
-  const correct_answer =
-    typeof correct_answers === "string"
-      ? JSON.parse(correct_answers)[0]
-      : correct_answers?.[0];
+  // Normalize inputs
+  options = typeof options === "string" ? JSON.parse(options) : options;
+  correct_answers = typeof correct_answers === "string"
+    ? JSON.parse(correct_answers)
+    : correct_answers;
+
+  // Fix question_type to match DB enum
+  const question_type =
+    quiz_type === "true_false" ? "true_false" : "mcq";
+
+  // Always maintain 4 MCQ options
+  const [option_a, option_b, option_c, option_d] = [
+    options?.[0] || "",
+    options?.[1] || "",
+    options?.[2] || "",
+    options?.[3] || ""
+  ];
+
+  const correct_answer = correct_answers?.[0] || "";
 
   await db.query(
     `UPDATE quizzes
-     SET question=?, question_type=?, option_a=?, option_b=?, option_c=?, option_d=?, correct_answer=?
+     SET question=?, question_type=?, 
+         option_a=?, option_b=?, option_c=?, option_d=?, 
+         correct_answer=?
      WHERE quiz_id=?`,
-    [question, quiz_type, option_a, option_b, option_c, option_d, correct_answer, id]
+    [
+      question,
+      question_type,
+      option_a,
+      option_b,
+      option_c,
+      option_d,
+      correct_answer,
+      id
+    ]
   );
 
-  res.json({ message: "📝 Quiz updated" });
+  res.json({ message: "📝 Quiz updated successfully (MCQ fixed)" });
 };
 
 // ==========================================

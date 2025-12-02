@@ -120,7 +120,6 @@ const MyCourse = () => {
       toast.error("Failed to load course info");
     }
   };
-
   const fetchModules = async () => {
     try {
       const res = await fetch(`${MODULE_API}/${courseId}`, { credentials: "include" });
@@ -349,7 +348,7 @@ const MyCourse = () => {
         if (stillActive) {
           markLessonComplete(lesson);
         }
-      }, 10000); // 10s viewing threshold
+      }, 60000); // 60s viewing threshold
 
       return () => clearTimeout(timer);
     }
@@ -466,108 +465,103 @@ const MyCourse = () => {
     if (lesson) markLessonComplete(lesson);
   };
 
-  const renderLessonContent = () => {
-    const lesson = lessons.find((l) => l.key === activeLesson);
-    if (!lesson) return <p>Select a lesson to start learning.</p>;
+// 2025-12-02
+const renderLessonContent = () => {
+  const lesson = lessons.find((l) => l.key === activeLesson);
+  if (!lesson) return <p>Select a lesson to start learning.</p>;
 
-    const fileUrl = getFileUrl(lesson.src);
+  // Normalize path and remove extra 'uploads'
+  let cleanPath = lesson.src.replace(/\\/g, "/").replace(/^(\/?uploads\/)+/, "");
+  const fileUrl = `${FILE_BASE.replace(/\/$/, "")}/${cleanPath}`;
 
-    // Common style for zoom and smooth transform
-    const commonStyle = {
-      transform: `scale(${zoom})`,
-      transformOrigin: "top left",
-      transition: "transform 0.2s ease-in-out",
-      width: "100%",
-      height: "100%",
-    };
-
-    switch (lesson.type) {
-      case "video":
-        return (
-          <video
-            ref={videoRef}
-            src={fileUrl}
-            controls
-            controlsList="nodownload noremoteplayback"
-            onEnded={handleVideoEnded}
-            style={{ ...commonStyle, maxHeight: "520px" }}
-            onContextMenu={(e) => e.preventDefault()}
-          />
-        );
-
-      case "ppt":
-        // If you have a real ppt -> you'd render slides; placeholder content for demo
-        const pptSlides = ["Slide 1", "Slide 2", "Slide 3"];
-        return (
-          <div style={{ padding: "20px", ...commonStyle }}>
-            {pptSlides.map((slide, idx) => (
-              <div
-                key={idx}
-                style={{
-                  height: "480px",
-                  width: "100%",
-                  marginBottom: "10px",
-                  backgroundColor: "#f3f3f3",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: "12px",
-                  fontSize: "20px",
-                }}
-              >
-                {slide}
-              </div>
-            ))}
-          </div>
-        );
-
-      case "doc":
-        // If you have doc -> you need to fetch docHtml; using placeholder
-        const docHtml = "<p>Document content goes here...</p>";
-        return (
-          <div
-            style={{
-              height: "520px",
-              overflowY: "auto",
-              padding: "15px",
-              border: "1px solid #ccc",
-              borderRadius: "12px",
-              backgroundColor: "#f9f9f9",
-              ...commonStyle,
-            }}
-            dangerouslySetInnerHTML={{ __html: docHtml }}
-          />
-        );
-
-      case "pdf":
-        return (
-          <div style={{ height: "520px", width: "100%", ...commonStyle }}>
-            <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-              <Viewer fileUrl={fileUrl} />
-            </Worker>
-          </div>
-        );
-
-      case "image":
-        return (
-          <img
-            src={fileUrl}
-            alt={lesson.title}
-            style={{
-              width: "100%",
-              height: "520px",
-              objectFit: "contain",
-              borderRadius: "12px",
-              ...commonStyle,
-            }}
-            onContextMenu={(e) => e.preventDefault()}
-          />
-        );
-
-      default:
-        return <p>Select a lesson to start learning.</p>;
-    }
+  // Common style for zoom and smooth transform
+  const commonStyle = {
+    transform: `scale(${zoom})`,
+    transformOrigin: "top left",
+    transition: "transform 0.2s ease-in-out",
+    width: "100%",
+    height: "100%",
   };
+
+  switch (lesson.type) {
+    case "video":
+      console.log("📌 Video File URL:", fileUrl);
+      return (
+        <video
+          ref={videoRef}
+          src={fileUrl}
+          controls
+          controlsList="nodownload noremoteplayback"
+          onEnded={handleVideoEnded}
+          style={{ ...commonStyle, maxHeight: "520px" }}
+          onContextMenu={(e) => e.preventDefault()}
+        />
+      );
+
+    case "ppt":
+    case "pptx":
+      console.log("📌 PPT File URL:", fileUrl);
+      return (
+        <iframe
+          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
+          style={{
+            width: "100%",
+            height: "520px",
+            border: "none",
+            borderRadius: "12px",
+            ...commonStyle,
+          }}
+        ></iframe>
+      );
+
+    case "pdf":
+      console.log("📌 PDF File URL:", fileUrl);
+      return (
+        <div style={{ height: "520px", width: "100%", ...commonStyle }}>
+          <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+            <Viewer fileUrl={fileUrl} />
+          </Worker>
+        </div>
+      );
+
+    case "image":
+      console.log("📌 Image File URL:", fileUrl);
+      return (
+        <img
+          src={fileUrl}
+          alt={lesson.title}
+          style={{
+            width: "100%",
+            height: "520px",
+            objectFit: "contain",
+            borderRadius: "12px",
+            ...commonStyle,
+          }}
+          onContextMenu={(e) => e.preventDefault()}
+        />
+      );
+
+    case "doc":
+    case "docx":
+      console.log("📌 DOC File URL:", fileUrl);
+      return (
+        <iframe
+          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
+          style={{
+            width: "100%",
+            height: "520px",
+            border: "none",
+            borderRadius: "12px",
+            ...commonStyle,
+          }}
+        ></iframe>
+      );
+
+    default:
+      return <p>Select a lesson to start learning.</p>;
+  }
+};
+
 
   // Load user
   useEffect(() => {

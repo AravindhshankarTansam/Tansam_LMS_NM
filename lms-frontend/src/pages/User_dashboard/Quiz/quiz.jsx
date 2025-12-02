@@ -6,6 +6,8 @@ import { ToastContainer, toast ,Slide} from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { QUIZ_API, COURSE_API, MODULE_API } from "../../../config/apiConfig";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://lms.tansam.org/api";
+
 // ------------------ Cookie Utilities (FIXED!) ------------------
 const setCookie = (name, value, minutes) => {
   const expires = new Date(Date.now() + minutes * 60 * 1000);
@@ -47,7 +49,7 @@ export default function Quiz() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/auth/me", {
+        const res = await fetch(`${API_BASE}/auth/me`, {
           credentials: "include",
         });
         const data = await res.json();
