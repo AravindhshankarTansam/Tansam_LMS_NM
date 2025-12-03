@@ -21,30 +21,58 @@ const DashboardContent = () => {
 
   // Fetch user + courses progress
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const resUser = await fetch(`${AUTH_API}/me`, { credentials: "include" });
-        const userJson = await resUser.json();
-        setUserData(userJson.user);
+  const fetchDashboard = async () => {
+    try {
+      const resUser = await fetch(`${AUTH_API}/me`, { credentials: "include" });
+      const userJson = await resUser.json();
+      setUserData(userJson.user);
 
-        const custom_id = userJson?.user?.profile?.custom_id;
-        if (!custom_id) return;
+      const custom_id = userJson?.user?.profile?.custom_id;
+      if (!custom_id) return;
 
-        const resCourses = await fetch(`${DASHBOARD_API}/chapters/progress/${custom_id}`);
-        const jsonCourses = await resCourses.json();
+      // Fetch course chapters progress (ADD credentials)
+      const resCourses = await fetch(
+        `${DASHBOARD_API}/chapters/progress/${custom_id}`,
+        { credentials: "include" }
+      );
+      const jsonCourses = await resCourses.json();
 
-        if (jsonCourses.success) {
-          setCoursesProgress(jsonCourses.data || []);
-        }
-      } catch (err) {
-        console.error("Error fetching dashboard data:", err);
-      } finally {
-        setLoading(false);
+      console.log("RAW COURSES RESPONSE:", jsonCourses);
+
+      // Fetch backend progress (percentage) (ADD credentials)
+      const resProgress = await fetch(
+        `${DASHBOARD_API}/progress/${custom_id}`,
+        { credentials: "include" }
+      );
+      const jsonProgress = await resProgress.json();
+
+      // Create map: { course_id → progressPercent }
+      const progressMap = {};
+      if (Array.isArray(jsonProgress)) {
+        jsonProgress.forEach((p) => {
+          progressMap[Number(p.course_id)] = Number(p.progressPercent) || 0;
+        });
       }
-    };
 
-    fetchDashboard();
-  }, []);
+      // Merge backend progress into chapters data
+      if (jsonCourses.success) {
+        const mergedCourses = (jsonCourses.data || []).map((course) => ({
+          ...course,
+          progressPercent: progressMap[Number(course.course_id)] ?? 0,
+        }));
+
+        setCoursesProgress(mergedCourses);
+      }
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchDashboard();
+}, []);
+
 
   // Fetch daily completion
   const fetchDayData = async (dateKey) => {
@@ -67,17 +95,14 @@ const DashboardContent = () => {
 
   // Automatically fetch completion counts for all displayed days
   useEffect(() => {
-    // don't attempt fetch until userData is loaded and displayedDays is available
     if (!userData?.profile?.custom_id) return;
 
-    // For each displayed day, fetch if we don't already have data for it
     displayedDays.forEach((day) => {
       if (dailyCompletion[day.dateKey] === undefined) {
         fetchDayData(day.dateKey);
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [/* dependencies placed below to avoid linter auto-including functions */ userData, dayOffset]);
+  }, [userData, dayOffset]);
 
   // Timetable handlers
   const handlePrev = () => setDayOffset((prev) => prev - 5);
@@ -122,6 +147,7 @@ const DashboardContent = () => {
       <Sidebar activeCourse={activeCourse} />
       <div className="dashboard-content">
         <div className="dashboard1-container">
+          
           {/* Header */}
           <div className="header-card">
             <div className="user-infos">
@@ -135,26 +161,21 @@ const DashboardContent = () => {
                 <p style={{ fontSize: "0.9rem" }}>{profile.user_email || userData?.email}</p>
               </div>
             </div>
-            <div className="stats">
-              {/* <div className="stat">
-                <h1>0</h1>
-                <p>Average Score</p>
-              </div> */}
-            </div>
-            {/* <div className="all-stats-btn">All Stats</div> */}
           </div>
 
-          {/* Courses Progress (Modules only) */}
+          {/* Courses Progress */}
           <div className="main-cards">
             {coursesProgress.length === 0 ? (
               <p>No enrolled courses found.</p>
             ) : (
               coursesProgress.map((course) => {
-                const { course_id, course_name, modules = [] } = course;
+                const { course_id, course_name, modules = [], progressPercent } = course;
+
                 const totalModules = modules.length;
-                const completedModules = modules.filter(m => m.isCompleted).length;
+                const completedModules = modules.filter((m) => m.isCompleted).length;
                 const remainingModules = totalModules - completedModules;
-                const moduleProgressPercent = totalModules ? Math.round((completedModules / totalModules) * 100) : 0;
+
+                const moduleProgressPercent = progressPercent || 0;
 
                 return (
                   <div
@@ -164,14 +185,12 @@ const DashboardContent = () => {
                   >
                     <h3>{course_name}</h3>
 
-                    {/* Module Stats */}
                     <div className="progress-summary">
                       <p>📚 Total Modules: {totalModules}</p>
                       <p>✅ Completed Modules: {completedModules}</p>
                       <p>🔒 Remaining Modules: {remainingModules}</p>
                     </div>
 
-                    {/* Module List */}
                     <div className="overlay-scroll">
                       {modules.length > 0 ? (
                         modules.map((mod, i) => (
@@ -192,14 +211,19 @@ const DashboardContent = () => {
                       )}
                     </div>
 
-                    {/* Progress Bar + Start Button */}
                     <div className="card-bottom-row">
                       <div className="progress-bar-container-horizontal">
                         <div className="progress-bar-bg">
-                          <div className="progress-bar-fill" style={{ width: `${moduleProgressPercent}%` }}></div>
+                          <div
+                            className="progress-bar-fill"
+                            style={{ width: `${moduleProgressPercent}%` }}
+                          ></div>
                         </div>
-                        <span className="progress-text">{moduleProgressPercent}% completed</span>
+                        <span className="progress-text">
+                          {moduleProgressPercent}% completed
+                        </span>
                       </div>
+
                       <button
                         className="start-learning-btn"
                         onClick={() => navigate(`/mycourse/${course_id}`)}
@@ -215,9 +239,13 @@ const DashboardContent = () => {
 
           {/* Timetable */}
           <div className="timetable-section">
-            <div className="timetable-header"><h3>Timetable</h3></div>
+            <div className="timetable-header">
+              <h3>Timetable</h3>
+            </div>
+
             <div className="timetable-cards">
               <FaArrowLeft onClick={handlePrev} className="arrow-btn" />
+
               {displayedDays.map((day, i) => {
                 const isActive = selectedDay?.dateKey === day.dateKey;
                 const completedCount = dailyCompletion[day.dateKey] || 0;
@@ -228,25 +256,30 @@ const DashboardContent = () => {
                     onClick={() => handleDayClick(day)}
                   >
                     <h4>{day.dateNum}</h4>
-                    <p>{day.month} <br /> {day.weekday}</p>
+                    <p>
+                      {day.month} <br /> {day.weekday}
+                    </p>
                     {day.isToday && <span className="today-badge">Today</span>}
 
-                    {/* Small inline summary (always visible) */}
                     <div className="day-status-mini">
                       {completedCount > 0 ? `${completedCount} completed` : `0 completed`}
                     </div>
 
                     {isActive && (
                       <div className="day-status">
-                        {completedCount > 0 ? `You’ve completed ${completedCount} chapters` : "No chapters completed"}
+                        {completedCount > 0
+                          ? `You’ve completed ${completedCount} chapters`
+                          : "No chapters completed"}
                       </div>
                     )}
                   </div>
                 );
               })}
+
               <FaArrowRight onClick={handleNext} className="arrow-btn" />
             </div>
           </div>
+
         </div>
       </div>
     </div>

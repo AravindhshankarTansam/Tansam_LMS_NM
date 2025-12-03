@@ -306,50 +306,31 @@ export const getCourseProgress = async (req, res) => {
         [courseId]
       );
 
-      const moduleProgress = [];
+      // 3️⃣ Get user progress percent from user_progress table
+      const [progressRows] = await db.execute(
+        `SELECT progress_percent
+         FROM user_progress
+         WHERE custom_id = ? AND course_id = ?`,
+        [custom_id, courseId]
+      );
 
-      for (const module of modules) {
-        const moduleId = module.module_id;
+      const progressPercent = progressRows[0]?.progress_percent || 0;
 
-        // 3️⃣ Get all chapters for this module
-        const [chapters] = await db.execute(
-          `SELECT chapter_id
-           FROM chapters
-           WHERE module_id = ?`,
-          [moduleId]
-        );
-        const totalChapters = chapters.length;
+      // 4️⃣ Determine module completion based on proportional progress
+      const totalModules = modules.length;
+      const completedModuleCount = Math.floor((progressPercent / 100) * totalModules);
 
-        if (totalChapters === 0) continue; // skip empty modules
-
-        // 4️⃣ Count unique completed chapters from user_progress
-        const [watchedRows] = await db.execute(
-          `SELECT COUNT(DISTINCT last_chapter_id) AS watched
-           FROM user_progress
-           WHERE custom_id = ? 
-             AND course_id = ? 
-             AND last_chapter_id IN (
-               SELECT chapter_id FROM chapters WHERE module_id = ?
-             )`,
-          [custom_id, courseId, moduleId]
-        );
-
-        const watchedChapters = watchedRows[0].watched;
-
-        // ✅ Only mark module as completed if all chapters are done
-        moduleProgress.push({
-          module_id: moduleId,
-          module_name: module.module_name,
-          totalChapters,
-          watchedChapters,
-          isCompleted: watchedChapters === totalChapters
-        });
-      }
+      const moduleProgress = modules.map((mod, index) => ({
+        module_id: mod.module_id,
+        module_name: mod.module_name,
+        isCompleted: index < completedModuleCount, // first N modules are completed
+      }));
 
       results.push({
         course_id: courseId,
         course_name: course.course_name,
-        modules: moduleProgress
+        modules: moduleProgress,
+        progressPercent,
       });
     }
 
@@ -359,7 +340,7 @@ export const getCourseProgress = async (req, res) => {
     console.error("Progress error:", error);
     return res.status(500).json({
       success: false,
-      message: "Error fetching progress for all courses",
+      message: "Error fetching progress for courses",
       error: error.message
     });
   }
