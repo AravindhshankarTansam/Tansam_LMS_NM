@@ -53,7 +53,7 @@ const MyCourse = () => {
   const videoRef = useRef(null);
   const lessonContentRef = useRef(null);
   const lessonDisplayRef = useRef(null);
-   const [pptSlides, setPptSlides] = useState([]);
+  const [pptSlides, setPptSlides] = useState([]);
   const [docHtml, setDocHtml] = useState("");
   const [customId, setCustomId] = useState("");
   const [backendProgress, setBackendProgress] = useState(0);
@@ -120,6 +120,7 @@ const MyCourse = () => {
       toast.error("Failed to load course info");
     }
   };
+
   const fetchModules = async () => {
     try {
       const res = await fetch(`${MODULE_API}/${courseId}`, { credentials: "include" });
@@ -312,7 +313,8 @@ const MyCourse = () => {
       // sync backend progress after successful write
       await fetchProgress();
       completedMaterialsRef.current.delete(uniqueKey);
-      console.log("Progress saved:", uniqueKey);
+      console.log("✅ Progress saved:", uniqueKey);
+      toast.success("Lesson completed!");
     } catch (err) {
       console.error("Failed to save progress:", err);
 
@@ -323,23 +325,18 @@ const MyCourse = () => {
         return n;
       });
 
-      // optionally remove the enabled next lesson if it was only enabled by this action
-      const idx2 = lessons.findIndex((l) => l.key === lesson.key);
-      if (idx2 !== -1 && lessons[idx2 + 1]) {
-        // leave enabled as-is - it's safer to keep enabling than to remove
-      }
-
       completedMaterialsRef.current.delete(uniqueKey);
       toast.error("Failed to save progress. Try again.");
     }
   };
 
-  // Auto-mark non-video lessons after a timeout
+  // Auto-mark non-video, non-pdf lessons after a timeout (60s)
   useEffect(() => {
     const lesson = lessons.find((l) => l.key === activeLesson);
     if (!lesson) return;
 
-    if (["pdf", "doc", "ppt", "image"].includes(lesson.type)) {
+    // Exclude pdf from time-based auto completion
+    if (["doc", "ppt", "pptx", "image"].includes(lesson.type)) {
       if (completed.has(lesson.key)) return;
 
       const timer = setTimeout(() => {
@@ -352,6 +349,97 @@ const MyCourse = () => {
 
       return () => clearTimeout(timer);
     }
+  }, [activeLesson, lessons, completed]);
+
+  // FIXED: Mark PDF complete based on scroll - targets correct PDF viewer scroll container
+  useEffect(() => {
+    const lesson = lessons.find((l) => l.key === activeLesson);
+    if (!lesson || lesson.type !== "pdf") return;
+
+    let scrollTarget = null;
+    let startedAtTop = true;
+    let hasReachedEnd = false;
+
+    const findScrollContainer = () => {
+      // Try multiple possible selectors for react-pdf-viewer scroll container
+      const selectors = [
+        '.rpv-core__viewer',
+        '.rpv-core__doc-viewer',
+        '[data-testid="viewer"]',
+        '.pdf-viewer-container',
+        '.viewer'
+      ];
+      
+      for (const selector of selectors) {
+        const element = lessonContentRef.current?.querySelector(selector);
+        if (element && element.scrollHeight > element.clientHeight) {
+          return element;
+        }
+      }
+      
+      // Fallback: find any scrollable element inside
+      const scrollables = lessonContentRef.current?.querySelectorAll('*');
+      for (const el of scrollables) {
+        if (el.scrollHeight > el.clientHeight && el.scrollHeight > 100) {
+          return el;
+        }
+      }
+      return null;
+    };
+
+    const initScrollTracking = () => {
+      scrollTarget = findScrollContainer();
+      if (!scrollTarget) {
+        console.log("📜 No scroll container found yet, retrying...");
+        setTimeout(initScrollTracking, 500);
+        return;
+      }
+
+      console.log("📜 PDF scroll container found:", scrollTarget);
+
+      const handleScroll = () => {
+        if (!scrollTarget || completed.has(lesson.key) || hasReachedEnd) return;
+
+        const { scrollTop, scrollHeight, clientHeight } = scrollTarget;
+        const scrollPercent = scrollHeight > clientHeight 
+          ? (scrollTop / (scrollHeight - clientHeight)) * 100 
+          : 0;
+
+        console.log(`📜 Scroll: ${scrollPercent.toFixed(0)}%`);
+
+        // Reset if user scrolls back to top
+        if (scrollPercent < 10) {
+          startedAtTop = true;
+          hasReachedEnd = false;
+        }
+
+        // Mark complete if scrolled 90%+ from top
+        if (startedAtTop && scrollPercent >= 90 && !hasReachedEnd) {
+          console.log("✅ PDF scrolled to end - marking complete!");
+          hasReachedEnd = true;
+          markLessonComplete(lesson);
+        }
+      };
+
+      // Add scroll listener
+      scrollTarget.addEventListener("scroll", handleScroll, { passive: true });
+      
+      // Also listen on outer container as backup
+      lessonContentRef.current?.addEventListener("scroll", handleScroll, { passive: true });
+
+      // Cleanup function
+      return () => {
+        scrollTarget?.removeEventListener("scroll", handleScroll);
+        lessonContentRef.current?.removeEventListener("scroll", handleScroll);
+      };
+    };
+
+    // Start tracking after short delay for PDF to render
+    const timeoutId = setTimeout(initScrollTracking, 1000);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [activeLesson, lessons, completed]);
 
   const handleLessonClick = (lessonKey, type) => {
@@ -465,103 +553,123 @@ const MyCourse = () => {
     if (lesson) markLessonComplete(lesson);
   };
 
-// 2025-12-02
-const renderLessonContent = () => {
-  const lesson = lessons.find((l) => l.key === activeLesson);
-  if (!lesson) return <p>Select a lesson to start learning.</p>;
+  // renderLessonContent method
+  const renderLessonContent = () => {
+    const lesson = lessons.find((l) => l.key === activeLesson);
+    if (!lesson) return <p>Select a lesson to start learning.</p>;
 
-  // Normalize path and remove extra 'uploads'
-  let cleanPath = lesson.src.replace(/\\/g, "/").replace(/^(\/?uploads\/)+/, "");
-  const fileUrl = `${FILE_BASE.replace(/\/$/, "")}/${cleanPath}`;
+    // Normalize path and remove extra 'uploads'
+    let cleanPath = lesson.src.replace(/\\/g, "/").replace(/^(\/?uploads\/)+/, "");
+    const fileUrl = `${FILE_BASE.replace(/\/$/, "")}/${cleanPath}`;
 
-  // Common style for zoom and smooth transform
-  const commonStyle = {
-    transform: `scale(${zoom})`,
-    transformOrigin: "top left",
-    transition: "transform 0.2s ease-in-out",
-    width: "100%",
-    height: "100%",
+    // Common style for zoom and smooth transform
+    const commonStyle = {
+      transform: `scale(${zoom})`,
+      transformOrigin: "top left",
+      transition: "transform 0.2s ease-in-out",
+      width: "100%",
+      height: "100%",
+    };
+
+    switch (lesson.type) {
+      case "video":
+        console.log("📌 Video File URL:", fileUrl);
+        return (
+          <video
+            ref={videoRef}
+            src={fileUrl}
+            controls
+            controlsList="nodownload noremoteplayback"
+            onEnded={handleVideoEnded}
+            style={{ ...commonStyle, maxHeight: "520px" }}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        );
+
+      case "ppt":
+      case "pptx":
+        console.log("📌 PPT File URL:", fileUrl);
+        return (
+          <iframe
+            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
+            style={{
+              width: "100%",
+              height: "520px",
+              border: "none",
+              borderRadius: "12px",
+              ...commonStyle,
+            }}
+          ></iframe>
+        );
+
+     case "pdf":
+  console.log("📌 PDF File URL:", fileUrl);
+  return (
+    <div
+      ref={lessonContentRef}
+      style={{
+        height: "520px",
+        width: "100%",
+        overflowX: "auto",
+        overflowY: "auto",
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          transform: `scale(${zoom})`,
+          transformOrigin: "top left",
+          width: `${100 * zoom}%`,
+          minWidth: "100%",   // ⭐ KEY FIX FOR ZOOM OUT
+          height: "auto",
+        }}
+      >
+        <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+          <Viewer fileUrl={fileUrl} />
+        </Worker>
+      </div>
+    </div>
+  );
+
+
+
+      case "image":
+        console.log("📌 Image File URL:", fileUrl);
+        return (
+          <img
+            src={fileUrl}
+            alt={lesson.title}
+            style={{
+              width: "100%",
+              height: "520px",
+              objectFit: "contain",
+              borderRadius: "12px",
+              ...commonStyle,
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        );
+
+      case "doc":
+      case "docx":
+        console.log("📌 DOC File URL:", fileUrl);
+        return (
+          <iframe
+            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
+            style={{
+              width: "100%",
+              height: "520px",
+              border: "none",
+              borderRadius: "12px",
+              ...commonStyle,
+            }}
+          ></iframe>
+        );
+
+      default:
+        return <p>Select a lesson to start learning.</p>;
+    }
   };
-
-  switch (lesson.type) {
-    case "video":
-      console.log("📌 Video File URL:", fileUrl);
-      return (
-        <video
-          ref={videoRef}
-          src={fileUrl}
-          controls
-          controlsList="nodownload noremoteplayback"
-          onEnded={handleVideoEnded}
-          style={{ ...commonStyle, maxHeight: "520px" }}
-          onContextMenu={(e) => e.preventDefault()}
-        />
-      );
-
-    case "ppt":
-    case "pptx":
-      console.log("📌 PPT File URL:", fileUrl);
-      return (
-        <iframe
-          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
-          style={{
-            width: "100%",
-            height: "520px",
-            border: "none",
-            borderRadius: "12px",
-            ...commonStyle,
-          }}
-        ></iframe>
-      );
-
-    case "pdf":
-      console.log("📌 PDF File URL:", fileUrl);
-      return (
-        <div style={{ height: "520px", width: "100%", ...commonStyle }}>
-          <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-            <Viewer fileUrl={fileUrl} />
-          </Worker>
-        </div>
-      );
-
-    case "image":
-      console.log("📌 Image File URL:", fileUrl);
-      return (
-        <img
-          src={fileUrl}
-          alt={lesson.title}
-          style={{
-            width: "100%",
-            height: "520px",
-            objectFit: "contain",
-            borderRadius: "12px",
-            ...commonStyle,
-          }}
-          onContextMenu={(e) => e.preventDefault()}
-        />
-      );
-
-    case "doc":
-    case "docx":
-      console.log("📌 DOC File URL:", fileUrl);
-      return (
-        <iframe
-          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
-          style={{
-            width: "100%",
-            height: "520px",
-            border: "none",
-            borderRadius: "12px",
-            ...commonStyle,
-          }}
-        ></iframe>
-      );
-
-    default:
-      return <p>Select a lesson to start learning.</p>;
-  }
-};
-
 
   // Load user
   useEffect(() => {
@@ -717,7 +825,9 @@ const renderLessonContent = () => {
                               {chapterLessons.map((lesson) => (
                                 <div
                                   key={lesson.key}
-                                  className={`sub-lesson ${completed.has(lesson.key) ? "completed" : ""} ${!enabledLessons.has(lesson.key) ? "disabled" : ""}`}
+                                  className={`sub-lesson ${completed.has(lesson.key) ? "completed" : ""} ${
+                                    !enabledLessons.has(lesson.key) ? "disabled" : ""
+                                  }`}
                                   onClick={() => handleLessonClick(lesson.key, lesson.type)}
                                 >
                                   {lesson.countForProgress ? (
@@ -748,15 +858,15 @@ const renderLessonContent = () => {
           </div>
         </div>
 
-        {showCertificate && (
+        {/* {showCertificate && (
           <div className="popup-overlay">
             <div className="popup-content">
               <h2>🎉 Congratulations!</h2>
-              <p>You’ve completed all chapters successfully!</p>
+              <p>You've completed all chapters successfully!</p>
               <img src={certificateImg} alt="Certificate" style={{ width: "100%", borderRadius: "12px" }} />
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </>
   );
