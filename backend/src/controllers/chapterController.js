@@ -270,78 +270,135 @@ export const getQuizzesByChapter = async (req, res) => {
   }
 };
 
+
 export const getCourseProgress = async (req, res) => {
   const db = await connectDB();
   const { custom_id } = req.params;
 
   try {
-    // 1️⃣ Get all enrolled courses
-    const [enrolledCourses] = await db.execute(
-      `SELECT c.course_id, c.course_name
-       FROM course_enrollments e
-       JOIN courses c ON e.course_id = c.course_id
-       WHERE e.custom_id = ?`,
+    // 1️⃣ Fetch enrolled courses
+    const [enrolled] = await db.execute(
+      `SELECT ce.course_id, c.course_name
+       FROM course_enrollments ce
+       JOIN courses c ON ce.course_id = c.course_id
+       WHERE ce.custom_id = ?`,
       [custom_id]
     );
 
-    if (enrolledCourses.length === 0) {
+    if (enrolled.length === 0) {
       return res.json({
-        success: true,
-        message: "No enrolled courses found",
-        data: []
+        total_enrolled_courses: 0,
+        courses: []
       });
     }
 
-    const results = [];
+    let finalResult = [];
 
-    for (const course of enrolledCourses) {
-      const courseId = course.course_id;
+    // 2️⃣ Loop each course
+    for (const course of enrolled) {
+      const course_id = course.course_id;
 
-      // 2️⃣ Get all modules for this course
+      // 👉 Fetch modules in this course
       const [modules] = await db.execute(
         `SELECT module_id, module_name
          FROM modules
          WHERE course_id = ?
          ORDER BY order_index ASC`,
-        [courseId]
+        [course_id]
       );
 
-      // 3️⃣ Get user progress percent from user_progress table
-      const [progressRows] = await db.execute(
-        `SELECT progress_percent
-         FROM user_progress
-         WHERE custom_id = ? AND course_id = ?`,
-        [custom_id, courseId]
-      );
+      let moduleStats = [];
+      let completedModules = 0;
 
-      const progressPercent = progressRows[0]?.progress_percent || 0;
+      // 3️⃣ Loop each module
+      for (const module of modules) {
+        const module_id = module.module_id;
 
-      // 4️⃣ Determine module completion based on proportional progress
-      const totalModules = modules.length;
-      const completedModuleCount = Math.floor((progressPercent / 100) * totalModules);
+        // Count total quizzes from all chapters (keep this)
+        const [quizCount] = await db.execute(
+          `SELECT COUNT(*) AS total_quizzes
+   FROM quizzes 
+   WHERE chapter_id IN (
+       SELECT chapter_id FROM chapters WHERE module_id = ?
+   )`,
+          [module_id]
+        );
 
-      const moduleProgress = modules.map((mod, index) => ({
-        module_id: mod.module_id,
-        module_name: mod.module_name,
-        isCompleted: index < completedModuleCount, // first N modules are completed
-      }));
+        // total materials in module
+        const [materialCount] = await db.execute(
+          `SELECT COUNT(*) AS total_materials
+   FROM chapter_materials
+   WHERE chapter_id IN (
+     SELECT chapter_id FROM chapters WHERE module_id = ?
+   )`,
+          [module_id]
+        );
 
-      results.push({
-        course_id: courseId,
+        // total completed materials from progress table
+        const [completedMaterials] = await db.execute(
+          `SELECT COUNT(*) AS completed_materials
+   FROM material_completion
+   WHERE custom_id = ? AND course_id = ?
+     AND chapter_id IN (
+       SELECT chapter_id FROM chapters WHERE module_id = ?
+     )`,
+          [custom_id, course_id, module_id]
+        );
+
+        // Count completed quizzes
+        const [completedQuizzes] = await db.execute(
+          `SELECT COUNT(*) AS completed_quizzes
+   FROM quiz_results
+   WHERE custom_id = ?
+     AND chapter_id IN (
+         SELECT chapter_id FROM chapters WHERE module_id = ?
+     )`,
+          [custom_id, module_id]
+        );
+
+        // keep quizzes as separate items
+        const totalItems =
+          materialCount[0].total_materials + quizCount[0].total_quizzes;
+
+        const completedItems =
+          completedMaterials[0].completed_materials +
+          completedQuizzes[0].completed_quizzes;
+
+        const isModuleCompleted =
+          completedItems >= totalItems && totalItems > 0;
+
+        if (isModuleCompleted) completedModules++;
+
+        moduleStats.push({
+          module_id,
+          module_name: module.module_name,
+          total_items: totalItems,
+          completed_items: completedItems,
+          is_completed: isModuleCompleted,
+        });
+      }
+
+      finalResult.push({
+        course_id,
         course_name: course.course_name,
-        modules: moduleProgress,
-        progressPercent,
+        total_modules: modules.length,
+        completed_modules: completedModules,
+        remaining_modules: modules.length - completedModules,
+        modules: moduleStats
       });
     }
 
-    return res.json({ success: true, data: results });
+    res.json({
+      total_enrolled_courses: enrolled.length,
+      courses: finalResult
+    });
 
-  } catch (error) {
-    console.error("Progress error:", error);
+  } catch (err) {
+    console.error("Error in getCourseProgress:", err);
     return res.status(500).json({
-      success: false,
-      message: "Error fetching progress for courses",
-      error: error.message
+      message: "Server error",
+      error: err.message
     });
   }
 };
+

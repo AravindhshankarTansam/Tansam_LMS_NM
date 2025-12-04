@@ -21,58 +21,61 @@ const DashboardContent = () => {
 
   // Fetch user + courses progress
   useEffect(() => {
-  const fetchDashboard = async () => {
-    try {
-      const resUser = await fetch(`${AUTH_API}/me`, { credentials: "include" });
-      const userJson = await resUser.json();
-      setUserData(userJson.user);
+    const fetchDashboard = async () => {
+      try {
+        const resUser = await fetch(`${AUTH_API}/me`, { credentials: "include" });
+        const userJson = await resUser.json();
+        setUserData(userJson.user);
 
-      const custom_id = userJson?.user?.profile?.custom_id;
-      if (!custom_id) return;
+        const custom_id = userJson?.user?.profile?.custom_id;
+        if (!custom_id) return;
 
-      // Fetch course chapters progress (ADD credentials)
-      const resCourses = await fetch(
-        `${DASHBOARD_API}/chapters/progress/${custom_id}`,
-        { credentials: "include" }
-      );
-      const jsonCourses = await resCourses.json();
+        // Fetch course chapters progress
+        const resCourses = await fetch(
+          `${DASHBOARD_API}/chapters/progress/${custom_id}`,
+          { credentials: "include" }
+        );
+        const jsonCourses = await resCourses.json();
 
-      console.log("RAW COURSES RESPONSE:", jsonCourses);
+        console.log("RAW COURSES RESPONSE:", jsonCourses);
 
-      // Fetch backend progress (percentage) (ADD credentials)
-      const resProgress = await fetch(
-        `${DASHBOARD_API}/progress/${custom_id}`,
-        { credentials: "include" }
-      );
-      const jsonProgress = await resProgress.json();
+        // Fetch backend progress (percentage)
+        const resProgress = await fetch(
+          `${DASHBOARD_API}/progress/${custom_id}`,
+          { credentials: "include" }
+        );
+        const jsonProgress = await resProgress.json();
 
-      // Create map: { course_id → progressPercent }
-      const progressMap = {};
-      if (Array.isArray(jsonProgress)) {
-        jsonProgress.forEach((p) => {
-          progressMap[Number(p.course_id)] = Number(p.progressPercent) || 0;
-        });
+        // Create map: { course_id → progressPercent }
+        const progressMap = {};
+        if (Array.isArray(jsonProgress)) {
+          jsonProgress.forEach((p) => {
+            progressMap[Number(p.course_id)] = Number(p.progressPercent) || 0;
+          });
+        }
+
+        // FIXED: Match backend output
+        if (Array.isArray(jsonCourses.courses)) {
+          const mergedCourses = (jsonCourses.courses || []).map((course) => ({
+            ...course,
+            progressPercent: progressMap[Number(course.course_id)] ?? 0,
+            modules: (course.modules || []).map((m) => ({
+              ...m,
+              isCompleted: m.is_completed, // convert snake_case → camelCase
+            })),
+          }));
+
+          setCoursesProgress(mergedCourses);
+        }
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // Merge backend progress into chapters data
-      if (jsonCourses.success) {
-        const mergedCourses = (jsonCourses.data || []).map((course) => ({
-          ...course,
-          progressPercent: progressMap[Number(course.course_id)] ?? 0,
-        }));
-
-        setCoursesProgress(mergedCourses);
-      }
-    } catch (err) {
-      console.error("Error fetching dashboard data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchDashboard();
-}, []);
-
+    fetchDashboard();
+  }, []);
 
   // Fetch daily completion
   const fetchDayData = async (dateKey) => {
@@ -80,7 +83,9 @@ const DashboardContent = () => {
       const custom_id = userData?.profile?.custom_id;
       if (!custom_id) return;
 
-      const res = await fetch(`${ADMIN_API}/student/${custom_id}/progress/day?date=${dateKey}`);
+      const res = await fetch(
+        `${ADMIN_API}/student/${custom_id}/progress/day?date=${dateKey}`
+      );
       const json = await res.json();
       const completedList = json.completed_chapters || [];
 
@@ -128,6 +133,7 @@ const DashboardContent = () => {
   };
 
   const displayedDays = getDisplayedDays();
+
   const handleDayClick = (day) => {
     setSelectedDay(day);
     fetchDayData(day.dateKey);
@@ -139,7 +145,9 @@ const DashboardContent = () => {
   const fullName = profile.full_name || "User";
   const initial = fullName.charAt(0).toUpperCase();
   const imageUrl = profile.image_path
-    ? `${UPLOADS_BASE}/${profile.image_path.replace(/\\/g, "/").replace(/^uploads\//, "")}`
+    ? `${UPLOADS_BASE}/${profile.image_path
+        .replace(/\\/g, "/")
+        .replace(/^uploads\//, "")}`
     : null;
 
   return (
@@ -147,7 +155,6 @@ const DashboardContent = () => {
       <Sidebar activeCourse={activeCourse} />
       <div className="dashboard-content">
         <div className="dashboard1-container">
-          
           {/* Header */}
           <div className="header-card">
             <div className="user-infos">
@@ -158,7 +165,9 @@ const DashboardContent = () => {
               )}
               <div>
                 <h2>{fullName} 🎓</h2>
-                <p style={{ fontSize: "0.9rem" }}>{profile.user_email || userData?.email}</p>
+                <p style={{ fontSize: "0.9rem" }}>
+                  {profile.user_email || userData?.email}
+                </p>
               </div>
             </div>
           </div>
@@ -169,12 +178,14 @@ const DashboardContent = () => {
               <p>No enrolled courses found.</p>
             ) : (
               coursesProgress.map((course) => {
-                const { course_id, course_name, modules = [], progressPercent } = course;
+                const { course_id, course_name, modules = [], progressPercent } =
+                  course;
 
                 const totalModules = modules.length;
-                const completedModules = modules.filter((m) => m.isCompleted).length;
+                const completedModules = modules.filter(
+                  (m) => m.isCompleted
+                ).length;
                 const remainingModules = totalModules - completedModules;
-
                 const moduleProgressPercent = progressPercent || 0;
 
                 return (
@@ -196,7 +207,9 @@ const DashboardContent = () => {
                         modules.map((mod, i) => (
                           <div
                             key={i}
-                            className={`chapter-item ${mod.isCompleted ? "completed" : "locked"}`}
+                            className={`chapter-item ${
+                              mod.isCompleted ? "completed" : "locked"
+                            }`}
                           >
                             {mod.isCompleted ? (
                               <FaCheckCircle className="chapter-icon completed-icon" />
@@ -249,20 +262,27 @@ const DashboardContent = () => {
               {displayedDays.map((day, i) => {
                 const isActive = selectedDay?.dateKey === day.dateKey;
                 const completedCount = dailyCompletion[day.dateKey] || 0;
+
                 return (
                   <div
                     key={i}
-                    className={`day-card ${isActive ? "active" : ""} ${day.isToday ? "today" : ""}`}
+                    className={`day-card ${
+                      isActive ? "active" : ""
+                    } ${day.isToday ? "today" : ""}`}
                     onClick={() => handleDayClick(day)}
                   >
                     <h4>{day.dateNum}</h4>
                     <p>
                       {day.month} <br /> {day.weekday}
                     </p>
-                    {day.isToday && <span className="today-badge">Today</span>}
+                    {day.isToday && (
+                      <span className="today-badge">Today</span>
+                    )}
 
                     <div className="day-status-mini">
-                      {completedCount > 0 ? `${completedCount} completed` : `0 completed`}
+                      {completedCount > 0
+                        ? `${completedCount} completed`
+                        : `0 completed`}
                     </div>
 
                     {isActive && (
@@ -279,7 +299,6 @@ const DashboardContent = () => {
               <FaArrowRight onClick={handleNext} className="arrow-btn" />
             </div>
           </div>
-
         </div>
       </div>
     </div>
