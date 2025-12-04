@@ -53,7 +53,7 @@ const MyCourse = () => {
   const videoRef = useRef(null);
   const lessonContentRef = useRef(null);
   const lessonDisplayRef = useRef(null);
-   const [pptSlides, setPptSlides] = useState([]);
+  const [pptSlides, setPptSlides] = useState([]);
   const [docHtml, setDocHtml] = useState("");
   const [customId, setCustomId] = useState("");
   const [backendProgress, setBackendProgress] = useState(0);
@@ -65,14 +65,24 @@ const MyCourse = () => {
   /** Prevent duplicate progress calls */
   const completedMaterialsRef = useRef(new Set());
 
-  /** Full-screen toggle for lesson content only */
+  /** FIXED: Full-screen toggle for lesson content - targets document.body for true fullscreen */
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
-      lessonDisplayRef.current?.requestFullscreen();
-      setIsFullScreen(true);
+      // Use document.documentElement for true fullscreen across entire viewport
+      document.documentElement.requestFullscreen().then(() => {
+        setIsFullScreen(true);
+      }).catch(err => {
+        console.error("Fullscreen failed:", err);
+        // Fallback to lessonDisplayRef if document fullscreen not supported
+        lessonDisplayRef.current?.requestFullscreen();
+        setIsFullScreen(true);
+      });
     } else {
-      document.exitFullscreen();
-      setIsFullScreen(false);
+      document.exitFullscreen().then(() => {
+        setIsFullScreen(false);
+      }).catch(err => {
+        console.error("Exit fullscreen failed:", err);
+      });
     }
   };
 
@@ -120,6 +130,7 @@ const MyCourse = () => {
       toast.error("Failed to load course info");
     }
   };
+
   const fetchModules = async () => {
     try {
       const res = await fetch(`${MODULE_API}/${courseId}`, { credentials: "include" });
@@ -312,7 +323,8 @@ const MyCourse = () => {
       // sync backend progress after successful write
       await fetchProgress();
       completedMaterialsRef.current.delete(uniqueKey);
-      console.log("Progress saved:", uniqueKey);
+      console.log("✅ Progress saved:", uniqueKey);
+      toast.success("Lesson completed!");
     } catch (err) {
       console.error("Failed to save progress:", err);
 
@@ -323,23 +335,18 @@ const MyCourse = () => {
         return n;
       });
 
-      // optionally remove the enabled next lesson if it was only enabled by this action
-      const idx2 = lessons.findIndex((l) => l.key === lesson.key);
-      if (idx2 !== -1 && lessons[idx2 + 1]) {
-        // leave enabled as-is - it's safer to keep enabling than to remove
-      }
-
       completedMaterialsRef.current.delete(uniqueKey);
       toast.error("Failed to save progress. Try again.");
     }
   };
 
-  // Auto-mark non-video lessons after a timeout
+  // Auto-mark non-video, non-pdf lessons after a timeout (60s)
   useEffect(() => {
     const lesson = lessons.find((l) => l.key === activeLesson);
     if (!lesson) return;
 
-    if (["pdf", "doc", "ppt", "image"].includes(lesson.type)) {
+    // Exclude pdf from time-based auto completion
+    if (["doc", "ppt", "pptx", "image"].includes(lesson.type)) {
       if (completed.has(lesson.key)) return;
 
       const timer = setTimeout(() => {
@@ -352,6 +359,108 @@ const MyCourse = () => {
 
       return () => clearTimeout(timer);
     }
+  }, [activeLesson, lessons, completed]);
+
+  // FIXED: Mark PDF complete based on scroll - Simplified and more reliable
+  useEffect(() => {
+    const lesson = lessons.find((l) => l.key === activeLesson);
+    if (!lesson || lesson.type !== "pdf") return;
+
+    let scrollTarget = null;
+    let scrollHandler = null;
+
+    const handleScroll = () => {
+      if (!scrollTarget || completed.has(lesson.key)) return;
+
+      console.log("📜 PDF Scroll detected"); // Debug log
+
+      const { scrollTop, scrollHeight, clientHeight } = scrollTarget;
+      const scrollPercent = scrollHeight > clientHeight
+        ? (scrollTop / (scrollHeight - clientHeight)) * 100
+        : 0;
+
+      console.log(`📜 Scroll: ${scrollPercent.toFixed(1)}%`); // Debug log
+
+      if (scrollPercent >= 95) { // Reduced threshold for reliability
+        console.log("✅ PDF Scroll complete triggered!");
+        markLessonComplete(lesson);
+      }
+    };
+
+    const findScrollContainer = () => {
+      if (!lessonContentRef.current) return null;
+
+      // Try multiple selectors for react-pdf-viewer
+      const selectors = [
+        '.rpv-core__viewer',
+        '.rpv-core__doc-viewer',
+        '[data-testid="viewer"]',
+        '.pdf-viewer-container',
+        '.viewer',
+        '.rpv-core__inner',
+        '.rpv-core__page-layer'
+      ];
+
+      for (const selector of selectors) {
+        const element = lessonContentRef.current.querySelector(selector);
+        if (element && element.scrollHeight > element.clientHeight) {
+          console.log(`📍 Found scroll container: ${selector}`);
+          return element;
+        }
+      }
+
+      // Fallback: find any scrollable element
+      const scrollables = lessonContentRef.current.querySelectorAll('*');
+      for (const el of Array.from(scrollables)) {
+        if (el.scrollHeight > el.clientHeight + 20 && el.scrollHeight > 100) {
+          console.log(`📍 Found fallback scroll container:`, el);
+          return el;
+        }
+      }
+
+      console.log("❌ No scroll container found");
+      return lessonContentRef.current; // Ultimate fallback
+    };
+
+    // Retry finding scroll container multiple times
+    const maxRetries = 10;
+    let retryCount = 0;
+
+    const attemptScrollSetup = () => {
+      scrollTarget = findScrollContainer();
+      if (scrollTarget) {
+        console.log("🎯 Scroll target locked:", scrollTarget);
+        
+        // Remove any existing listeners first
+        scrollTarget.removeEventListener("scroll", scrollHandler);
+        lessonContentRef.current?.removeEventListener("scroll", scrollHandler);
+        
+        // Add listeners
+        scrollTarget.addEventListener("scroll", handleScroll, { passive: true });
+        lessonContentRef.current?.addEventListener("scroll", handleScroll, { passive: true });
+        
+        return true;
+      }
+      
+      if (retryCount < maxRetries) {
+        retryCount++;
+        console.log(`🔄 Retry ${retryCount}/${maxRetries} for scroll container...`);
+        setTimeout(attemptScrollSetup, 500);
+      }
+      
+      return false;
+    };
+
+    // Initial attempt after short delay
+    const timeoutId = setTimeout(attemptScrollSetup, 1500);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (scrollTarget) {
+        scrollTarget.removeEventListener("scroll", handleScroll);
+      }
+      lessonContentRef.current?.removeEventListener("scroll", handleScroll);
+    };
   }, [activeLesson, lessons, completed]);
 
   const handleLessonClick = (lessonKey, type) => {
@@ -465,103 +574,154 @@ const MyCourse = () => {
     if (lesson) markLessonComplete(lesson);
   };
 
-// 2025-12-02
-const renderLessonContent = () => {
-  const lesson = lessons.find((l) => l.key === activeLesson);
-  if (!lesson) return <p>Select a lesson to start learning.</p>;
+  // renderLessonContent method
+  const renderLessonContent = () => {
+    const lesson = lessons.find((l) => l.key === activeLesson);
+    if (!lesson) return <p>Select a lesson to start learning.</p>;
 
-  // Normalize path and remove extra 'uploads'
-  let cleanPath = lesson.src.replace(/\\/g, "/").replace(/^(\/?uploads\/)+/, "");
-  const fileUrl = `${FILE_BASE.replace(/\/$/, "")}/${cleanPath}`;
+    // Normalize path and remove extra 'uploads'
+    let cleanPath = lesson.src.replace(/\\/g, "/").replace(/^(\/?uploads\/)+/, "");
+    const fileUrl = `${FILE_BASE.replace(/\/$/, "")}/${cleanPath}`;
 
-  // Common style for zoom and smooth transform
-  const commonStyle = {
-    transform: `scale(${zoom})`,
-    transformOrigin: "top left",
-    transition: "transform 0.2s ease-in-out",
-    width: "100%",
-    height: "100%",
+    // Fullscreen-aware styles
+    const fullscreenStyle = isFullScreen ? {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      zIndex: 9999,
+      backgroundColor: '#000'
+    } : {};
+
+    // Common style for zoom and smooth transform
+    const commonStyle = {
+      transform: `scale(${zoom})`,
+      transformOrigin: "top left",
+      transition: "transform 0.2s ease-in-out",
+      width: "100%",
+      height: "100%",
+    };
+
+    switch (lesson.type) {
+      case "video":
+        console.log("📌 Video File URL:", fileUrl);
+        return (
+          <video
+            ref={videoRef}
+            src={fileUrl}
+            controls
+            controlsList="nodownload noremoteplayback"
+            onEnded={handleVideoEnded}
+            style={{ 
+              ...commonStyle, 
+              maxHeight: isFullScreen ? "100vh" : "520px",
+              width: "100%",
+              height: isFullScreen ? "100%" : "auto",
+              ...fullscreenStyle
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        );
+
+      case "ppt":
+      case "pptx":
+        console.log("📌 PPT File URL:", fileUrl);
+        return (
+          <iframe
+            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
+            style={{
+              width: "100%",
+              height: isFullScreen ? "100vh" : "520px",
+              border: "none",
+              borderRadius: "12px",
+              ...commonStyle,
+              ...fullscreenStyle
+            }}
+          />
+        );
+
+      case "pdf":
+        console.log("📌 PDF File URL:", fileUrl);
+        return (
+          <div
+            ref={lessonContentRef}
+            style={{
+              height: isFullScreen ? "100vh" : "520px",
+              width: "100%",
+              overflowX: "auto",
+              overflowY: "auto",
+              position: "relative",
+              ...fullscreenStyle
+            }}
+          >
+            <div
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: "top left",
+                width: `${100 / zoom}%`,
+                height: "auto",
+                minWidth: "100%",
+              }}
+            >
+              <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+                <Viewer fileUrl={fileUrl} />
+              </Worker>
+            </div>
+          </div>
+        );
+
+      case "image":
+        console.log("📌 Image File URL:", fileUrl);
+        return (
+          <img
+            src={fileUrl}
+            alt={lesson.title}
+            style={{
+              width: "100%",
+              height: isFullScreen ? "100vh" : "520px",
+              objectFit: "contain",
+              borderRadius: "12px",
+              ...commonStyle,
+              ...fullscreenStyle
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+          />
+        );
+
+      case "doc":
+      case "docx":
+        console.log("📌 DOC File URL:", fileUrl);
+        return (
+          <iframe
+            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
+            style={{
+              width: "100%",
+              height: isFullScreen ? "100vh" : "520px",
+              border: "none",
+              borderRadius: "12px",
+              ...commonStyle,
+              ...fullscreenStyle
+            }}
+          />
+        );
+
+      default:
+        return <p>Select a lesson to start learning.</p>;
+    }
   };
 
-  switch (lesson.type) {
-    case "video":
-      console.log("📌 Video File URL:", fileUrl);
-      return (
-        <video
-          ref={videoRef}
-          src={fileUrl}
-          controls
-          controlsList="nodownload noremoteplayback"
-          onEnded={handleVideoEnded}
-          style={{ ...commonStyle, maxHeight: "520px" }}
-          onContextMenu={(e) => e.preventDefault()}
-        />
-      );
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
 
-    case "ppt":
-    case "pptx":
-      console.log("📌 PPT File URL:", fileUrl);
-      return (
-        <iframe
-          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
-          style={{
-            width: "100%",
-            height: "520px",
-            border: "none",
-            borderRadius: "12px",
-            ...commonStyle,
-          }}
-        ></iframe>
-      );
-
-    case "pdf":
-      console.log("📌 PDF File URL:", fileUrl);
-      return (
-        <div style={{ height: "520px", width: "100%", ...commonStyle }}>
-          <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
-            <Viewer fileUrl={fileUrl} />
-          </Worker>
-        </div>
-      );
-
-    case "image":
-      console.log("📌 Image File URL:", fileUrl);
-      return (
-        <img
-          src={fileUrl}
-          alt={lesson.title}
-          style={{
-            width: "100%",
-            height: "520px",
-            objectFit: "contain",
-            borderRadius: "12px",
-            ...commonStyle,
-          }}
-          onContextMenu={(e) => e.preventDefault()}
-        />
-      );
-
-    case "doc":
-    case "docx":
-      console.log("📌 DOC File URL:", fileUrl);
-      return (
-        <iframe
-          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
-          style={{
-            width: "100%",
-            height: "520px",
-            border: "none",
-            borderRadius: "12px",
-            ...commonStyle,
-          }}
-        ></iframe>
-      );
-
-    default:
-      return <p>Select a lesson to start learning.</p>;
-  }
-};
-
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   // Load user
   useEffect(() => {
@@ -608,15 +768,15 @@ const renderLessonContent = () => {
               {/* Zoom & Fullscreen Controls */}
               <div
                 style={{
-                  position: "absolute",
+                  position: isFullScreen ? "fixed" : "absolute",
                   top: "10px",
                   right: "10px",
                   display: "flex",
                   gap: "10px",
-                  backgroundColor: "rgba(0,0,0,0.5)",
-                  padding: "5px",
+                  backgroundColor: "rgba(0,0,0,0.7)",
+                  padding: "8px",
                   borderRadius: "8px",
-                  zIndex: 10,
+                  zIndex: 10000,
                 }}
               >
                 <IconButton onClick={zoomIn} sx={{ color: "#fff" }} size="small">
@@ -631,7 +791,7 @@ const renderLessonContent = () => {
               </div>
             </div>
 
-            {course && (
+            {course && !isFullScreen && (
               <div className="course-tabs-container">
                 <div className="tabs-header">
                   <div className={`tab-item ${activeTab === "overview" ? "active" : ""}`} onClick={() => setActiveTab("overview")}>
@@ -656,107 +816,111 @@ const renderLessonContent = () => {
             )}
           </div>
 
-          <div className="right-section">
-            <div className="user-progress-card">
-              <h3>Your Progress</h3>
-              <div className="progress-bar-container">
-                <div className="progress-bar-bg">
-                  <div className="progress-bar-fill" style={{ width: `${backendProgress}%` }}></div>
+          {!isFullScreen && (
+            <div className="right-section">
+              <div className="user-progress-card">
+                <h3>Your Progress</h3>
+                <div className="progress-bar-container">
+                  <div className="progress-bar-bg">
+                    <div className="progress-bar-fill" style={{ width: `${backendProgress}%` }}></div>
+                  </div>
+                  <span className="progress-text">{backendProgress}%</span>
                 </div>
-                <span className="progress-text">{backendProgress}%</span>
+              </div>
+
+              <div className="lessons-list">
+                <div className="course-name">{course?.course_name}</div>
+                {modules.map((mod) => {
+                  const modChaps = chapters[mod.module_id] || [];
+
+                  // per-module counts
+                  let totalMaterialsInModule = 0;
+                  let completedMaterialsInModule = 0;
+
+                  modChaps.forEach((chap) => {
+                    const materialLessons = lessons.filter(
+                      (l) => l.chapter_id === chap.chapter_id && l.countForProgress && l.type !== "quiz"
+                    );
+                    totalMaterialsInModule += materialLessons.length;
+                    completedMaterialsInModule += materialLessons.filter((l) => completed.has(l.key)).length;
+                  });
+
+                  return (
+                    <div key={mod.module_id} className="lesson-group">
+                      <div
+                        className="lesson-header"
+                        onClick={() =>
+                          setExpanded((prev) => ({
+                            ...prev,
+                            [`module${mod.module_id}`]: !prev[`module${mod.module_id}`],
+                          }))
+                        }
+                      >
+                        <span>{mod.module_name}</span>
+
+                        <span style={{ marginLeft: "auto", marginRight: "10px", fontSize: "13px", color: "#555" }}>
+                          ({completedMaterialsInModule}/{totalMaterialsInModule})
+                        </span>
+
+                        {expanded[`module${mod.module_id}`] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </div>
+
+                      {expanded[`module${mod.module_id}`] && (
+                        <div className="sub-lessons open">
+                          {modChaps.map((chap) => {
+                            const chapterLessons = lessons.filter((l) => l.chapter_id === chap.chapter_id);
+                            const materialLessons = chapterLessons.filter((l) => l.countForProgress && l.type !== "quiz");
+                            const totalMaterials = materialLessons.length;
+                            const completedMaterials = materialLessons.filter((l) => completed.has(l.key)).length;
+
+                            return (
+                              <div key={chap.chapter_id} className="chapter-block">
+                                {chapterLessons.map((lesson) => (
+                                  <div
+                                    key={lesson.key}
+                                    className={`sub-lesson ${completed.has(lesson.key) ? "completed" : ""} ${
+                                      !enabledLessons.has(lesson.key) ? "disabled" : ""
+                                    }`}
+                                    onClick={() => handleLessonClick(lesson.key, lesson.type)}
+                                  >
+                                    {lesson.countForProgress ? (
+                                      completed.has(lesson.key) ? (
+                                        <CheckCircle size={16} />
+                                      ) : (
+                                        <Circle size={16} />
+                                      )
+                                    ) : lesson.type === "ppt" ? (
+                                      <FileType size={16} color="#f59e0b" />
+                                    ) : lesson.type === "doc" ? (
+                                      <FileText size={16} color="#3b82f6" />
+                                    ) : lesson.type === "image" ? (
+                                      <ImageIcon size={16} color="#10b981" />
+                                    ) : null}
+                                    <span>{lesson.title}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-
-            <div className="lessons-list">
-              <div className="course-name">{course?.course_name}</div>
-              {modules.map((mod) => {
-                const modChaps = chapters[mod.module_id] || [];
-
-                // per-module counts
-                let totalMaterialsInModule = 0;
-                let completedMaterialsInModule = 0;
-
-                modChaps.forEach((chap) => {
-                  const materialLessons = lessons.filter(
-                    (l) => l.chapter_id === chap.chapter_id && l.countForProgress && l.type !== "quiz"
-                  );
-                  totalMaterialsInModule += materialLessons.length;
-                  completedMaterialsInModule += materialLessons.filter((l) => completed.has(l.key)).length;
-                });
-
-                return (
-                  <div key={mod.module_id} className="lesson-group">
-                    <div
-                      className="lesson-header"
-                      onClick={() =>
-                        setExpanded((prev) => ({
-                          ...prev,
-                          [`module${mod.module_id}`]: !prev[`module${mod.module_id}`],
-                        }))
-                      }
-                    >
-                      <span>{mod.module_name}</span>
-
-                      <span style={{ marginLeft: "auto", marginRight: "10px", fontSize: "13px", color: "#555" }}>
-                        ({completedMaterialsInModule}/{totalMaterialsInModule})
-                      </span>
-
-                      {expanded[`module${mod.module_id}`] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </div>
-
-                    {expanded[`module${mod.module_id}`] && (
-                      <div className="sub-lessons open">
-                        {modChaps.map((chap) => {
-                          const chapterLessons = lessons.filter((l) => l.chapter_id === chap.chapter_id);
-                          const materialLessons = chapterLessons.filter((l) => l.countForProgress && l.type !== "quiz");
-                          const totalMaterials = materialLessons.length;
-                          const completedMaterials = materialLessons.filter((l) => completed.has(l.key)).length;
-
-                          return (
-                            <div key={chap.chapter_id} className="chapter-block">
-                              {chapterLessons.map((lesson) => (
-                                <div
-                                  key={lesson.key}
-                                  className={`sub-lesson ${completed.has(lesson.key) ? "completed" : ""} ${!enabledLessons.has(lesson.key) ? "disabled" : ""}`}
-                                  onClick={() => handleLessonClick(lesson.key, lesson.type)}
-                                >
-                                  {lesson.countForProgress ? (
-                                    completed.has(lesson.key) ? (
-                                      <CheckCircle size={16} />
-                                    ) : (
-                                      <Circle size={16} />
-                                    )
-                                  ) : lesson.type === "ppt" ? (
-                                    <FileType size={16} color="#f59e0b" />
-                                  ) : lesson.type === "doc" ? (
-                                    <FileText size={16} color="#3b82f6" />
-                                  ) : lesson.type === "image" ? (
-                                    <ImageIcon size={16} color="#10b981" />
-                                  ) : null}
-                                  <span>{lesson.title}</span>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          )}
         </div>
 
-        {showCertificate && (
+        {/* {showCertificate && (
           <div className="popup-overlay">
             <div className="popup-content">
               <h2>🎉 Congratulations!</h2>
-              <p>You’ve completed all chapters successfully!</p>
+              <p>You've completed all chapters successfully!</p>
               <img src={certificateImg} alt="Certificate" style={{ width: "100%", borderRadius: "12px" }} />
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </>
   );
