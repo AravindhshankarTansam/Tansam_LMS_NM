@@ -1,12 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./mycourse.css";
 import Sidebar from "../Sidebar/sidebar";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
-
-import { useLocation } from "react-router-dom";
 import {
   CheckCircle,
   Circle,
@@ -14,12 +11,11 @@ import {
   ChevronUp,
   FileText,
   Image as ImageIcon,
-  FileType
+  FileType,
 } from "lucide-react";
 import { Worker, Viewer } from "@react-pdf-viewer/core";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import mammoth from "mammoth";
-
 import certificateImg from "../../../assets/certificate.jpeg";
 import {
   COURSE_API,
@@ -27,7 +23,6 @@ import {
   CHAPTER_API,
   QUIZ_API,
   PROGRESS_API,
-  AUTH_API,
 } from "../../../config/apiConfig";
 
 import IconButton from "@mui/material/IconButton";
@@ -36,11 +31,14 @@ import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const FILE_BASE = import.meta.env.VITE_UPLOADS_BASE;
 
 const MyCourse = () => {
   const navigate = useNavigate();
   const { courseId } = useParams();
+  const location = useLocation();
+
   const [course, setCourse] = useState(null);
   const [modules, setModules] = useState([]);
   const [chapters, setChapters] = useState({});
@@ -53,23 +51,19 @@ const MyCourse = () => {
   const [loading, setLoading] = useState(true);
   const [showCertificate, setShowCertificate] = useState(false);
   const videoRef = useRef(null);
-  const lessonContentRef = useRef(null); 
-  const lessonDisplayRef = useRef(null); 
-  const [pptSlides, setPptSlides] = useState([]);
+  const lessonContentRef = useRef(null);
+  const lessonDisplayRef = useRef(null);
+   const [pptSlides, setPptSlides] = useState([]);
   const [docHtml, setDocHtml] = useState("");
   const [customId, setCustomId] = useState("");
-  const location = useLocation();
+  const [backendProgress, setBackendProgress] = useState(0);
   const [activeTab, setActiveTab] = useState("overview");
+  const [nextQuizToastShown, setNextQuizToastShown] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [zoom, setZoom] = useState(1)
-  const [screenshotOverlay, setScreenshotOverlay] = useState(false);
+  const [zoom, setZoom] = useState(1);
 
-   /** Disable right-click */
-  useEffect(() => {
-    const handleContextMenu = (e) => e.preventDefault();
-    document.addEventListener("contextmenu", handleContextMenu);
-    return () => document.removeEventListener("contextmenu", handleContextMenu);
-  }, []);
+  /** Prevent duplicate progress calls */
+  const completedMaterialsRef = useRef(new Set());
 
   /** Full-screen toggle for lesson content only */
   const toggleFullScreen = () => {
@@ -85,8 +79,7 @@ const MyCourse = () => {
   /** Zoom in/out */
   const zoomIn = () => setZoom((prev) => Math.min(prev + 0.2, 3));
   const zoomOut = () => setZoom((prev) => Math.max(prev - 0.2, 0.5));
-   
-  
+
   const getFileUrl = (src) => {
     if (!src) return "";
 
@@ -102,7 +95,20 @@ const MyCourse = () => {
     return `${base}/${cleanSrc}`;
   };
 
-  /** Fetch course info */
+  const fetchCustomId = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (res.ok && data?.user?.profile?.custom_id) {
+        setCustomId(data.user.profile.custom_id);
+      }
+    } catch (err) {
+      console.error("Failed to fetch custom_id", err);
+    }
+  };
+
   const fetchCourse = async () => {
     try {
       const res = await fetch(`${COURSE_API}/${courseId}`, { credentials: "include" });
@@ -114,16 +120,14 @@ const MyCourse = () => {
       toast.error("Failed to load course info");
     }
   };
-
-  /** Fetch modules */
   const fetchModules = async () => {
     try {
       const res = await fetch(`${MODULE_API}/${courseId}`, { credentials: "include" });
       const data = await res.json();
-      setModules(data);
+      setModules(data || []);
 
       const expandedMap = {};
-      data.forEach((m) => {
+      (data || []).forEach((m) => {
         expandedMap[`module${m.module_id}`] = true;
         fetchChapters(m.module_id);
       });
@@ -133,14 +137,13 @@ const MyCourse = () => {
     }
   };
 
-  /** Fetch chapters */
   const fetchChapters = async (moduleId) => {
     try {
       const res = await fetch(`${CHAPTER_API}/${moduleId}`, { credentials: "include" });
       const data = await res.json();
-      const mappedData = data.map((chap) => ({
+      const mappedData = (data || []).map((chap) => ({
         ...chap,
-        materials_json: chap.materials || []
+        materials: chap.materials || [],
       }));
       setChapters((prev) => ({ ...prev, [moduleId]: mappedData }));
       mappedData.forEach((chap) => fetchQuizzes(chap.chapter_id));
@@ -149,287 +152,327 @@ const MyCourse = () => {
     }
   };
 
-  /** Fetch quizzes */
   const fetchQuizzes = async (chapterId) => {
     try {
       const res = await fetch(`${QUIZ_API}/${chapterId}`, { credentials: "include" });
       const data = await res.json();
-      setQuizzes((prev) => ({ ...prev, [chapterId]: data }));
+      setQuizzes((prev) => ({ ...prev, [chapterId]: data || [] }));
     } catch (err) {
       console.error(err);
     }
   };
 
-  const fetchCustomId = async () => {
-    try {
-      const resUser = await fetch(`${AUTH_API}/me`, {
-        credentials: "include"
-      });
-
-      const data = await resUser.json();   // ✅ FIXED
-
-      if (resUser.ok && data?.user?.profile?.custom_id) {
-        setCustomId(data.user.profile.custom_id);
-      }
-    } catch (err) {
-      console.error("Failed to fetch custom_id", err);
-    }
-  };
-
-  /** Fetch progress from server and set completed set */
-  /** Fetch progress from server and set completed set */
   const fetchProgress = async () => {
     if (!customId || lessons.length === 0) return;
 
     try {
-      const res = await fetch(`${PROGRESS_API}/${customId}`, {
-        credentials: "include",
-      });
+      const res = await fetch(`${PROGRESS_API}/${customId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Progress fetch returned not ok");
+
       const data = await res.json();
-
-      // Find progress for this specific course
-      const courseProgressEntry = Array.isArray(data)
+      const entry = Array.isArray(data)
         ? data.find((p) => p.course_id === Number(courseId))
-        : null;
-      const courseProgress = courseProgressEntry?.progress_percent || 0;
+        : data;
 
-      // Filter lessons that count toward progress (non-quiz and quiz)
-      const progressLessons = lessons.filter((l) => l.countForProgress);
-      const total = progressLessons.length;
+      if (!entry) {
+        setBackendProgress(0);
+        setCompleted(new Set());
+        setEnabledLessons(new Set(lessons[0] ? [lessons[0].key] : []));
+        return;
+      }
 
-      // Calculate completed count using Math.round for better accuracy
-      const completedCount = Math.round((courseProgress / 100) * total);
+      setBackendProgress(Number(entry.progressPercent || 0));
 
-      // Mark the first completedCount as completed (sequential assumption)
       const completedSet = new Set();
-      for (let i = 0; i < Math.min(completedCount, total); i++) {
-        completedSet.add(progressLessons[i].key);
-      }
-      setCompleted(completedSet);
-
-      // Enable up to the next lesson (or all if complete)
-      const enableCount = completedCount < total ? completedCount + 1 : total;
       const enabledSet = new Set();
-      for (let i = 0; i < enableCount; i++) {
-        enabledSet.add(progressLessons[i].key);
+      const countable = lessons.filter((l) => l.countForProgress);
+      const completedCount = Number(entry.completedItems || 0);
+
+      countable.forEach((lesson, i) => {
+        if (i < completedCount) completedSet.add(lesson.key);
+        if (i <= completedCount) enabledSet.add(lesson.key);
+      });
+
+      if (completedCount === 0 && countable[0]) {
+        enabledSet.add(countable[0].key);
       }
+
+      setCompleted(completedSet);
       setEnabledLessons(enabledSet);
+
+      if (Number(entry.progressPercent) === 100) {
+        setShowCertificate(true);
+      }
     } catch (err) {
-      console.error("Failed to fetch progress", err);
-      toast.error("Failed to fetch progress");
+      console.error("Progress fetch failed:", err);
     }
   };
 
-  /** Build lessons list */
   const buildLessons = () => {
-  const list = [];
-  modules.forEach((mod) => {
-    const modChaps = chapters[mod.module_id] || [];
-    modChaps.forEach((chap) => {
-      chap.materials_json.forEach((mat, idx) => {
-        list.push({
-          key: `${chap.chapter_id}_mat${idx}`,
-          title: `${mat.material_type?.toUpperCase() || ""}: ${chap.chapter_name}`,
-          type: mat.material_type,
-          src: mat.file_path,
-          module_id: mod.module_id,
-          chapter_id: chap.chapter_id,
-          countForProgress: ["video", "pdf", "ppt", "doc", "image"].includes(mat.material_type)
+    const list = [];
+
+    modules.forEach((mod) => {
+      const modChaps = chapters[mod.module_id] || [];
+
+      modChaps.forEach((chap) => {
+        if (!chap || !chap.chapter_id) return;
+
+        // Materials
+        (chap.materials || []).forEach((mat) => {
+          if (!mat || !mat.material_id) return;
+
+          list.push({
+            key: `${chap.chapter_id}_mat${mat.material_id}`,
+            material_id: mat.material_id,
+            title: chap.chapter_name,
+            type: mat.material_type,
+            src: mat.file_path,
+            module_id: mod.module_id,
+            chapter_id: chap.chapter_id,
+            countForProgress: ["video", "pdf", "ppt", "doc", "image"].includes(mat.material_type),
+          });
         });
+
+        // Quiz
+        if ((quizzes[chap.chapter_id] || []).length > 0) {
+          list.push({
+            key: `${chap.chapter_id}_quiz`,
+            title: "Quiz",
+            type: "quiz",
+            module_id: mod.module_id,
+            chapter_id: chap.chapter_id,
+            material_id: null,
+            countForProgress: true,
+          });
+        }
+      });
+    });
+
+    setLessons(list);
+    if (list.length > 0 && enabledLessons.size === 0) {
+      setEnabledLessons(new Set([list[0].key]));
+    }
+  };
+
+  // MARK LESSON COMPLETE - receives full lesson object
+  const markLessonComplete = async (lesson, extra = {}) => {
+    if (!lesson || !customId) return;
+    if (completed.has(lesson.key)) return;
+
+    const uniqueKey = `${lesson.chapter_id}-${lesson.module_id}-${lesson.material_id ?? "quiz"}`;
+
+    if (completedMaterialsRef.current.has(uniqueKey)) {
+      console.log("Already marking as complete (in-flight):", uniqueKey);
+      return;
+    }
+
+    completedMaterialsRef.current.add(uniqueKey);
+
+    // Optimistically update UI: mark completed + enable next lesson
+    setCompleted((prev) => {
+      if (prev.has(lesson.key)) return prev;
+      const next = new Set(prev);
+      next.add(lesson.key);
+      return next;
+    });
+
+    // enable next lesson in sequence
+    const idx = lessons.findIndex((l) => l.key === lesson.key);
+    if (idx !== -1 && lessons[idx + 1]) {
+      setEnabledLessons((prev) => {
+        const n = new Set(prev);
+        n.add(lessons[idx + 1].key);
+        return n;
+      });
+    }
+
+    // Prepare body in backend format you provided
+    const body = {
+      course_id: Number(courseId),
+      module_id: lesson.module_id ?? null,
+      chapter_id: lesson.chapter_id ?? null,
+      material_id: lesson.material_id ?? null,
+      is_quiz: lesson.type === "quiz",
+      quiz_passed: extra.quiz_passed || false,
+    };
+
+    try {
+      const response = await fetch(`${PROGRESS_API}/${customId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
 
-      const chapQuizzes = quizzes[chap.chapter_id] || [];
-      if (chapQuizzes.length) {
-        list.push({
-          key: `${chap.chapter_id}_quiz`,
-          title: "Quiz",
-          type: "quiz",
-          module_id: mod.module_id,
-          chapter_id: chap.chapter_id,
-          countForProgress: true
-        });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errText}`);
       }
-    });
-  });
 
-  // Set lessons list
-  setLessons(list);
+      // sync backend progress after successful write
+      await fetchProgress();
+      completedMaterialsRef.current.delete(uniqueKey);
+      console.log("Progress saved:", uniqueKey);
+    } catch (err) {
+      console.error("Failed to save progress:", err);
 
-  // ✅ AUTO OPEN FIRST LESSON (ONLY IF NOT OPENED YET)
-  if (list.length > 0 && !activeLesson) {
-    setActiveLesson(list[0].key);
-  }
+      // rollback optimistic UI so user can retry
+      setCompleted((prev) => {
+        const n = new Set(prev);
+        n.delete(lesson.key);
+        return n;
+      });
 
-  // Enable first lesson if nothing enabled yet
-  if (list.length > 0) {
-    setEnabledLessons((prev) => {
-      if (prev && prev.size > 0) return prev;
-      return new Set([list[0].key]);
-    });
-  }
-};
+      // optionally remove the enabled next lesson if it was only enabled by this action
+      const idx2 = lessons.findIndex((l) => l.key === lesson.key);
+      if (idx2 !== -1 && lessons[idx2 + 1]) {
+        // leave enabled as-is - it's safer to keep enabling than to remove
+      }
 
+      completedMaterialsRef.current.delete(uniqueKey);
+      toast.error("Failed to save progress. Try again.");
+    }
+  };
 
-  /** Mark lesson complete (fixed: compute newCompleted before using it) */
-  const markLessonComplete = async (lessonKey) => {
-  const lesson = lessons.find((l) => l.key === lessonKey);
-  if (!lesson) return;
-  if (!customId) return;
+  // Auto-mark non-video lessons after a timeout
+  useEffect(() => {
+    const lesson = lessons.find((l) => l.key === activeLesson);
+    if (!lesson) return;
 
-  const newCompleted = new Set(completed);
-  newCompleted.add(lessonKey);
-  setCompleted(newCompleted);
+    if (["pdf", "doc", "ppt", "image"].includes(lesson.type)) {
+      if (completed.has(lesson.key)) return;
 
-  const idx = lessons.findIndex((l) => l.key === lessonKey);
+      const timer = setTimeout(() => {
+        // double-check still active and not completed
+        const stillActive = activeLesson === lesson.key && !completed.has(lesson.key);
+        if (stillActive) {
+          markLessonComplete(lesson);
+        }
+      }, 60000); // 60s viewing threshold
 
-  // ENABLE + AUTO OPEN NEXT LESSON
-  if (idx + 1 < lessons.length) {
-      const nextKey = lessons[idx + 1].key;
-      setEnabledLessons((prev) => new Set([...prev, nextKey]));
-      setActiveLesson(nextKey);   // 🔥 THIS OPENS NEXT LESSON AUTOMATICALLY
-  }
+      return () => clearTimeout(timer);
+    }
+  }, [activeLesson, lessons, completed]);
 
-  const progressLessons = lessons.filter((l) => l.countForProgress);
-  const completedCount = Array.from(newCompleted).filter((c) =>
-    progressLessons.some((l) => l.key === c)
-  ).length;
-
-  const progressPercent = progressLessons.length
-    ? Math.round((completedCount / progressLessons.length) * 100)
-    : 0;
-
-  try {
-    await fetch(`${PROGRESS_API}/${customId}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        custom_id: customId,
-        course_id: courseId,
-        module_id: lesson.module_id,
-        chapter_id: lesson.chapter_id,
-        progress_percent: progressPercent,
-      }),
-    });
-  } catch (err) {
-    console.error("Failed to update progress", err);
-  }
-};
-
-  /** Handle lesson click */
   const handleLessonClick = (lessonKey, type) => {
-    if (!enabledLessons.has(lessonKey)) return;
+    if (!enabledLessons.has(lessonKey)) {
+      toast.error("This lesson is locked. Complete previous lessons first.");
+      return;
+    }
 
     const lesson = lessons.find((l) => l.key === lessonKey);
     if (!lesson) return;
 
     if (type === "quiz") {
-      // navigate to quiz — pass courseId and chapterId
-      navigate(`/quiz/${lesson.chapter_id}`, { state: { courseId, chapterId: lesson.chapter_id } });
+      // ensure required materials in this chapter are completed
+      const chapterMaterials = lessons.filter(
+        (l) => l.chapter_id === lesson.chapter_id && l.type !== "quiz" && l.countForProgress
+      );
+      const allDone = chapterMaterials.every((m) => completed.has(m.key));
+
+      if (!allDone) {
+        toast.error("Please complete all lessons in this chapter first!");
+        return;
+      }
+
+      // navigate to quiz page (the quiz page will handle marking quiz result)
+      navigate(`/quiz/${lesson.chapter_id}`, {
+        state: { courseId, chapterId: lesson.chapter_id },
+        replace: true,
+      });
       return;
     }
 
+    // set active lesson key
     setActiveLesson(lessonKey);
   };
 
-  /** Load all data */
+  // Quiz result handler (from location.state)
   useEffect(() => {
-    fetchCustomId();
-  }, []);
+    if (lessons.length === 0 || !location.state) return;
 
-  useEffect(() => {
-    if (!customId) return; // wait until custom ID is ready
+    let hasChanged = false;
 
-    const loadData = async () => {
-      setLoading(true);
-      await fetchCourse();
-      await fetchModules();
-      // fetchProgress will be called after lessons built (see next effect)
-      setLoading(false);
+    const processQuizResult = async () => {
+      if (location.state?.failedQuiz) {
+        const failedChapterId = Number(location.state.failedQuiz);
+        const failedLesson = lessons.find((l) => l.chapter_id === failedChapterId);
+        if (failedLesson) {
+          await resetModule(failedLesson.module_id);
+          hasChanged = true;
+        }
+      }
+
+      if (location.state?.chapterUnlocked) {
+        const unlockedChapterId = Number(location.state.chapterUnlocked);
+        const quizKey = `${unlockedChapterId}_quiz`;
+
+        setCompleted((prev) => {
+          if (!prev.has(quizKey)) {
+            hasChanged = true;
+            const n = new Set(prev);
+            n.add(quizKey);
+            return n;
+          }
+          return prev;
+        });
+
+        const quizIndex = lessons.findIndex((l) => l.key === quizKey);
+        if (quizIndex !== -1 && lessons[quizIndex + 1]) {
+          setEnabledLessons((prev) => new Set(prev).add(lessons[quizIndex + 1].key));
+        }
+
+        if (!nextQuizToastShown) {
+          toast.success("Next Chapter unlocked!");
+          setNextQuizToastShown(true);
+        }
+      }
+
+      window.history.replaceState({}, "");
+      if (hasChanged) setTimeout(fetchProgress, 300);
     };
 
-    loadData();
-  }, [customId, courseId]);
-
-  // when modules/chapters/quizzes change -> build lessons
-  useEffect(() => {
-    if (modules.length > 0 && Object.keys(chapters).length > 0) {
-      buildLessons();
-    }
+    processQuizResult();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modules, chapters, quizzes]);
+  }, [location.state, lessons]);
 
-  // AFTER lessons are built and customId available, fetch progress from server
-  useEffect(() => {
-    if (customId && lessons.length > 0) {
-      fetchProgress();
+  // Reset module on quiz fail (keeps server sync logic)
+  const resetModule = async (moduleId) => {
+    toast.info("Quiz failed! Module has been reset. Starting fresh...");
+    try {
+      const res = await fetch(`${PROGRESS_API}/reset-module/${customId}`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          course_id: Number(courseId),
+          module_id: moduleId,
+        }),
+      });
+
+      if (!res.ok) throw new Error();
+      await fetchProgress();
+    } catch (err) {
+      console.error("Reset failed:", err);
+      toast.error("Server sync failed. Refreshing...");
+      await fetchProgress();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customId, lessons]);
+  };
 
-  /** Load PPT/DocX/PDF content */
-  useEffect(() => {
+  // video ended handler should pass the full lesson object
+  const handleVideoEnded = () => {
     const lesson = lessons.find((l) => l.key === activeLesson);
-    if (!lesson) return;
+    if (lesson) markLessonComplete(lesson);
+  };
 
-    const fileUrl = getFileUrl(lesson.src);
-    const fileExt = lesson.src?.split(".").pop().toLowerCase();
-
-    if (lesson.type === "ppt" && fileExt === "pptx") {
-      setPptSlides([`Preview of ${lesson.title}`]);
-      setTimeout(() => markLessonComplete(activeLesson), 5000);
-    }
-
-    if (lesson.type === "doc" && fileExt === "docx") {
-      const loadDoc = async () => {
-        try {
-          const response = await fetch(fileUrl);
-          const arrayBuffer = await response.arrayBuffer();
-          const result = await mammoth.extractRawText({ arrayBuffer });
-          setDocHtml(result.value);
-          setTimeout(() => markLessonComplete(activeLesson), 5000);
-        } catch (err) {
-          console.error("Failed to load DOC:", err);
-        }
-      };
-      loadDoc();
-    }
-
-    if (lesson.type === "pdf" && fileExt === "pdf") {
-      setTimeout(() => markLessonComplete(activeLesson), 5000);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeLesson, lessons]);
-
-  /** Auto mark quiz complete if redirected from quiz page
-   *  Accept both patterns:
-   *   - { fromQuizSubmit: true, chapterId: ... }
-   *   - { chapterUnlocked: ... } (used by your Quiz.jsx)
-   */
-  useEffect(() => {
-    const fromQuizSubmit = location.state?.fromQuizSubmit;
-    const chapterIdFromState = location.state?.chapterId || location.state?.chapterUnlocked;
-
-    if (!chapterIdFromState) return;
-    if (lessons.length === 0) return; // wait until lessons exist
-
-    const quizLesson = lessons.find(
-      (l) => l.type === "quiz" && l.chapter_id === Number(chapterIdFromState)
-    );
-
-    if (quizLesson && !completed.has(quizLesson.key)) {
-      markLessonComplete(quizLesson.key);
-    }
-    // optional: clear history state so repeated mount doesn't re-trigger
-    // window.history.replaceState({}, document.title);
-  }, [location.state, lessons, completed, customId]);
-
-  /** Render lesson content */
- const renderLessonContent = () => {
+// 2025-12-02
+const renderLessonContent = () => {
   const lesson = lessons.find((l) => l.key === activeLesson);
   if (!lesson) return <p>Select a lesson to start learning.</p>;
 
-  const fileUrl = getFileUrl(lesson.src);
+  // Normalize path and remove extra 'uploads'
+  let cleanPath = lesson.src.replace(/\\/g, "/").replace(/^(\/?uploads\/)+/, "");
+  const fileUrl = `${FILE_BASE.replace(/\/$/, "")}/${cleanPath}`;
 
   // Common style for zoom and smooth transform
   const commonStyle = {
@@ -442,60 +485,37 @@ const MyCourse = () => {
 
   switch (lesson.type) {
     case "video":
+      console.log("📌 Video File URL:", fileUrl);
       return (
         <video
           ref={videoRef}
           src={fileUrl}
           controls
           controlsList="nodownload noremoteplayback"
-          onEnded={() => markLessonComplete(activeLesson)}
+          onEnded={handleVideoEnded}
           style={{ ...commonStyle, maxHeight: "520px" }}
           onContextMenu={(e) => e.preventDefault()}
         />
       );
 
     case "ppt":
+    case "pptx":
+      console.log("📌 PPT File URL:", fileUrl);
       return (
-        <div style={{ padding: "20px", ...commonStyle }}>
-          {pptSlides.map((slide, idx) => (
-            <div
-              key={idx}
-              style={{
-                height: "480px",
-                width: "100%",
-                marginBottom: "10px",
-                backgroundColor: "#f3f3f3",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "12px",
-                fontSize: "20px",
-              }}
-            >
-              {slide}
-            </div>
-          ))}
-        </div>
-      );
-
-    case "doc":
-      return (
-        <div
+        <iframe
+          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
           style={{
+            width: "100%",
             height: "520px",
-            overflowY: "auto",
-            padding: "15px",
-            border: "1px solid #ccc",
+            border: "none",
             borderRadius: "12px",
-            backgroundColor: "#f9f9f9",
             ...commonStyle,
           }}
-        >
-          {docHtml || "Loading document..."}
-        </div>
+        ></iframe>
       );
 
     case "pdf":
+      console.log("📌 PDF File URL:", fileUrl);
       return (
         <div style={{ height: "520px", width: "100%", ...commonStyle }}>
           <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
@@ -505,6 +525,7 @@ const MyCourse = () => {
       );
 
     case "image":
+      console.log("📌 Image File URL:", fileUrl);
       return (
         <img
           src={fileUrl}
@@ -516,7 +537,24 @@ const MyCourse = () => {
             borderRadius: "12px",
             ...commonStyle,
           }}
+          onContextMenu={(e) => e.preventDefault()}
         />
+      );
+
+    case "doc":
+    case "docx":
+      console.log("📌 DOC File URL:", fileUrl);
+      return (
+        <iframe
+          src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`}
+          style={{
+            width: "100%",
+            height: "520px",
+            border: "none",
+            borderRadius: "12px",
+            ...commonStyle,
+          }}
+        ></iframe>
       );
 
     default:
@@ -524,14 +562,37 @@ const MyCourse = () => {
   }
 };
 
-  // Calculate progress percent
-const progressLessons = lessons.filter(l => l.countForProgress && l.type !== "quiz");
-const completedCount = Array.from(completed).filter(c =>
-  progressLessons.some(l => l.key === c)
-).length;
-const progressPercent = progressLessons.length > 0
-  ? Math.round((completedCount / progressLessons.length) * 100)
-  : 0;
+
+  // Load user
+  useEffect(() => {
+    fetchCustomId();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load course data
+  useEffect(() => {
+    if (customId && courseId) {
+      setLoading(true);
+      Promise.all([fetchCourse(), fetchModules()]).finally(() => setLoading(false));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customId, courseId]);
+
+  // Build lessons
+  useEffect(() => {
+    if (modules.length > 0 && Object.keys(chapters).length > 0 && Object.keys(quizzes).length > 0) {
+      buildLessons();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modules, chapters, quizzes]);
+
+  // Fetch progress when lessons are ready
+  useEffect(() => {
+    if (customId && lessons.length > 0) fetchProgress();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customId, lessons]);
+
+  if (loading) return <p>Loading course...</p>;
 
   return (
     <>
@@ -545,67 +606,54 @@ const progressPercent = progressLessons.length > 0
               {renderLessonContent()}
 
               {/* Zoom & Fullscreen Controls */}
-              <div style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
-                display: "flex",
-                gap: "10px",
-                backgroundColor: "rgba(0,0,0,0.5)",
-                padding: "5px",
-                borderRadius: "8px",
-                zIndex: 10,
-              }}>
-                <IconButton onClick={zoomIn} sx={{ color: "#fff" }} size="small"><ZoomInIcon /></IconButton>
-                <IconButton onClick={zoomOut} sx={{ color: "#fff" }} size="small"><ZoomOutIcon /></IconButton>
+              <div
+                style={{
+                  position: "absolute",
+                  top: "10px",
+                  right: "10px",
+                  display: "flex",
+                  gap: "10px",
+                  backgroundColor: "rgba(0,0,0,0.5)",
+                  padding: "5px",
+                  borderRadius: "8px",
+                  zIndex: 10,
+                }}
+              >
+                <IconButton onClick={zoomIn} sx={{ color: "#fff" }} size="small">
+                  <ZoomInIcon />
+                </IconButton>
+                <IconButton onClick={zoomOut} sx={{ color: "#fff" }} size="small">
+                  <ZoomOutIcon />
+                </IconButton>
                 <IconButton onClick={toggleFullScreen} sx={{ color: "#fff" }} size="small">
                   {isFullScreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                 </IconButton>
               </div>
             </div>
 
-            {/* ---- Add this OVERVIEW BLOCK below the video player ---- */}
-            {/* ---- Udemy-like OVERVIEW SECTION ---- */}
-            {/* ---- TAB NAVIGATION OVERVIEW + DESCRIPTION ---- */}
             {course && (
               <div className="course-tabs-container">
-                {/* TAB HEADERS */}
                 <div className="tabs-header">
-                  <div
-                    className={`tab-item ${activeTab === "overview" ? "active" : ""}`}
-                    onClick={() => setActiveTab("overview")}
-                  >
+                  <div className={`tab-item ${activeTab === "overview" ? "active" : ""}`} onClick={() => setActiveTab("overview")}>
                     Course Overview
                   </div>
 
-                  <div
-                    className={`tab-item ${activeTab === "description" ? "active" : ""}`}
-                    onClick={() => setActiveTab("description")}
-                  >
+                  <div className={`tab-item ${activeTab === "description" ? "active" : ""}`} onClick={() => setActiveTab("description")}>
                     Description
                   </div>
                 </div>
 
-                {/* DIVIDER LINE */}
                 <div className="tabs-divider"></div>
 
-                {/* CONTENT */}
                 <div className="tabs-content">
                   <div key={activeTab} className="tab-animation">
-                    {activeTab === "overview" && (
-                      <p>{course.overview || "No overview available."}</p>
-                    )}
+                    {activeTab === "overview" && <p>{course.overview || "No overview available."}</p>}
 
-                    {activeTab === "description" && (
-                      <p>{course.description || "No description available."}</p>
-                    )}
+                    {activeTab === "description" && <p>{course.description || "No description available."}</p>}
                   </div>
                 </div>
-
               </div>
             )}
-
-
           </div>
 
           <div className="right-section">
@@ -613,13 +661,11 @@ const progressPercent = progressLessons.length > 0
               <h3>Your Progress</h3>
               <div className="progress-bar-container">
                 <div className="progress-bar-bg">
-                  <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }}></div>
+                  <div className="progress-bar-fill" style={{ width: `${backendProgress}%` }}></div>
                 </div>
-                <span className="progress-text">{progressPercent}%</span>
+                <span className="progress-text">{backendProgress}%</span>
               </div>
             </div>
-
-
 
             <div className="lessons-list">
               <div className="course-name">{course?.course_name}</div>

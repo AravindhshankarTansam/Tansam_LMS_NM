@@ -98,7 +98,7 @@ export default function CoursePlayer() {
                   value={search}
                   onChange={(e) => handleSearch(e.target.value)}
                 />
-                <select
+                {/* <select
                   className="cp-filter-dropdown"
                   value={category}
                   onChange={(e) => handleCategory(e.target.value)}
@@ -108,7 +108,7 @@ export default function CoursePlayer() {
                   <option value="computer science">Computer Science</option>
                   <option value="iot">IoT</option>
                   <option value="ai">AI</option>
-                </select>
+                </select> */}
               </div>
             </div>
 

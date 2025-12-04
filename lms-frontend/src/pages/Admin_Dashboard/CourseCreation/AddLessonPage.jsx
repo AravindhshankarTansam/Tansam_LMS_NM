@@ -71,20 +71,22 @@ export default function AddLessonPage() {
       )
       .catch(console.error);
 
-    fetch(`${CHAPTER_API}/${chapterId}/quizzes`, { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => {
-        const prefilled = (data.quizzes || []).map((q) => ({
+     // Fetch quizzes
+  fetch(`${QUIZ_API}/${chapterId}`, { credentials: "include" })
+    .then(res => res.json())
+    .then(data =>
+      setQuizzes(
+        (data || []).map(q => ({
           id: q.quiz_id,
           quiz_type: q.question_type === "mcq" ? "multiple_choice" : q.question_type,
           question: q.question,
           options: [q.option_a, q.option_b, q.option_c, q.option_d].filter(Boolean),
-          correct_answers: [q.correct_answer].filter(Boolean),
-        }));
-        setQuizzes(prefilled);
-      })
-      .catch(console.error);
-  }, [chapterId]);
+          correct_answers: [q.correct_answer]
+        }))
+      )
+    )
+    .catch(console.error);
+}, [chapterId]);
 
   // ===========================
   // Material handlers
@@ -141,59 +143,90 @@ export default function AddLessonPage() {
   // ===========================
   // Save chapter & quizzes
   // ===========================
-  const handleSaveChapter = async () => {
-    if (!chapterName) return alert("⚠️ Enter a chapter name first.");
-    if (!moduleId) return alert("❌ Module ID missing in URL.");
+ const handleSaveChapter = async () => {
+  if (!chapterName) return alert("⚠️ Enter a chapter name first.");
+  if (!moduleId) return alert("❌ Module ID missing in URL.");
 
-    try {
-      const formData = new FormData();
-      formData.append("module_id", moduleId);
-      formData.append("chapter_name", chapterName);
+  try {
+    const formData = new FormData();
+    formData.append("module_id", moduleId);
+    formData.append("chapter_name", chapterName);
 
-      materials.forEach((m) => {
-        if (m.file) {
-          formData.append("materials", m.file);
-          formData.append("material_types", m.material_type);
-        } else if (m.file_name) {
-          formData.append("existing_materials", JSON.stringify(m));
-        }
-      });
+    // 1️⃣ Prepare arrays for file IDs and types
+    const materialIds = [];
+    const materialTypes = [];
 
-      const url = chapterId ? `${CHAPTER_API}/${chapterId}` : CHAPTER_API;
-      const method = chapterId ? "PUT" : "POST";
-
-      const chapterRes = await fetch(url, { method, body: formData, credentials: "include" });
-      if (!chapterRes.ok) throw new Error(await chapterRes.text());
-      const chapterData = await chapterRes.json();
-      const savedChapterId = chapterData.chapter_id || chapterData.id || chapterId;
-
-      for (const quiz of quizzes) {
-        const quizPayload = {
-          chapter_id: savedChapterId,
-          quiz_type: quiz.quiz_type,
-          question: quiz.question,
-          options: quiz.options,
-          correct_answers: quiz.correct_answers,
-        };
-        const quizUrl = quiz.id && chapterId ? `${QUIZ_API}/${quiz.id}` : QUIZ_API;
-        const quizMethod = quiz.id && chapterId ? "PUT" : "POST";
-
-        const quizRes = await fetch(quizUrl, {
-          method: quizMethod,
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(quizPayload),
-        });
-        if (!quizRes.ok) console.error("❌ Quiz save failed:", await quizRes.text());
+    // 2️⃣ Append files & corresponding IDs and types
+    materials.forEach((m) => {
+      if (m.file) {
+        formData.append("materials", m.file);
+        formData.append("material_ids", m.id); // send ID of material
+        formData.append("material_types", m.material_type);
       }
+    });
 
-      alert(`✅ Chapter & quizzes ${chapterId ? "updated" : "created"} successfully!`);
-      navigate(-1);
-    } catch (err) {
-      console.error("❌ Error saving chapter:", err);
-      alert(`Error: ${err.message}`);
-    }
+    // 3️⃣ Append existing materials without new files
+    const existingMaterialsData = materials
+      .filter(m => m.id && !m.file) // only materials not being replaced
+      .map(m => ({ id: m.id, material_type: m.material_type }));
+
+    formData.append("existing_materials", JSON.stringify(existingMaterialsData));
+
+    // 4️⃣ Call backend
+    const url = chapterId ? `${CHAPTER_API}/${chapterId}` : CHAPTER_API;
+    const method = chapterId ? "PUT" : "POST";
+
+    const chapterRes = await fetch(url, {
+      method,
+      body: formData,
+      credentials: "include",
+    });
+
+    if (!chapterRes.ok) throw new Error(await chapterRes.text());
+    const chapterData = await chapterRes.json();
+    const savedChapterId = chapterData.chapter_id || chapterData.id || chapterId;
+
+    // Save quizzes (same as before)
+   // Save quizzes
+for (const quiz of quizzes) {
+
+  // Detect server quiz IDs → real DB IDs are 1–2 digits normally
+  const isRealQuizId = quiz.id && String(quiz.id).length <= 2;
+
+  // Decide method
+  const quizMethod = isRealQuizId ? "PUT" : "POST";
+
+  // Decide endpoint
+  const quizUrl = isRealQuizId ? `${QUIZ_API}/${quiz.id}` : QUIZ_API;
+
+  const quizPayload = {
+    chapter_id: savedChapterId,
+    quiz_type: quiz.quiz_type,
+    question: quiz.question,
+    options: quiz.options,
+    correct_answers: quiz.correct_answers,
   };
+
+  const quizRes = await fetch(quizUrl, {
+    method: quizMethod,
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(quizPayload),
+  });
+
+  if (!quizRes.ok) {
+    console.error("❌ Quiz save failed:", await quizRes.text());
+  }
+}
+
+
+    alert(`✅ Chapter & quizzes ${chapterId ? "updated" : "created"} successfully!`);
+    navigate(-1);
+  } catch (err) {
+    console.error("❌ Error saving chapter:", err);
+    alert(`Error: ${err.message}`);
+  }
+};
 
   // ===========================
   // Render file preview

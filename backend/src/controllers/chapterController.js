@@ -84,47 +84,80 @@ export const getChaptersByModule = async (req, res) => {
 export const updateChapter = async (req, res) => {
   const db = await connectDB();
   const { chapter_id } = req.params;
-  const { chapter_name, order_index } = req.body;
-  const files = req.files;
+  const { chapter_name, order_index, existing_materials, material_ids, material_types } = req.body;
+  const files = req.files; // uploaded files
+
+  if (!chapter_id) return res.status(400).json({ message: "❌ chapter_id is required" });
 
   try {
-    // 1️⃣ Update chapter name and order
+    // 1️⃣ Update chapter name & order_index
     await db.query(
-      `UPDATE chapters SET chapter_name=?, order_index=? WHERE chapter_id=?`,
-      [chapter_name, order_index || 0, chapter_id]
+      `UPDATE chapters SET chapter_name = ?, order_index = ? WHERE chapter_id = ?`,
+      [chapter_name || "", order_index || 0, chapter_id]
     );
 
-    // 2️⃣ If new files are uploaded, delete old materials
-    if (files && files.length > 0) {
-      // Fetch existing materials
-      const [existingMaterials] = await db.query(
-        `SELECT file_path FROM chapter_materials WHERE chapter_id=?`,
-        [chapter_id]
-      );
-
-      // Delete files from disk
-      for (const m of existingMaterials) {
-        if (fs.existsSync(m.file_path)) fs.unlinkSync(m.file_path);
-      }
-
-      // Delete materials from DB
-      await db.query(`DELETE FROM chapter_materials WHERE chapter_id=?`, [chapter_id]);
-
-      // 3️⃣ Insert new materials
-      for (const file of files) {
-        const material_type = detectMaterialType(file.originalname);
-        const file_size_kb = (file.size / 1024).toFixed(2);
-
-        await db.query(
-          `INSERT INTO chapter_materials 
-           (chapter_id, material_type, file_name, file_path, file_size_kb)
-           VALUES (?, ?, ?, ?, ?)`,
-          [chapter_id, material_type, file.originalname, file.path, file_size_kb]
-        );
+    // 2️⃣ Parse existing materials array
+    let existingMaterialsArr = [];
+    if (existing_materials) {
+      try {
+        existingMaterialsArr = Array.isArray(existing_materials)
+          ? existing_materials
+          : JSON.parse(existing_materials);
+      } catch (err) {
+        console.error("❌ Failed to parse existing_materials", err);
+        existingMaterialsArr = [];
       }
     }
 
-    res.json({ message: "📝 Chapter updated successfully" });
+    // 3️⃣ Fetch all current materials from DB
+    const [currentMaterials] = await db.query(
+      `SELECT * FROM chapter_materials WHERE chapter_id = ? ORDER BY material_id ASC`,
+      [chapter_id]
+    );
+
+    // 4️⃣ Update existing materials without new files
+    for (let m of existingMaterialsArr) {
+      await db.query(
+        `UPDATE chapter_materials SET material_type = ? WHERE material_id = ?`,
+        [m.material_type, m.id]
+      );
+    }
+
+    // 5️⃣ Update existing materials that have new files
+ if (files && files.length > 0) {
+  const fileIds = Array.isArray(material_ids) ? material_ids : [material_ids];
+  const fileTypes = Array.isArray(material_types) ? material_types : [material_types];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const id = fileIds[i];  // this could be a frontend-generated ID
+    const material_type = fileTypes[i];
+
+    const existsInDB = currentMaterials.some(m => m.material_id == id);
+
+    const file_size_kb = (file.size / 1024).toFixed(2);
+
+    if (existsInDB) {
+      // UPDATE existing material
+      const oldMaterial = currentMaterials.find(mat => mat.material_id == id);
+      if (oldMaterial && fs.existsSync(oldMaterial.file_path)) fs.unlinkSync(oldMaterial.file_path);
+
+      await db.query(
+        `UPDATE chapter_materials SET material_type=?, file_name=?, file_path=?, file_size_kb=? WHERE material_id=?`,
+        [material_type, file.originalname, file.path, file_size_kb, id]
+      );
+    } else {
+      // INSERT new material
+      await db.query(
+        `INSERT INTO chapter_materials (chapter_id, material_type, file_name, file_path, file_size_kb)
+         VALUES (?, ?, ?, ?, ?)`,
+        [chapter_id, material_type, file.originalname, file.path, file_size_kb]
+      );
+    }
+  }
+}
+
+    res.json({ message: "✅ Chapter & materials updated successfully", chapter_id });
   } catch (err) {
     console.error("❌ Error updating chapter:", err);
     res.status(500).json({ message: "Server error", error: err.message });
@@ -239,7 +272,7 @@ export const getQuizzesByChapter = async (req, res) => {
 
 export const getCourseProgress = async (req, res) => {
   const db = await connectDB();
-  const { custom_id } = req.params; // like STU_C003
+  const { custom_id } = req.params;
 
   try {
     // 1️⃣ Get all enrolled courses
@@ -264,54 +297,59 @@ export const getCourseProgress = async (req, res) => {
     for (const course of enrolledCourses) {
       const courseId = course.course_id;
 
-      // 2️⃣ Total chapters count
-      const [totalRows] = await db.execute(
-        `SELECT COUNT(*) AS total
-         FROM chapters ch
-         JOIN modules m ON ch.module_id = m.module_id
-         WHERE m.course_id = ?`,
-        [courseId]
-      );
-      const totalChapters = totalRows[0].total;
-
-      // 3️⃣ Watched chapters count from user_progress
-      const [watchedRows] = await db.execute(
-        `SELECT COUNT(*) AS watched
-         FROM user_progress
-         WHERE custom_id = ? AND course_id = ?`,
-        [custom_id, courseId]
-      );
-      const watchedChapters = watchedRows[0].watched;
-
-      const remainingChapters = totalChapters - watchedChapters;
-
-      // 4️⃣ Fetch all chapter names
-      const [chapterRows] = await db.execute(
-        `SELECT ch.chapter_id, ch.chapter_name
-         FROM chapters ch
-         JOIN modules m ON ch.module_id = m.module_id
-         WHERE m.course_id = ?
-         ORDER BY m.module_id, ch.order_index ASC`,
+      // 2️⃣ Get all modules for this course
+      const [modules] = await db.execute(
+        `SELECT module_id, module_name
+         FROM modules
+         WHERE course_id = ?
+         ORDER BY order_index ASC`,
         [courseId]
       );
 
-      // 5️⃣ Split into completed vs locked based on count
-      const completedChapters = chapterRows
-        .slice(0, watchedChapters)
-        .map(ch => ch.chapter_name);
+      const moduleProgress = [];
 
-      const lockedChapters = chapterRows
-        .slice(watchedChapters)
-        .map(ch => ch.chapter_name);
+      for (const module of modules) {
+        const moduleId = module.module_id;
+
+        // 3️⃣ Get all chapters for this module
+        const [chapters] = await db.execute(
+          `SELECT chapter_id
+           FROM chapters
+           WHERE module_id = ?`,
+          [moduleId]
+        );
+        const totalChapters = chapters.length;
+
+        if (totalChapters === 0) continue; // skip empty modules
+
+        // 4️⃣ Count unique completed chapters from user_progress
+        const [watchedRows] = await db.execute(
+          `SELECT COUNT(DISTINCT last_chapter_id) AS watched
+           FROM user_progress
+           WHERE custom_id = ? 
+             AND course_id = ? 
+             AND last_chapter_id IN (
+               SELECT chapter_id FROM chapters WHERE module_id = ?
+             )`,
+          [custom_id, courseId, moduleId]
+        );
+
+        const watchedChapters = watchedRows[0].watched;
+
+        // ✅ Only mark module as completed if all chapters are done
+        moduleProgress.push({
+          module_id: moduleId,
+          module_name: module.module_name,
+          totalChapters,
+          watchedChapters,
+          isCompleted: watchedChapters === totalChapters
+        });
+      }
 
       results.push({
         course_id: courseId,
         course_name: course.course_name,
-        totalChapters,
-        watchedChapters,
-        remainingChapters,
-        completedChapters,
-        lockedChapters
+        modules: moduleProgress
       });
     }
 
@@ -326,4 +364,3 @@ export const getCourseProgress = async (req, res) => {
     });
   }
 };
-

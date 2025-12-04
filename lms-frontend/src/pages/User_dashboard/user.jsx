@@ -4,18 +4,16 @@ import { useNavigate } from "react-router-dom";
 import "./user.css";
 import Sidebar from "./Sidebar/sidebar";
 import { FaLock, FaCheckCircle, FaArrowLeft, FaArrowRight } from "react-icons/fa";
-import { AUTH_API, ADMIN_API } from "../../config/apiConfig";
+import { AUTH_API, ADMIN_API, DASHBOARD_API } from "../../config/apiConfig";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
-const ITEMS_PER_PAGE = 5;
 
 const DashboardContent = () => {
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [coursesProgress, setCoursesProgress] = useState([]);
-  const [chapterPages, setChapterPages] = useState({});
   const [dayOffset, setDayOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState(null);
   const [dailyCompletion, setDailyCompletion] = useState({});
@@ -32,7 +30,7 @@ const DashboardContent = () => {
         const custom_id = userJson?.user?.profile?.custom_id;
         if (!custom_id) return;
 
-        const resCourses = await fetch(`${API_BASE}/dashboard/chapters/progress/${custom_id}`);
+        const resCourses = await fetch(`${DASHBOARD_API}/chapters/progress/${custom_id}`);
         const jsonCourses = await resCourses.json();
 
         if (jsonCourses.success) {
@@ -67,6 +65,20 @@ const DashboardContent = () => {
     }
   };
 
+  // Automatically fetch completion counts for all displayed days
+  useEffect(() => {
+    // don't attempt fetch until userData is loaded and displayedDays is available
+    if (!userData?.profile?.custom_id) return;
+
+    // For each displayed day, fetch if we don't already have data for it
+    displayedDays.forEach((day) => {
+      if (dailyCompletion[day.dateKey] === undefined) {
+        fetchDayData(day.dateKey);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [/* dependencies placed below to avoid linter auto-including functions */ userData, dayOffset]);
+
   // Timetable handlers
   const handlePrev = () => setDayOffset((prev) => prev - 5);
   const handleNext = () => setDayOffset((prev) => prev + 5);
@@ -94,16 +106,6 @@ const DashboardContent = () => {
   const handleDayClick = (day) => {
     setSelectedDay(day);
     fetchDayData(day.dateKey);
-  };
-
-  const handleChapterPage = (courseId, direction) => {
-    setChapterPages((prev) => {
-      const currentPage = prev[courseId] || 0;
-      const watchedChapters = coursesProgress.find(c => c.course_id === courseId)?.watchedChapters || 0;
-      const maxPage = Math.ceil(watchedChapters / ITEMS_PER_PAGE) - 1;
-      const newPage = direction === "prev" ? Math.max(currentPage - 1, 0) : Math.min(currentPage + 1, maxPage);
-      return { ...prev, [courseId]: newPage };
-    });
   };
 
   if (loading) return <p>Loading user dashboard...</p>;
@@ -142,24 +144,17 @@ const DashboardContent = () => {
             {/* <div className="all-stats-btn">All Stats</div> */}
           </div>
 
-          {/* Courses Progress */}
+          {/* Courses Progress (Modules only) */}
           <div className="main-cards">
             {coursesProgress.length === 0 ? (
               <p>No enrolled courses found.</p>
             ) : (
               coursesProgress.map((course) => {
-                const {
-                  course_id,
-                  course_name,
-                  totalChapters = 0,
-                  watchedChapters = 0,
-                  remainingChapters = 0,
-                  completedChapters = [],  // Array of chapter names from backend
-                  lockedChapters = []      // Array of remaining chapter names
-                } = course;
-
-                const progressPercent = totalChapters ? Math.round((watchedChapters / totalChapters) * 100) : 0;
-                const chapterPage = chapterPages[course_id] || 0;
+                const { course_id, course_name, modules = [] } = course;
+                const totalModules = modules.length;
+                const completedModules = modules.filter(m => m.isCompleted).length;
+                const remainingModules = totalModules - completedModules;
+                const moduleProgressPercent = totalModules ? Math.round((completedModules / totalModules) * 100) : 0;
 
                 return (
                   <div
@@ -169,57 +164,41 @@ const DashboardContent = () => {
                   >
                     <h3>{course_name}</h3>
 
-                    {/* Stats */}
+                    {/* Module Stats */}
                     <div className="progress-summary">
-                      <p>📘 Total Chapters: {totalChapters}</p>
-                      <p>✅ Completed Chapters: {watchedChapters}</p>
-                      <p>🔒 Remaining Chapters: {remainingChapters}</p>
+                      <p>📚 Total Modules: {totalModules}</p>
+                      <p>✅ Completed Modules: {completedModules}</p>
+                      <p>🔒 Remaining Modules: {remainingModules}</p>
                     </div>
 
-                    {/* Completed / Locked Chapters */}
+                    {/* Module List */}
                     <div className="overlay-scroll">
-                      <h4>Completed Chapters</h4>
-                      {completedChapters.length > 0 ? (
-                        completedChapters
-                          .slice(chapterPage * ITEMS_PER_PAGE, (chapterPage + 1) * ITEMS_PER_PAGE)
-                          .map((ch, i) => (
-                            <div key={i} className="chapter-item completed">
+                      {modules.length > 0 ? (
+                        modules.map((mod, i) => (
+                          <div
+                            key={i}
+                            className={`chapter-item ${mod.isCompleted ? "completed" : "locked"}`}
+                          >
+                            {mod.isCompleted ? (
                               <FaCheckCircle className="chapter-icon completed-icon" />
-                              <span>{ch}</span>
-                            </div>
-                          ))
-                      ) : (
-                        <p>No chapters completed yet.</p>
-                      )}
-
-                      {completedChapters.length > ITEMS_PER_PAGE && (
-                        <div className="pagination-controls">
-                          <button onClick={() => handleChapterPage(course_id, "prev")} disabled={chapterPage === 0}>◀</button>
-                          <span>Page {chapterPage + 1} of {Math.ceil(completedChapters.length / ITEMS_PER_PAGE)}</span>
-                          <button onClick={() => handleChapterPage(course_id, "next")} disabled={chapterPage >= Math.ceil(completedChapters.length / ITEMS_PER_PAGE) - 1}>▶</button>
-                        </div>
-                      )}
-
-                      <h4 style={{ marginTop: "10px" }}>Locked Chapters</h4>
-                      {lockedChapters.length > 0 ? (
-                        lockedChapters.map((ch, i) => (
-                          <div key={i} className="chapter-item locked">
-                            <FaLock className="chapter-icon locked-icon" />
-                            <span>{ch}</span>
+                            ) : (
+                              <FaLock className="chapter-icon locked-icon" />
+                            )}
+                            <span>{mod.module_name}</span>
                           </div>
                         ))
                       ) : (
-                        <p>All chapters unlocked!</p>
+                        <p>No modules found</p>
                       )}
                     </div>
 
-                    {/* Horizontal Progress + Start Button at the bottom */}
+                    {/* Progress Bar + Start Button */}
                     <div className="card-bottom-row">
                       <div className="progress-bar-container-horizontal">
                         <div className="progress-bar-bg">
-                          <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }}></div>
+                          <div className="progress-bar-fill" style={{ width: `${moduleProgressPercent}%` }}></div>
                         </div>
-                        <span className="progress-text">{progressPercent}% completed</span>
+                        <span className="progress-text">{moduleProgressPercent}% completed</span>
                       </div>
                       <button
                         className="start-learning-btn"
@@ -243,10 +222,20 @@ const DashboardContent = () => {
                 const isActive = selectedDay?.dateKey === day.dateKey;
                 const completedCount = dailyCompletion[day.dateKey] || 0;
                 return (
-                  <div key={i} className={`day-card ${isActive ? "active" : ""} ${day.isToday ? "today" : ""}`} onClick={() => handleDayClick(day)}>
+                  <div
+                    key={i}
+                    className={`day-card ${isActive ? "active" : ""} ${day.isToday ? "today" : ""}`}
+                    onClick={() => handleDayClick(day)}
+                  >
                     <h4>{day.dateNum}</h4>
                     <p>{day.month} <br /> {day.weekday}</p>
                     {day.isToday && <span className="today-badge">Today</span>}
+
+                    {/* Small inline summary (always visible) */}
+                    <div className="day-status-mini">
+                      {completedCount > 0 ? `${completedCount} completed` : `0 completed`}
+                    </div>
+
                     {isActive && (
                       <div className="day-status">
                         {completedCount > 0 ? `You’ve completed ${completedCount} chapters` : "No chapters completed"}

@@ -2,15 +2,34 @@ import React, { useState, useEffect } from "react";
 import "./quiz.css";
 import Sidebar from "../Sidebar/sidebar";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
-import { ToastContainer, toast, Slide } from "react-toastify";
+import { ToastContainer, toast ,Slide} from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { QUIZ_API, COURSE_API, MODULE_API,AUTH_API } from "../../../config/apiConfig";
+import { QUIZ_API, COURSE_API, MODULE_API } from "../../../config/apiConfig";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://lms.tansam.org/api";
+
+// ------------------ Cookie Utilities (FIXED!) ------------------
+const setCookie = (name, value, minutes) => {
+  const expires = new Date(Date.now() + minutes * 60 * 1000);
+  document.cookie = `${name}=${value}; expires=${expires.toUTCString()}; path=/`;
+};
+
+const getCookie = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(";")[0];
+  return null;
+};
+
+const deleteCookie = (name) => {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+};
+
+// ------------------ Quiz Component ------------------
 export default function Quiz() {
   const navigate = useNavigate();
   const location = useLocation();
   const { chapterId } = useParams();
-
   const courseId = location.state?.courseId;
 
   const [customId, setCustomId] = useState("");
@@ -21,23 +40,16 @@ export default function Quiz() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState("");
   const [checkResult, setCheckResult] = useState(null);
-
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
-
-  // NEW: Store ALL answers
   const [allAnswers, setAllAnswers] = useState([]);
 
-  // Attempt States
-  const [attemptCount, setAttemptCount] = useState(0);
-  const [attemptsLeft, setAttemptsLeft] = useState(3);
-
-  // Fetch user
+  // Fetch User
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const fetchUser = async () => {
       try {
-        const res = await fetch(`${AUTH_API}/me`, {
+        const res = await fetch(`${API_BASE}/auth/me`, {
           credentials: "include",
         });
         const data = await res.json();
@@ -45,251 +57,198 @@ export default function Quiz() {
           setCustomId(data.user.profile.custom_id);
         }
       } catch (err) {
-        console.error("❌ Error fetching user:", err);
+        console.error("Error fetching user:", err);
       }
     };
-
-    fetchUserProfile();
+    fetchUser();
   }, []);
 
-  // Fetch attempts
+  // Check 5-Minute Cooldown Lock
   useEffect(() => {
-    if (!customId) return;
+    if (!customId || !chapterId) return;
 
-    const fetchAttempts = async () => {
-      try {
-        const res = await fetch(
-          `${QUIZ_API}/getAttempts/${courseId}/${customId}`,
-          { credentials: "include" }
-        );
+    const cookieName = `quiz_lock_${customId}_${chapterId}`;
+    const lockUntil = getCookie(cookieName);
 
-        const data = await res.json();
-        const used = data?.attempts || 0;
-
-        setAttemptCount(used);
-        setAttemptsLeft(Math.max(3 - used, 0));
-      } catch (err) {
-        console.log("❌ Error fetching attempts:", err);
+    if (lockUntil) {
+      const remaining = Number(lockUntil) - Date.now();
+      if (remaining > 0) {
+        const minutes = Math.ceil(remaining / 60000);
+        toast.error(`Quiz locked! Try again in ${minutes} minute${minutes > 1 ? "s" : ""}.`);
+        setTimeout(() => navigate(`/mycourse/${courseId}`), 3000);
+        return;
+      } else {
+        deleteCookie(cookieName);
       }
-    };
+    }
+  }, [customId, chapterId, courseId, navigate]);
 
-    fetchAttempts();
-  }, [customId, chapterId]);
-
-  // Fetch course + module names
+  // Fetch Course & Module Name
   useEffect(() => {
-    const fetchCourseAndModule = async () => {
+    const fetchNames = async () => {
+      if (!courseId) return;
       try {
-        const courseRes = await fetch(`${COURSE_API}/${courseId}`, {
-          credentials: "include",
-        });
+        const [courseRes, moduleRes] = await Promise.all([
+          fetch(`${COURSE_API}/${courseId}`, { credentials: "include" }),
+          fetch(`${MODULE_API}/${courseId}`, { credentials: "include" })
+        ]);
+
         const courseData = await courseRes.json();
         if (courseRes.ok) setCourseName(courseData.course_name);
 
-        const moduleRes = await fetch(`${MODULE_API}/${courseId}`, {
-          credentials: "include",
-        });
-        const moduleData = await moduleRes.json();
-
-        if (moduleRes.ok && moduleData.length > 0) {
-          const foundModule = moduleData.find(
-            (m) => m.module_id === parseInt(chapterId)
-          );
-          setModuleName(foundModule?.module_name || "");
-        }
+        const modules = await moduleRes.json();
+        const chapterModule = modules.find(m => 
+          m.chapters?.some(ch => ch.chapter_id === Number(chapterId))
+        );
+        setModuleName(chapterModule?.module_name || "Quiz");
       } catch (err) {
-        console.error("❌ Error fetching data:", err);
+        console.error(err);
       }
     };
-
-    fetchCourseAndModule();
+    fetchNames();
   }, [courseId, chapterId]);
 
-  // Fetch quiz questions
+  // Fetch Quiz Questions
   useEffect(() => {
-    const fetchQuiz = async () => {
+    const loadQuiz = async () => {
       try {
-        const res = await fetch(`${QUIZ_API}/${chapterId}`, {
-          credentials: "include",
-        });
+        const res = await fetch(`${QUIZ_API}/${chapterId}`, { credentials: "include" });
         const data = await res.json();
-
-        if (res.ok) {
-          setQuestions(data);
-        } else {
-          toast.error("No quiz found");
-        }
+        if (res.ok && data.length > 0) setQuestions(data);
+        else toast.error("No quiz found for this chapter");
       } catch (err) {
-        console.log("❌ Failed to load quiz:", err);
+        console.error(err);
       }
     };
-
-    fetchQuiz();
+    loadQuiz();
   }, [chapterId]);
 
-  // SELECT ANSWER — FIXED (stores all answers)
   const handleOptionSelect = (label, text) => {
     setSelectedOption({ label, text });
     setCheckResult(null);
     setIsChecked(false);
 
     const q = questions[currentQuestionIndex];
-
-    setAllAnswers((prev) => {
-      const filtered = prev.filter((a) => a.quiz_id !== q.quiz_id);
+    setAllAnswers(prev => {
+      const filtered = prev.filter(a => a.quiz_id !== q.quiz_id);
       return [...filtered, { quiz_id: q.quiz_id, selected_answer: text }];
     });
   };
 
   const handleCheck = () => {
-    if (!selectedOption?.text) return;
+    if (!selectedOption) return;
+    const q = questions[currentQuestionIndex];
+    const correct = q.correct_answer.trim().toLowerCase();
+    const selected = selectedOption.text.trim().toLowerCase();
 
-    const currentQ = questions[currentQuestionIndex];
-    const correct = currentQ.correct_answer.trim().toLowerCase();
-    const chosen = selectedOption.text.trim().toLowerCase();
-
-    if (correct === chosen) {
-      setScore((prev) => prev + 1);
+    if (correct === selected) {
+      setScore(prev => prev + 1);
       setCheckResult("correct");
     } else {
       setCheckResult("wrong");
     }
-
     setIsChecked(true);
   };
 
   const handleNext = () => {
     if (!selectedOption) {
-      toast.error("Select an answer first");
+      toast.error("Please select an answer");
       return;
     }
-
-    if (currentQuestionIndex + 1 < questions.length) {
-      setCurrentQuestionIndex((prev) => prev + 1);
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
       setSelectedOption("");
-      setIsChecked(false);
       setCheckResult(null);
+      setIsChecked(false);
     } else {
       handleSubmit();
     }
   };
 
-  // SUBMIT ANSWERS FIXED — now submitting ALL answers
- // In Quiz.jsx
-// const handleSubmit = async () => {
-//   try {
-//     const payload = {
-//       custom_id: customId,
-//       answers: allAnswers,
-//     };
-//     await fetch(`${QUIZ_API}/submit`, {
-//       method: "POST",
-//       credentials: "include",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify(payload),
-//     });
+  // FINAL SUBMIT — NOW 100% CORRECT
+  const handleSubmit = async () => {
+    if (!customId || !chapterId) {
+      toast.error("User not authenticated");
+      return;
+    }
 
-//     const percentage = Math.round((score / questions.length) * 100);
+    const payload = {
+      custom_id: customId,
+      chapter_id: Number(chapterId),
+      answers: allAnswers,
+    };
 
-//     // ✅ Show toast notification with score
-//     toast.success(`🎉 Quiz Submitted! You scored ${percentage}%`, {
-//       position: "top-right",
-//       autoClose: 4000,
-//       hideProgressBar: false,
-//       closeOnClick: true,
-//       pauseOnHover: true,
-//       draggable: true,
-//       progress: undefined,
-//       transition: Slide,
-//     });
+    try {
+      const res = await fetch(`${QUIZ_API}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
 
-//     setShowResult(true);
+      const data = await res.json();
 
-//     setTimeout(() => {
-//       navigate(`/mycourse/${courseId}`, {
-//         state: { 
-//           chapterUnlocked: chapterId, 
-//           progressIncrement: 1,
-//         },
-//       });
-//     }, 2000);
-//   } catch (err) {
-//     console.error("❌ Submit failed:", err);
-//     toast.error("Failed to submit quiz");
-//   }
-// };
-const handleSubmit = async () => {
-  if (!customId) {
-    toast.error("User not found!");
-    return;
-  }
+      if (!res.ok) {
+        if (data.next_try_in_minutes) {
+          toast.error(`${data.error}. Next try in ${data.next_try_in_minutes} minute(s).`);
+          setTimeout(() => navigate(`/mycourse/${courseId}`), 3000);
+        } else {
+          toast.error(data.error || "Submission failed");
+        }
+        return;
+      }
 
-  // 🟢 Build answers array that includes quiz_id + selected_answer + progress_percent
-  const payload = {
-    custom_id: customId,
-    answers: allAnswers.map((ans) => ({
-      quiz_id: ans.quiz_id,
-      selected_answer: ans.selected_answer,
-      progress_percent: Math.round((score / questions.length) * 100), 
-      chapter_id: chapterId
-    })),
+      const scorePercent = Math.round((score / questions.length) * 100);
+      toast.success(`Submitted! Your score: ${scorePercent}%`);
+
+      setShowResult(true);
+
+      setTimeout(() => {
+        if (scorePercent >= 65) {
+          // PASS → Unlock chapter
+          navigate(`/mycourse/${courseId}`, {
+            state: { chapterUnlocked: chapterId }
+          });
+        } else {
+          // FAIL → 5-minute lock + reset module
+          const cookieName = `quiz_lock_${customId}_${chapterId}`;
+          setCookie(cookieName, Date.now() + 5 * 60 * 1000, 5); // 5 minutes
+
+          toast.error("Failed! Module reset. Try again after 5 minutes.");
+          navigate(`/mycourse/${courseId}`, {
+            state: { failedQuiz: chapterId }
+          });
+        }
+      }, 2000);
+
+    } catch (err) {
+      toast.error("Network error");
+      console.error(err);
+    }
   };
 
-  try {
-    const res = await fetch(`${QUIZ_API}/submit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-      toast.success("🎉 Quiz Submitted!");
-
-      // Navigate back with progress increment (merge-friendly)
-      navigate(`/mycourse/${courseId}`, {
-        state: {
-          chapterUnlocked: chapterId,
-          progressIncrement: 1,
-        },
-      });
-    } else {
-      toast.error(data.error || "Quiz submission failed");
-    }
-  } catch (error) {
-    toast.error("Network error");
-    console.error(error);
-  }
-};
-
-
   const currentQ = questions[currentQuestionIndex];
+  const progressPercent = questions.length > 0
+    ? ((currentQuestionIndex + 1) / questions.length) * 100
+    : 0;
 
-  const progressPercent =
-    questions.length > 0
-      ? ((currentQuestionIndex + 1) / questions.length) * 100
-      : 0;
+  if (!currentQ && !showResult) {
+    return <div>Loading quiz...</div>;
+  }
 
   return (
     <>
       <Sidebar />
-      <ToastContainer />
+      <ToastContainer transition={Slide} />
 
       <div className="app">
         <div className="lessonSection">
           <span className="unitPath">{courseName}</span>
-          <h1 className="unitTitle">{moduleName}</h1>
-
-          <p className="attemptInfo">
-            Attempt: <strong>{attemptCount}</strong> / 3 — Left:{" "}
-            <strong>{attemptsLeft}</strong>
-          </p>
+          <h1 className="unitTitle">{moduleName || "Quiz"}</h1>
         </div>
 
         <div className="main">
-          {currentQ && !showResult && (
+          {!showResult ? (
             <>
               <h2 className="quizTitle">{currentQ.question}</h2>
 
@@ -297,109 +256,67 @@ const handleSubmit = async () => {
                 <p className="instruction">Choose one answer:</p>
 
                 <div className="options">
-  {currentQ.question_type === "mcq"
-    ? ["option_a", "option_b", "option_c", "option_d"].map((key, idx) => {
-        const val = currentQ[key];
-        if (!val) return null;
+                  {currentQ.question_type === "mcq"
+                    ? ["option_a", "option_b", "option_c", "option_d"].map((key, i) => {
+                        const text = currentQ[key];
+                        if (!text) return null;
+                        const label = String.fromCharCode(65 + i);
+                        const isSelected = selectedOption?.label === label;
 
-        const label = String.fromCharCode(65 + idx);
-        const isSelected = selectedOption?.label === label;
-
-        return (
-          <label
-            key={idx}
-            className={`option 
-              ${isSelected ? "selected" : ""} 
-              ${
-                checkResult === "correct" &&
-                isSelected &&
-                val.trim().toLowerCase() ===
-                  currentQ.correct_answer.trim().toLowerCase()
-                  ? "correctBlink"
-                  : ""
-              }
-              ${
-                checkResult === "wrong" && isSelected ? "wrongBlink" : ""
-              }`}
-            onClick={() => handleOptionSelect(label, val)}
-          >
-            <input type="radio" checked={isSelected} readOnly />
-            <span>{val}</span>
-          </label>
-        );
-      })
-    : // TRUE/FALSE Question
-      ["True", "False"].map((val, idx) => {
-        const label = idx === 0 ? "A" : "B";
-        const isSelected = selectedOption?.label === label;
-
-        return (
-          <label
-            key={idx}
-            className={`option 
-              ${isSelected ? "selected" : ""} 
-              ${
-                checkResult === "correct" &&
-                isSelected &&
-                val.trim().toLowerCase() ===
-                  currentQ.correct_answer.trim().toLowerCase()
-                  ? "correctBlink"
-                  : ""
-              }
-              ${
-                checkResult === "wrong" && isSelected ? "wrongBlink" : ""
-              }`}
-            onClick={() => handleOptionSelect(label, val)}
-          >
-            <input type="radio" checked={isSelected} readOnly />
-            <span>{val}</span>
-          </label>
-        );
-      })}
-</div>
-
+                        return (
+                          <label
+                            key={i}
+                            className={`option ${isSelected ? "selected" : ""}`}
+                            onClick={() => handleOptionSelect(label, text)}
+                          >
+                            <input type="radio" checked={isSelected} readOnly />
+                            <span>{text}</span>
+                          </label>
+                        );
+                      })
+                    : ["True", "False"].map((val, i) => {
+                        const label = i === 0 ? "A" : "B";
+                        const isSelected = selectedOption?.label === label;
+                        return (
+                          <label
+                            key={i}
+                            className={`option ${isSelected ? "selected" : ""}`}
+                            onClick={() => handleOptionSelect(label, val)}
+                          >
+                            <input type="radio" checked={isSelected} readOnly />
+                            <span>{val}</span>
+                          </label>
+                        );
+                      })}
+                </div>
               </div>
 
               <div className="footerBtns">
                 {!isChecked ? (
-                  <>
-                    <button className="btnSkip" onClick={handleNext}>
-                      Skip
-                    </button>
-                    <button className="btnCheck" onClick={handleCheck}>
-                      Check
-                    </button>
-                  </>
+                  <button className="btnCheck" onClick={handleCheck}>
+                    Check Answer
+                  </button>
                 ) : (
                   <button className="btnCheck" onClick={handleNext}>
-                    {currentQuestionIndex === questions.length - 1
-                      ? "Submit"
-                      : "Next"}
+                    {currentQuestionIndex === questions.length - 1 ? "Submit Quiz" : "Next →"}
                   </button>
                 )}
               </div>
 
               <div className="progressContainer">
                 <div className="progressBar">
-                  <div
-                    className="progressFill"
-                    style={{ width: `${progressPercent}%` }}
-                  ></div>
+                  <div className="progressFill" style={{ width: `${progressPercent}%` }}></div>
                 </div>
                 <span className="progressText">
-                  {currentQuestionIndex + 1}/{questions.length}
+                  Question {currentQuestionIndex + 1} of {questions.length}
                 </span>
               </div>
             </>
-          )}
-
-          {showResult && (
+          ) : (
             <div className="resultBox">
-              <h3>Quiz Completed 🎉</h3>
-              <p>
-                You scored:{" "}
-                <strong>{Math.round((score / questions.length) * 100)}%</strong>
-              </p>
+              <h3>Quiz Completed!</h3>
+              <p>Your final score: <strong>{Math.round((score / questions.length) * 100)}%</strong></p>
+              <p>{score >= (questions.length * 0.65) ? "You passed!" : "You did not pass. Module has been reset."}</p>
             </div>
           )}
         </div>
