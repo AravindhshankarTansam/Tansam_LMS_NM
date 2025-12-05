@@ -110,33 +110,43 @@ useEffect(() => {
 
 
   // Fetch courses dynamically from backend
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/dashboard/courses`, {
-          credentials: "include",
-        });
-        const data = await res.json();
-        setCourses(data);
-      } catch (err) {
-        console.error("Error fetching courses:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+useEffect(() => {
+  const fetchCourses = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/dashboard/courses`, {
+        credentials: "include",
+      });
 
-    fetchCourses();
-  }, []);
+      const data = await res.json();
+
+      // 🔥 SAFETY CHECK (Fixes production errors)
+      if (Array.isArray(data)) {
+        setCourses(data);
+      } else {
+        console.error("Invalid courses format:", data);
+        setCourses([]); // fallback, prevents array errors
+      }
+
+    } catch (err) {
+      console.error("Error fetching courses:", err);
+      setCourses([]); // ensures pagination won't break
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchCourses();
+}, []);
+
 
   // Pagination logic
 // Pagination logic (NO slice, NO filter)
 const indexOfLastCourse = currentPage * coursesPerPage;
 const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
+const currentCourses = Array.isArray(courses)
+  ? courses.slice(indexOfFirstCourse, indexOfLastCourse)
+  : [];
 
-const currentCourses = Array.from(
-  { length: coursesPerPage },
-  (_, i) => courses[indexOfFirstCourse + i]
-).filter(Boolean); // keeps undefined away safely
 
 const totalPages = Math.ceil(courses.length / coursesPerPage);
 
