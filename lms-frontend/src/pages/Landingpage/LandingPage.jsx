@@ -117,19 +117,33 @@ useEffect(() => {
         credentials: "include",
       });
 
-      const data = await res.json();
-
-      // 🔥 SAFETY CHECK (Fixes production errors)
-      if (Array.isArray(data)) {
-        setCourses(data);
-      } else {
-        console.error("Invalid courses format:", data);
-        setCourses([]); // fallback, prevents array errors
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
 
+      const data = await res.json();
+
+      // Handle all possible shapes safely
+      let coursesArray = [];
+
+      if (Array.isArray(data)) {
+        coursesArray = data;
+      } 
+      else if (data && Array.isArray(data.courses)) {
+        coursesArray = data.courses; // sometimes backend wraps in { courses: [...] }
+      } 
+      else if (data && Array.isArray(data.data)) {
+        coursesArray = data.data;
+      }
+      else {
+        console.warn("Unexpected courses response format:", data);
+      }
+
+      setCourses(coursesArray);
+
     } catch (err) {
-      console.error("Error fetching courses:", err);
-      setCourses([]); // ensures pagination won't break
+      console.error("Failed to fetch courses:", err);
+      setCourses([]); // Always fallback to empty array
     } finally {
       setLoading(false);
     }
@@ -141,14 +155,12 @@ useEffect(() => {
 
   // Pagination logic
 // Pagination logic (NO slice, NO filter)
-const indexOfLastCourse = currentPage * coursesPerPage;
-const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
-const currentCourses = Array.isArray(courses)
-  ? courses.slice(indexOfFirstCourse, indexOfLastCourse)
-  : [];
+const safeCourses = Array.isArray(courses) ? courses : [];
+  const totalPages = Math.ceil(safeCourses.length / coursesPerPage);
 
-
-const totalPages = Math.ceil(courses.length / coursesPerPage);
+  const indexOfLastCourse = currentPage * coursesPerPage;
+  const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
+  const currentCourses = safeCourses.slice(indexOfFirstCourse, indexOfLastCourse);
 
 const changePage = (page) => {
   if (page >= 1 && page <= totalPages) {
@@ -282,33 +294,40 @@ const changePage = (page) => {
         </div>
 
         {/* Pagination */}
-        <div className="pagination">
-          <button
-            className="pagination-btn"
-            onClick={() => changePage(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            Prev
-          </button>
+       {/* Pagination - Only show if there are more than 9 courses */}
+{loading ? (
+  <div className="pagination-loading">
+    <CircularProgress />
+  </div>
+) : courses.length > coursesPerPage ? (
+  <div className="pagination">
+    <button
+      className="pagination-btn"
+      onClick={() => changePage(currentPage - 1)}
+      disabled={currentPage === 1}
+    >
+      Prev
+    </button>
 
-          {[...Array(totalPages)].map((_, index) => (
-            <button
-              key={index}
-              className={`page-box ${currentPage === index + 1 ? "active" : ""}`}
-              onClick={() => changePage(index + 1)}
-            >
-              {index + 1}
-            </button>
-          ))}
+    {[...Array(totalPages)].map((_, i) => (
+      <button
+        key={i}
+        className={`page-box ${currentPage === i + 1 ? "active" : ""}`}
+        onClick={() => changePage(i + 1)}
+      >
+        {i + 1}
+      </button>
+    ))}
 
-          <button
-            className="pagination-btn"
-            onClick={() => changePage(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </button>
-        </div>
+    <button
+      className="pagination-btn"
+      onClick={() => changePage(currentPage + 1)}
+      disabled={currentPage === totalPages || totalPages === 0}
+    >
+      Next
+    </button>
+  </div>
+) : null}
       </section>
 
       <PlansSection />
