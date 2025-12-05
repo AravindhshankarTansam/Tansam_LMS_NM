@@ -248,44 +248,35 @@ export const getOverallLeaderboard = async (req, res) => {
 // -------------------------------------------------------
 // 1️⃣ GET DAY-WISE PROGRESS
 // -------------------------------------------------------
+// -------------------------------------------------------
+// 1️⃣ FIXED: GET DAY-WISE COMPLETED CHAPTERS
+// -------------------------------------------------------
 export const getStudentDayProgress = async (req, res) => {
   try {
-    const db = await connectDB();   // ✔ Same structure as leaderboard
+    const db = await connectDB();
 
     const { custom_id } = req.params;
     const { date } = req.query;
 
-    if (!custom_id) {
-      return res.status(400).json({ message: "custom_id is required" });
+    if (!date) {
+      return res.status(400).json({ message: "Date is required" });
     }
-
-    // Default India date (YYYY-MM-DD)
-    const selectedDate =
-      date ||
-      new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
 
     const [rows] = await db.query(
       `
-      SELECT 
-        c.chapter_id,
-        c.chapter_name,
-        qr.quiz_id,
-        qr.is_correct,
-        qr.progress_percent,
-        DATE(qr.attempted_at) AS attempted_date
-      FROM quiz_results qr
-      JOIN chapters c ON qr.chapter_id = c.chapter_id
-      WHERE qr.custom_id = ?
-        AND DATE(qr.attempted_at) = ?
-      ORDER BY c.chapter_id, qr.quiz_id
+      SELECT COUNT(*) AS completedCount
+      FROM chapter_completion
+      WHERE custom_id = ?
+        AND completed = 1
+        AND DATE(completed_at) = DATE(?)
       `,
-      [custom_id, selectedDate]
+      [custom_id, date]
     );
 
     res.json({
       custom_id,
-      date: selectedDate,
-      completed_chapters: rows
+      date,
+      completed_chapters: rows[0].completedCount
     });
 
   } catch (err) {
@@ -293,6 +284,7 @@ export const getStudentDayProgress = async (req, res) => {
     res.status(500).json({ message: "Error fetching student day progress" });
   }
 };
+
 
 
 

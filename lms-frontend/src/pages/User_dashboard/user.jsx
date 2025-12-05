@@ -87,12 +87,13 @@ const DashboardContent = () => {
         `${ADMIN_API}/student/${custom_id}/progress/day?date=${dateKey}`
       );
       const json = await res.json();
-      const completedList = json.completed_chapters || [];
+   const completedCount = Number(json.completed_chapters) || 0;
 
-      setDailyCompletion((prev) => ({
-        ...prev,
-        [dateKey]: completedList.length,
-      }));
+setDailyCompletion((prev) => ({
+  ...prev,
+  [dateKey]: completedCount,
+}));
+
     } catch (err) {
       console.error("Error fetching day data:", err);
     }
