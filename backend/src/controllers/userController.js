@@ -251,6 +251,8 @@ export const getOverallLeaderboard = async (req, res) => {
 // -------------------------------------------------------
 // 1️⃣ FIXED: GET DAY-WISE COMPLETED CHAPTERS
 // -------------------------------------------------------
+// GET DAY-WISE FULLY COMPLETED CHAPTERS (Only when ALL materials are done)
+// -------------------------------------------------------
 export const getStudentDayProgress = async (req, res) => {
   try {
     const db = await connectDB();
@@ -264,19 +266,33 @@ export const getStudentDayProgress = async (req, res) => {
 
     const [rows] = await db.query(
       `
-      SELECT COUNT(*) AS completedCount
-      FROM chapter_completion
-      WHERE custom_id = ?
-        AND completed = 1
-        AND DATE(completed_at) = DATE(?)
+      SELECT COUNT(DISTINCT cc.chapter_id) AS completedCount
+      FROM chapter_completion cc
+      JOIN chapters ch ON cc.chapter_id = ch.chapter_id
+      LEFT JOIN chapter_materials cm ON ch.chapter_id = cm.chapter_id
+      LEFT JOIN material_completion mc 
+        ON mc.custom_id = ? 
+        AND mc.chapter_id = ch.chapter_id 
+        AND DATE(mc.completed_at) = DATE(?)
+        AND mc.material_id = cm.material_id
+      WHERE cc.custom_id = ?
+        AND DATE(cc.completed_at) = DATE(?)
+        AND cc.completed = 1
+      GROUP BY cc.chapter_id
+      HAVING 
+        -- All materials in this chapter are completed on this date
+        COUNT(cm.material_id) = COUNT(mc.material_id)
+        AND COUNT(cm.material_id) > 0  -- Ensure chapter has materials
       `,
-      [custom_id, date]
+      [custom_id, date, custom_id, date]
     );
+
+    const completedCount = rows.length;
 
     res.json({
       custom_id,
       date,
-      completed_chapters: rows[0].completedCount
+      completed_chapters: completedCount
     });
 
   } catch (err) {
