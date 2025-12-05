@@ -32,9 +32,10 @@ app.use(
     origin: "http://localhost:5173", // ⚠️ Change if your frontend runs elsewhere
     credentials: true, // ✅ Allow cookies
   })
-);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+); 
+// THIS IS THE FIX - ADD THESE TWO LINES
+app.use(express.json({ limit: "600mb" }));                    // Allow large JSON
+app.use(express.urlencoded({ limit: "600mb", extended: true })); // Allow large form data
 app.use(cookieParser()); // ✅ Parse cookies
 
 // ✅ Static folder for uploaded materials
