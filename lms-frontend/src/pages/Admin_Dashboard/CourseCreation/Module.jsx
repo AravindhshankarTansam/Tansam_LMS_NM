@@ -337,14 +337,10 @@ export default function ModuleList() {
                           {getMaterialIcon(chapter.material_type || "doc")}
                         </ListItemIcon>
                         <ListItemText
-                          primary={`Lesson ${idx + 1}: ${
-                            chapter.chapter_name ||
-                            chapter.title ||
-                            "Untitled Lesson"
-                          }`}
+                          primary={`Lesson ${idx + 1}: ${chapter.chapter_name}`}
                           secondary={
-                            chapter.material_type
-                              ? `Type: ${chapter.material_type}`
+                            chapter.materials && chapter.materials.length > 0
+                              ? `Material Type: ${chapter.materials.map(m => m.material_type).join(", ")}`
                               : "No material attached"
                           }
                         />

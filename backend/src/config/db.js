@@ -1,15 +1,19 @@
+// src/config/db.js
 import mysql from "mysql2/promise";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
-dotenv.config(); // load .env variables
 
-// ✅ Export the pool so it can be used in routes
-export let pool;
+dotenv.config();
 
-export const connectDB = async () => {
+// SINGLE GLOBAL POOL — created only once
+let pool = null;
+
+const createPool = async () => {
+  if (pool) return pool; // Already exists → reuse it
+
   try {
-    // Temporary connection to create DB if it doesn't exist
+    // Step 1: Temporary connection ONLY to create database (same as before)
     const tempConnection = await mysql.createConnection({
       host: process.env.DB_HOST,
       user: process.env.DB_USER,
@@ -22,7 +26,7 @@ export const connectDB = async () => {
     );
     await tempConnection.end();
 
-    // ✅ Create a pool for production usage
+    // Step 2: Create the real pool (this replaces createConnection)
     pool = mysql.createPool({
       host: process.env.DB_HOST,
       user: process.env.DB_USER,
@@ -30,28 +34,37 @@ export const connectDB = async () => {
       database: process.env.DB_NAME,
       port: process.env.DB_PORT || 3306,
       waitForConnections: true,
-      connectionLimit: 10,      // maximum 10 connections at a time
-      queueLimit: 0,             // unlimited queued requests
-      multipleStatements: true,  // to run schema.sql
+      connectionLimit: 10,           // safe number
+      queueLimit: 0,
+      multipleStatements: true,
     });
 
-    console.log("✅ MySQL pool created for:", process.env.DB_NAME);
+    console.log("Connected to MySQL (pool):", process.env.DB_NAME);
 
-    // Initialize schema if schema.sql exists
+    // Step 3: Run schema.sql exactly like before (only once)
     const schemaPath = path.resolve("./database/schema.sql");
+
     if (fs.existsSync(schemaPath)) {
       const schema = fs.readFileSync(schemaPath, "utf8");
-      const conn = await pool.getConnection(); // get a connection from the pool
-      await conn.query(schema);
-      conn.release(); // release back to pool
-      console.log("✅ Database schema initialized successfully.");
+      const connection = await pool.getConnection(); // borrow one connection
+      await connection.query(schema);
+      connection.release(); // give it back to the pool
+      console.log("Database schema initialized successfully.");
     } else {
-      console.warn("⚠️ schema.sql not found. Skipping initialization.");
+      console.warn("schema.sql not found. Skipping initialization.");
     }
 
-    return pool; // return the pool instead of single connection
+    return pool;
+
   } catch (err) {
-    console.error("❌ MySQL connection failed:", err.message);
+    console.error("MySQL connection failed:", err.message);
     throw err;
   }
 };
+
+// This is the only function you use in your controllers
+export const connectDB = async () => {
+  return await createPool(); // always returns the same pool
+};
+
+export default connectDB;
