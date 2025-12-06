@@ -1,19 +1,17 @@
 import { connectDB } from "../config/db.js";
 import { generateCertificate } from "../utils/certificateGenerator.js";
 
-/**
- * 🎓 Issue certificate manually (admin or system-triggered)
- */
 export const issueCertificate = async (req, res) => {
   const db = await connectDB();
   const { user_email, course_id, username, course_name } = req.body;
 
   try {
-    // ✅ Check if already issued
-    const existing = await db.get(
+    const [existingRows] = await db.execute(
       `SELECT * FROM certificates WHERE user_email = ? AND course_id = ?`,
       [user_email, course_id]
     );
+
+    const existing = existingRows[0];
 
     if (existing) {
       return res.json({
@@ -22,11 +20,9 @@ export const issueCertificate = async (req, res) => {
       });
     }
 
-    // ✅ Generate new certificate file
     const certPath = await generateCertificate(username, course_name);
 
-    // ✅ Insert record
-    await db.run(
+    await db.execute(
       `INSERT INTO certificates (user_email, course_id, certificate_url)
        VALUES (?, ?, ?)`,
       [user_email, course_id, certPath]
@@ -34,35 +30,28 @@ export const issueCertificate = async (req, res) => {
 
     res.json({ message: "🎓 Certificate issued successfully", certificate_url: certPath });
   } catch (error) {
-    console.error("Certificate issue error:", error.message);
+    console.error("Certificate issue error:", error);
     res.status(500).json({ message: "Error issuing certificate" });
   }
 };
 
-/**
- * 🧾 Get all certificates for a specific user
- */
 export const getCertificatesByUser = async (req, res) => {
   const db = await connectDB();
   const { email } = req.params;
 
   try {
-    const certificates = await db.all(
+    const [rows] = await db.execute(
       `SELECT * FROM certificates WHERE user_email = ? ORDER BY created_at DESC`,
       [email]
     );
 
-    res.json(certificates);
+    res.json(rows);
   } catch (error) {
-    console.error("Fetch certificate error:", error.message);
+    console.error("Fetch certificate error:", error);
     res.status(500).json({ message: "Error fetching certificates" });
   }
 };
 
-/**
- * 👤 Generate user certificate (student-triggered)
- * Typically when a course reaches 100% completion
- */
 export const generateUserCertificateByUser = async (req, res) => {
   const db = await connectDB();
   const { user_email, username, course_id, course_name, progress_percent } = req.body;
@@ -72,23 +61,21 @@ export const generateUserCertificateByUser = async (req, res) => {
       return res.json({ message: "⚠️ Course not yet completed — certificate unavailable" });
     }
 
-    // Check if already generated
-    const existing = await db.get(
+    const [existingRows] = await db.execute(
       `SELECT * FROM certificates WHERE user_email = ? AND course_id = ?`,
       [user_email, course_id]
     );
 
-    if (existing) {
+    if (existingRows.length > 0) {
       return res.json({
         message: "ℹ️ Certificate already generated",
-        certificate_url: existing.certificate_url,
+        certificate_url: existingRows[0].certificate_url,
       });
     }
 
-    // Generate new certificate
     const certPath = await generateCertificate(username, course_name);
 
-    await db.run(
+    await db.execute(
       `INSERT INTO certificates (user_email, course_id, certificate_url)
        VALUES (?, ?, ?)`,
       [user_email, course_id, certPath]
@@ -99,7 +86,7 @@ export const generateUserCertificateByUser = async (req, res) => {
       certificate_url: certPath,
     });
   } catch (error) {
-    console.error("Error generating user certificate:", error.message);
+    console.error("Error generating user certificate:", error);
     res.status(500).json({ message: "Error generating certificate" });
   }
 };

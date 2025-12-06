@@ -318,8 +318,8 @@ export default function CourseCreateForm() {
                 <Button startIcon={<Add />} variant="outlined" onClick={handleAddCourse}>
                   Add Course
                 </Button>
-                <Button startIcon={<Save />} variant="outlined">Save Draft</Button>
-                <Button startIcon={<Publish />} variant="contained">Publish</Button>
+                {/* <Button startIcon={<Save />} variant="outlined">Save Draft</Button>
+                <Button startIcon={<Publish />} variant="contained">Publish</Button> */}
               </Stack>
             </Stack>
           </Paper>
@@ -403,7 +403,7 @@ export default function CourseCreateForm() {
                         <Box sx={{ flex: 1 }}>
                           <Typography fontWeight="bold">{course.course_name}</Typography>
                           <Typography variant="caption">{course.overview}</Typography>
-                          <Typography variant="caption">Price: {course.pricing_type === "free" ? "Free" : `$${course.price_amount}`}</Typography>
+                          {/* <Typography variant="caption">Price: {course.pricing_type === "free" ? "Free" : `$${course.price_amount}`}</Typography> */}
                         </Box>
                         <Stack direction="row" spacing={1}>
                           <Button size="small" onClick={() => handleEditCourse(course)}>Edit</Button>

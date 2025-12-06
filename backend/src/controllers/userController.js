@@ -2,7 +2,9 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "../config/db.js";
 import { generateCustomId } from "../utils/generateCustomId.js";
 
+// ------------------------
 // Add new user
+// ------------------------
 export const addUser = async (req, res) => {
   const { username, password, role, mobile_number } = req.body;
   const image_path = req.file ? req.file.path : null;
@@ -10,13 +12,13 @@ export const addUser = async (req, res) => {
   try {
     const db = await connectDB();
 
-    const existing = await db.get("SELECT * FROM users WHERE username = ?", [username]);
-    if (existing) return res.status(400).json({ message: "Username already exists" });
+    const [existing] = await db.query("SELECT * FROM users WHERE username = ?", [username]);
+    if (existing.length > 0) return res.status(400).json({ message: "Username already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const custom_id = await generateCustomId(role, username);
 
-    await db.run(
+    await db.query(
       "INSERT INTO users (custom_id, username, password, role, mobile_number, image_path) VALUES (?, ?, ?, ?, ?, ?)",
       [custom_id, username, hashedPassword, role, mobile_number, image_path]
     );
@@ -28,31 +30,41 @@ export const addUser = async (req, res) => {
   }
 };
 
+// ------------------------
 // Get all users
+// ------------------------
 export const getUsers = async (req, res) => {
-  const db = await connectDB();
-  const users = await db.all("SELECT * FROM users ORDER BY created_at DESC");
-  res.json(users);
+  try {
+    const db = await connectDB();
+    const [users] = await db.query("SELECT * FROM users ORDER BY created_at DESC");
+    res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error fetching users" });
+  }
 };
 
-
+// ------------------------
+// Get total students
+// ------------------------
 export const getTotalStudents = async (req, res) => {
   try {
     const db = await connectDB();
-    // MySQL query to count rows in student_details
     const [[result]] = await db.query("SELECT COUNT(*) as total FROM student_details");
     res.json({ total: result.total });
   } catch (err) {
-    console.error("Error in getTotalStudents:", err); // <-- log actual error
+    console.error("Error in getTotalStudents:", err);
     res.status(500).json({ message: "Error fetching student count" });
   }
 };
 
+// ------------------------
+// Get all students with latest progress
+// ------------------------
 export const getAllStudents = async (req, res) => {
   try {
     const db = await connectDB();
 
-    // 1️⃣ Fetch all students
     const [students] = await db.query(`
       SELECT 
         sd.custom_id,
@@ -72,7 +84,6 @@ export const getAllStudents = async (req, res) => {
       ORDER BY sd.full_name ASC
     `);
 
-    // 2️⃣ Fetch progress for each student (latest entry)
     const enrichedStudents = await Promise.all(
       students.map(async (student) => {
         const [progress] = await db.query(
@@ -92,29 +103,24 @@ export const getAllStudents = async (req, res) => {
       })
     );
 
-    // 3️⃣ Return final response
     res.json({ students: enrichedStudents });
-
   } catch (err) {
     console.error("Error fetching students with progress:", err);
     res.status(500).json({ message: "Error fetching students" });
   }
 };
 
-
+// ------------------------
+// Get top learners for a course (query param)
+// ------------------------
 export const getTopLearners = async (req, res) => {
   try {
     const db = await connectDB();
-
     const { course_id } = req.query;
 
-    if (!course_id) {
-      return res.status(400).json({ message: "course_id is required" });
-    }
+    if (!course_id) return res.status(400).json({ message: "course_id is required" });
 
-    // Fetch TOP LEARNERS for a specific course
-    const [rows] = await db.query(
-      `
+    const [rows] = await db.query(`
       SELECT 
         sd.custom_id,
         sd.full_name,
@@ -139,9 +145,7 @@ export const getTopLearners = async (req, res) => {
       ON sd.custom_id = latest.custom_id
       ORDER BY latest.progress_percent DESC
       LIMIT 10;
-      `,
-      [course_id]
-    );
+    `, [course_id]);
 
     res.json({ top_learners: rows });
   } catch (err) {
@@ -150,19 +154,17 @@ export const getTopLearners = async (req, res) => {
   }
 };
 
-
+// ------------------------
+// Get top learners by course (params)
+// ------------------------
 export const getTopLearnersByCourse = async (req, res) => {
   try {
     const db = await connectDB();
-
     const { course_id } = req.params;
 
-    if (!course_id) {
-      return res.status(400).json({ message: "course_id is required" });
-    }
+    if (!course_id) return res.status(400).json({ message: "course_id is required" });
 
-    const [rows] = await db.query(
-      `
+    const [rows] = await db.query(`
       SELECT 
         sd.custom_id,
         sd.full_name,
@@ -189,9 +191,7 @@ export const getTopLearnersByCourse = async (req, res) => {
       ON sd.custom_id = latest.custom_id
       ORDER BY latest.progress_percent DESC
       LIMIT 10;
-      `,
-      [course_id]
-    );
+    `, [course_id]);
 
     res.json({ top_learners: rows });
   } catch (err) {
@@ -200,7 +200,9 @@ export const getTopLearnersByCourse = async (req, res) => {
   }
 };
 
-
+// ------------------------
+// Get overall leaderboard
+// ------------------------
 export const getOverallLeaderboard = async (req, res) => {
   try {
     const db = await connectDB();
@@ -242,30 +244,18 @@ export const getOverallLeaderboard = async (req, res) => {
   }
 };
 
-
-
-
-// -------------------------------------------------------
-// 1️⃣ GET DAY-WISE PROGRESS
-// -------------------------------------------------------
-// -------------------------------------------------------
-// 1️⃣ FIXED: GET DAY-WISE COMPLETED CHAPTERS
-// -------------------------------------------------------
-// GET DAY-WISE FULLY COMPLETED CHAPTERS (Only when ALL materials are done)
-// -------------------------------------------------------
+// ------------------------
+// Get day-wise completed chapters
+// ------------------------
 export const getStudentDayProgress = async (req, res) => {
   try {
     const db = await connectDB();
-
     const { custom_id } = req.params;
     const { date } = req.query;
 
-    if (!date) {
-      return res.status(400).json({ message: "Date is required" });
-    }
+    if (!date) return res.status(400).json({ message: "Date is required" });
 
-    const [rows] = await db.query(
-      `
+    const [rows] = await db.query(`
       SELECT COUNT(DISTINCT cc.chapter_id) AS completedCount
       FROM chapter_completion cc
       JOIN chapters ch ON cc.chapter_id = ch.chapter_id
@@ -279,49 +269,32 @@ export const getStudentDayProgress = async (req, res) => {
         AND DATE(cc.completed_at) = DATE(?)
         AND cc.completed = 1
       GROUP BY cc.chapter_id
-      HAVING 
-        -- All materials in this chapter are completed on this date
-        COUNT(cm.material_id) = COUNT(mc.material_id)
-        AND COUNT(cm.material_id) > 0  -- Ensure chapter has materials
-      `,
-      [custom_id, date, custom_id, date]
-    );
+      HAVING COUNT(cm.material_id) = COUNT(mc.material_id)
+        AND COUNT(cm.material_id) > 0
+    `, [custom_id, date, custom_id, date]);
 
     const completedCount = rows.length;
-
-    res.json({
-      custom_id,
-      date,
-      completed_chapters: completedCount
-    });
-
+    res.json({ custom_id, date, completed_chapters: completedCount });
   } catch (err) {
     console.error("Error fetching student day progress:", err);
     res.status(500).json({ message: "Error fetching student day progress" });
   }
 };
 
-
-
-
-// -------------------------------------------------------
-// 2️⃣ GET REMAINING CHAPTERS
-// -------------------------------------------------------
+// ------------------------
+// Get remaining chapters for a student in a course
+// ------------------------
 export const getRemainingChapters = async (req, res) => {
   try {
-    const db = await connectDB();  // ✔ Same placement as leaderboard
-
+    const db = await connectDB();
     const { custom_id } = req.params;
     const { course_id } = req.query;
 
     if (!custom_id || !course_id) {
-      return res
-        .status(400)
-        .json({ message: "custom_id and course_id are required" });
+      return res.status(400).json({ message: "custom_id and course_id are required" });
     }
 
-    const [rows] = await db.query(
-      `
+    const [rows] = await db.query(`
       SELECT 
         c.chapter_id,
         c.chapter_name
@@ -335,28 +308,11 @@ export const getRemainingChapters = async (req, res) => {
             AND progress_percent = 100
         )
       ORDER BY c.chapter_id
-      `,
-      [course_id, custom_id]
-    );
+    `, [course_id, custom_id]);
 
-    res.json({
-      custom_id,
-      course_id,
-      remaining_chapters: rows
-    });
-
+    res.json({ custom_id, course_id, remaining_chapters: rows });
   } catch (err) {
     console.error("Error fetching remaining chapters:", err);
     res.status(500).json({ message: "Error fetching remaining chapters" });
   }
 };
-
-
-
-
-
-
-
-
-
-

@@ -372,17 +372,17 @@ const MyCourse = () => {
     const handleScroll = () => {
       if (!scrollTarget || completed.has(lesson.key)) return;
 
-      console.log("📜 PDF Scroll detected"); // Debug log
+      // console.log("📜 PDF Scroll detected"); // Debug log
 
       const { scrollTop, scrollHeight, clientHeight } = scrollTarget;
       const scrollPercent = scrollHeight > clientHeight
         ? (scrollTop / (scrollHeight - clientHeight)) * 100
         : 0;
 
-      console.log(`📜 Scroll: ${scrollPercent.toFixed(1)}%`); // Debug log
+      // console.log(`📜 Scroll: ${scrollPercent.toFixed(1)}%`); // Debug log
 
       if (scrollPercent >= 95) { // Reduced threshold for reliability
-        console.log("✅ PDF Scroll complete triggered!");
+        // console.log("✅ PDF Scroll complete triggered!");
         markLessonComplete(lesson);
       }
     };
@@ -404,7 +404,7 @@ const MyCourse = () => {
       for (const selector of selectors) {
         const element = lessonContentRef.current.querySelector(selector);
         if (element && element.scrollHeight > element.clientHeight) {
-          console.log(`📍 Found scroll container: ${selector}`);
+          // console.log(`📍 Found scroll container: ${selector}`);
           return element;
         }
       }
@@ -413,12 +413,12 @@ const MyCourse = () => {
       const scrollables = lessonContentRef.current.querySelectorAll('*');
       for (const el of Array.from(scrollables)) {
         if (el.scrollHeight > el.clientHeight + 20 && el.scrollHeight > 100) {
-          console.log(`📍 Found fallback scroll container:`, el);
+          // console.log(`📍 Found fallback scroll container:`, el);
           return el;
         }
       }
 
-      console.log("❌ No scroll container found");
+      // console.log("❌ No scroll container found");
       return lessonContentRef.current; // Ultimate fallback
     };
 
@@ -429,7 +429,7 @@ const MyCourse = () => {
     const attemptScrollSetup = () => {
       scrollTarget = findScrollContainer();
       if (scrollTarget) {
-        console.log("🎯 Scroll target locked:", scrollTarget);
+        // console.log("🎯 Scroll target locked:", scrollTarget);
         
         // Remove any existing listeners first
         scrollTarget.removeEventListener("scroll", scrollHandler);
@@ -444,7 +444,7 @@ const MyCourse = () => {
       
       if (retryCount < maxRetries) {
         retryCount++;
-        console.log(`🔄 Retry ${retryCount}/${maxRetries} for scroll container...`);
+        // console.log(`🔄 Retry ${retryCount}/${maxRetries} for scroll container...`);
         setTimeout(attemptScrollSetup, 500);
       }
       
