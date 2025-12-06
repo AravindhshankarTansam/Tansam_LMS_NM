@@ -41,6 +41,8 @@ export default function AddLessonPage() {
   const [chapterName, setChapterName] = useState("");
   const [materials, setMaterials] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
+  const [chapterInfo, setChapterInfo] = useState(null);
+
 
   const UPLOADS_BASE =
     import.meta.env.VITE_UPLOADS_BASE || "http://localhost:5000/uploads";
@@ -49,29 +51,31 @@ export default function AddLessonPage() {
   // Fetch chapter & materials
   // ===========================
   useEffect(() => {
-    if (!chapterId) return;
+  if (!chapterId) return;
 
-    fetch(`${CHAPTER_API}/id/${chapterId}`, { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => setChapterName(data.chapter_name || ""))
-      .catch(console.error);
+  fetch(`${CHAPTER_API}/id/${chapterId}`, { credentials: "include" })
+    .then((res) => res.json())
+    .then((data) => {
+      setChapterName(data.chapter_name || "");
+      setChapterInfo(data);   // ⬅️ store complete chapter (includes order_index)
+    })
+    .catch(console.error);
 
-    fetch(`${CHAPTER_API}/${chapterId}/materials`, { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) =>
-        setMaterials(
-          (data || []).map((m) => ({
-            id: m.material_id,
-            material_type: m.material_type,
-            file: null,
-            file_name: m.file_name,
-            file_path: m.file_path,
-          }))
-        )
+  fetch(`${CHAPTER_API}/${chapterId}/materials`, { credentials: "include" })
+    .then((res) => res.json())
+    .then((data) =>
+      setMaterials(
+        (data || []).map((m) => ({
+          id: m.material_id,
+          material_type: m.material_type,
+          file: null,
+          file_name: m.file_name,
+          file_path: m.file_path,
+        }))
       )
-      .catch(console.error);
+    )
+    .catch(console.error);
 
-     // Fetch quizzes
   fetch(`${QUIZ_API}/${chapterId}`, { credentials: "include" })
     .then(res => res.json())
     .then(data =>
@@ -87,6 +91,7 @@ export default function AddLessonPage() {
     )
     .catch(console.error);
 }, [chapterId]);
+
 
   // ===========================
   // Material handlers
@@ -151,6 +156,9 @@ export default function AddLessonPage() {
     const formData = new FormData();
     formData.append("module_id", moduleId);
     formData.append("chapter_name", chapterName);
+    formData.append("order_index", chapterInfo?.order_index || 0); 
+
+
 
     // 1️⃣ Prepare arrays for file IDs and types
     const materialIds = [];

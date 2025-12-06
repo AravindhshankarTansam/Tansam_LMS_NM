@@ -37,7 +37,7 @@ const DashboardContent = () => {
         );
         const jsonCourses = await resCourses.json();
 
-        console.log("RAW COURSES RESPONSE:", jsonCourses);
+        // console.log("RAW COURSES RESPONSE:", jsonCourses);
 
         // Fetch backend progress (percentage)
         const resProgress = await fetch(

@@ -81,22 +81,77 @@ export const getChaptersByModule = async (req, res) => {
 };
 
 // ✅ Update chapter name or order
+// assumes: connectDB(), fs imported, and your multer/express file middleware stores files in req.files
 export const updateChapter = async (req, res) => {
   const db = await connectDB();
   const { chapter_id } = req.params;
+  // Note: req.body fields might be strings (from form-data)
   const { chapter_name, order_index, existing_materials, material_ids, material_types } = req.body;
-  const files = req.files; // uploaded files
+  const files = req.files || [];
 
   if (!chapter_id) return res.status(400).json({ message: "❌ chapter_id is required" });
 
   try {
-    // 1️⃣ Update chapter name & order_index
-    await db.query(
-      `UPDATE chapters SET chapter_name = ?, order_index = ? WHERE chapter_id = ?`,
-      [chapter_name || "", order_index || 0, chapter_id]
+    // 0️⃣ Get current chapter & current order_index
+    const [[currentChapter]] = await db.query(
+      `SELECT chapter_id, module_id, order_index FROM chapters WHERE chapter_id = ?`,
+      [chapter_id]
     );
+    if (!currentChapter) return res.status(404).json({ message: "❌ Chapter not found" });
 
-    // 2️⃣ Parse existing materials array
+    const oldIndex = Number(currentChapter.order_index) || 0;
+    const newIndexProvided = typeof order_index !== "undefined" && order_index !== null && order_index !== "";
+    const newIndex = newIndexProvided ? Number(order_index) : oldIndex;
+
+    // 1️⃣ Update chapter_name and order_index ONLY if provided
+    const updates = [];
+    const params = [];
+    if (typeof chapter_name !== "undefined") {
+      updates.push("chapter_name = ?");
+      params.push(chapter_name);
+    }
+    if (newIndexProvided) {
+      updates.push("order_index = ?");
+      params.push(newIndex);
+    }
+
+    if (updates.length > 0) {
+      params.push(chapter_id);
+      const sql = `UPDATE chapters SET ${updates.join(", ")} WHERE chapter_id = ?`;
+      await db.query(sql, params);
+    }
+
+    // 2️⃣ If order_index changed, shift other chapters in the same module
+    if (newIndexProvided && newIndex !== oldIndex) {
+      const moduleId = currentChapter.module_id;
+      // normalize indexes to start from 1 (optional) — adjust as your app expects
+      // We'll shift others to make room for the moved chapter
+      if (newIndex > oldIndex) {
+        // moved down: decrement intermediate chapters
+        await db.query(
+          `UPDATE chapters SET order_index = order_index - 1
+           WHERE module_id = ? AND order_index > ? AND order_index <= ? AND chapter_id <> ?`,
+          [moduleId, oldIndex, newIndex, chapter_id]
+        );
+      } else {
+        // moved up: increment intermediate chapters
+        await db.query(
+          `UPDATE chapters SET order_index = order_index + 1
+           WHERE module_id = ? AND order_index >= ? AND order_index < ? AND chapter_id <> ?`,
+          [moduleId, newIndex, oldIndex, chapter_id]
+        );
+      }
+      // ensure unique ordering remains contiguous if you want: reassign 1..N optionally
+      const [remaining] = await db.query(
+        `SELECT chapter_id FROM chapters WHERE module_id=? ORDER BY order_index ASC`,
+        [moduleId]
+      );
+      for (let i = 0; i < remaining.length; i++) {
+        await db.query(`UPDATE chapters SET order_index=? WHERE chapter_id=?`, [i + 1, remaining[i].chapter_id]);
+      }
+    }
+
+    // 3️⃣ Parse existing_materials which could be JSON string or array
     let existingMaterialsArr = [];
     if (existing_materials) {
       try {
@@ -104,65 +159,99 @@ export const updateChapter = async (req, res) => {
           ? existing_materials
           : JSON.parse(existing_materials);
       } catch (err) {
-        console.error("❌ Failed to parse existing_materials", err);
-        existingMaterialsArr = [];
+        // fallback: maybe frontend sent a single JSON object or CSV
+        if (typeof existing_materials === "string") {
+          try {
+            existingMaterialsArr = [JSON.parse(existing_materials)];
+          } catch (e2) {
+            existingMaterialsArr = [];
+          }
+        } else {
+          existingMaterialsArr = [];
+        }
       }
     }
 
-    // 3️⃣ Fetch all current materials from DB
-    const [currentMaterials] = await db.query(
-      `SELECT * FROM chapter_materials WHERE chapter_id = ? ORDER BY material_id ASC`,
-      [chapter_id]
-    );
-
-    // 4️⃣ Update existing materials without new files
+    // 4️⃣ Update material_type for existing materials that have no new file
     for (let m of existingMaterialsArr) {
+      if (!m || typeof m.id === "undefined") continue;
       await db.query(
-        `UPDATE chapter_materials SET material_type = ? WHERE material_id = ?`,
-        [m.material_type, m.id]
+        `UPDATE chapter_materials SET material_type = ? WHERE material_id = ? AND chapter_id = ?`,
+        [m.material_type || null, m.id, chapter_id]
       );
     }
 
-    // 5️⃣ Update existing materials that have new files
- if (files && files.length > 0) {
-  const fileIds = Array.isArray(material_ids) ? material_ids : [material_ids];
-  const fileTypes = Array.isArray(material_types) ? material_types : [material_types];
+    // 5️⃣ Handle uploaded files: material_ids / material_types could be single or arrays
+    if (files.length > 0) {
+      const fileIds = Array.isArray(material_ids) ? material_ids : (material_ids ? [material_ids] : []);
+      const fileTypes = Array.isArray(material_types) ? material_types : (material_types ? [material_types] : []);
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const id = fileIds[i];  // this could be a frontend-generated ID
-    const material_type = fileTypes[i];
-
-    const existsInDB = currentMaterials.some(m => m.material_id == id);
-
-    const file_size_kb = (file.size / 1024).toFixed(2);
-
-    if (existsInDB) {
-      // UPDATE existing material
-      const oldMaterial = currentMaterials.find(mat => mat.material_id == id);
-      if (oldMaterial && fs.existsSync(oldMaterial.file_path)) fs.unlinkSync(oldMaterial.file_path);
-
-      await db.query(
-        `UPDATE chapter_materials SET material_type=?, file_name=?, file_path=?, file_size_kb=? WHERE material_id=?`,
-        [material_type, file.originalname, file.path, file_size_kb, id]
+      // fetch current materials for this chapter
+      const [currentMaterials] = await db.query(
+        `SELECT material_id, file_path FROM chapter_materials WHERE chapter_id = ? ORDER BY material_id ASC`,
+        [chapter_id]
       );
-    } else {
-      // INSERT new material
-      await db.query(
-        `INSERT INTO chapter_materials (chapter_id, material_type, file_name, file_path, file_size_kb)
-         VALUES (?, ?, ?, ?, ?)`,
-        [chapter_id, material_type, file.originalname, file.path, file_size_kb]
-      );
+
+      // track new DB-inserted material ids to return
+      const insertedMaterialIds = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const rawId = fileIds[i]; // might be undefined or a frontend-generated id
+        const material_type = fileTypes[i] || null;
+        const isNumericId = rawId && !Number.isNaN(Number(rawId)) && Number(rawId) > 0;
+        // find matching DB row if numeric id
+        const existsInDB = isNumericId && currentMaterials.some((m) => Number(m.material_id) === Number(rawId));
+
+        const file_size_kb = Number((file.size / 1024).toFixed(2));
+
+        if (existsInDB) {
+          // UPDATE existing material row and remove old file if present
+          const oldMaterial = currentMaterials.find((m) => Number(m.material_id) === Number(rawId));
+          try {
+            if (oldMaterial && oldMaterial.file_path && fs.existsSync(oldMaterial.file_path)) {
+              fs.unlinkSync(oldMaterial.file_path);
+            }
+          } catch (e) {
+            console.warn("Failed to unlink old file", e.message);
+          }
+
+          await db.query(
+            `UPDATE chapter_materials SET material_type=?, file_name=?, file_path=?, file_size_kb=?, upload_date=NOW() WHERE material_id=?`,
+            [material_type, file.originalname, file.path, file_size_kb, rawId]
+          );
+        } else {
+          // treat as NEW material (either frontend-generated temp id or no id)
+          const [result] = await db.query(
+            `INSERT INTO chapter_materials (chapter_id, material_type, file_name, file_path, file_size_kb)
+             VALUES (?, ?, ?, ?, ?)`,
+            [chapter_id, material_type, file.originalname, file.path, file_size_kb]
+          );
+          // result.insertId or result[0].insertId depending on driver — normalize:
+          const insertId = result && (result.insertId || result[0]?.insertId) ? (result.insertId || result[0].insertId) : (result.insertId ?? null);
+          insertedMaterialIds.push(insertId);
+        }
+      }
+
+      // optional: return insertedMaterialIds to the client so it can replace its temp ids
+      if (insertedMaterialIds.length) {
+        // send into response object later (we'll include in res.json)
+        // store for final response
+        req._insertedMaterialIds = insertedMaterialIds;
+      }
     }
-  }
-}
 
-    res.json({ message: "✅ Chapter & materials updated successfully", chapter_id });
+    // 6️⃣ success response (include new inserted material ids if any)
+    const responsePayload = { message: "✅ Chapter & materials updated successfully", chapter_id };
+    if (req._insertedMaterialIds) responsePayload.inserted_material_ids = req._insertedMaterialIds;
+
+    res.json(responsePayload);
   } catch (err) {
     console.error("❌ Error updating chapter:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 // ✅ Delete chapter + materials
 export const deleteChapter = async (req, res) => {
