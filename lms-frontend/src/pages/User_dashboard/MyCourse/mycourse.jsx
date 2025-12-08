@@ -809,7 +809,13 @@ const MyCourse = () => {
                   <div key={activeTab} className="tab-animation">
                     {activeTab === "overview" && <p>{course.overview || "No overview available."}</p>}
 
-                    {activeTab === "description" && <p>{course.description || "No description available."}</p>}
+                    {activeTab === "description" && (
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: course.description || "<p>No description available.</p>",
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
