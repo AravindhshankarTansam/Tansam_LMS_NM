@@ -15,13 +15,17 @@ export const enrollCourse = async (req, res) => {
     const db = await connectDB();
 
     // 🔍 Check if already enrolled
-    const [existing] = await db.execute(
-      "SELECT * FROM course_enrollments WHERE custom_id = ? AND course_id = ?",
+    // In enrollCourse function
+    const [existingRows, fields] = await db.execute(
+      // ← Fix this too
+      "SELECT 1 FROM course_enrollments WHERE custom_id = ? AND course_id = ? LIMIT 1",
       [custom_id, course_id]
     );
 
-    if (existing.length > 0) {
-      return res.status(400).json({ message: "Already enrolled in this course" });
+    if (existingRows.length > 0) {
+      return res
+        .status(400)
+        .json({ message: "Already enrolled in this course" });
     }
 
     // ⏰ Set 3-month deadline (from current date)
@@ -35,9 +39,9 @@ export const enrollCourse = async (req, res) => {
       [custom_id, course_id, completion_deadline]
     );
 
-    res.json({ 
+    res.json({
       message: "✅ Enrollment successful",
-      expires_on: completion_deadline.toISOString().split("T")[0]
+      expires_on: completion_deadline.toISOString().split("T")[0],
     });
   } catch (error) {
     console.error("❌ Error enrolling course:", error.message);
@@ -52,10 +56,11 @@ export const enrollCourse = async (req, res) => {
  */
 export const getUserEnrollments = async (req, res) => {
   try {
-    const custom_id = req.user.custom_id; // ✅ use user from middleware
+    const custom_id = req.user.custom_id;
     const db = await connectDB();
 
-    const [rows] = await db.execute(
+    // FIX THIS LINE – THIS IS THE BUG
+    const [rows, fields] = await db.execute(  // ← Add "fields"
       `SELECT e.*, c.course_name, c.description, c.thumbnail,
               CASE WHEN NOW() > e.completion_deadline THEN TRUE ELSE FALSE END AS is_expired
        FROM course_enrollments e
@@ -64,9 +69,9 @@ export const getUserEnrollments = async (req, res) => {
       [custom_id]
     );
 
-    res.json(rows);
+    res.json(rows); // ← This will now return the array you want
   } catch (error) {
-    console.error("❌ Error fetching enrollments:", error.message);
+    console.error("Error fetching enrollments:", error.message);
     res.status(500).json({ message: "Error fetching enrollments" });
   }
 };
@@ -76,17 +81,17 @@ export const getEnrolledCourse = async (req, res) => {
     const { courseId } = req.params;
     const db = await connectDB();
 
-    const [rows] = await db.execute(
-      `SELECT e.enrollment_id, e.completion_deadline, e.completed,
-              c.course_id, c.course_name, c.description, c.course_image, c.course_video,
-              IFNULL(p.progress_percent,0) AS progress_percent
-       FROM course_enrollments e
-       JOIN courses c ON e.course_id = c.course_id
-       LEFT JOIN user_progress p 
-              ON p.course_id = c.course_id AND p.custom_id = e.custom_id
-       WHERE e.custom_id = ? AND e.course_id = ?`,
-      [custom_id, courseId]
-    );
+ const [rows, fields] = await db.execute(
+   `SELECT e.enrollment_id, e.completion_deadline, e.completed,
+          c.course_id, c.course_name, c.description, c.course_image, c.course_video,
+          IFNULL(p.progress_percent,0) AS progress_percent
+   FROM course_enrollments e
+   JOIN courses c ON e.course_id = c.course_id
+   LEFT JOIN user_progress p 
+          ON p.course_id = c.course_id AND p.custom_id = e.custom_id
+   WHERE e.custom_id = ? AND e.course_id = ?`,
+   [custom_id, courseId]
+ );
 
     if (!rows.length) return res.status(404).json({ message: "Course not found or not enrolled" });
     res.json(rows[0]);
@@ -106,10 +111,10 @@ export const verifyCourseAccess = async (req, res, next) => {
 
   try {
     const db = await connectDB();
-    const [rows] = await db.execute(
-      "SELECT * FROM course_enrollments WHERE custom_id = ? AND course_id = ?",
-      [custom_id, course_id]
-    );
+ const [rows, fields] = await db.execute(
+   "SELECT * FROM course_enrollments WHERE custom_id = ? AND course_id = ?",
+   [custom_id, course_id]
+ );
 
     if (rows.length === 0) {
       return res.status(403).json({ message: "User not enrolled in this course" });

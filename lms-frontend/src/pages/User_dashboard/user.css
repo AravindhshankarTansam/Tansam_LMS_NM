@@ -887,3 +887,20 @@
 .start-learning-btn:active {
   transform: translateY(1px);
 }
+
+
+.animate-bounce {
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+.day-status-expanded {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  padding: 16px;
+  backdrop-filter: blur(8px);
+}
