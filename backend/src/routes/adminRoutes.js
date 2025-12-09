@@ -8,7 +8,6 @@ import {
   getTopLearnersByCourse,
   getOverallLeaderboard,
   getStudentDayProgress,         // ⭐ NEW
-  getRemainingChapters    // ⭐ NEW
 } from "../controllers/userController.js";
 
 const router = express.Router();
@@ -31,7 +30,7 @@ router.get("/leaderboard", getOverallLeaderboard);
 router.get("/student/:custom_id/progress/day", getStudentDayProgress);
 
 // 🔹 Remaining chapters for a student
-router.get("/student/:custom_id/remaining-chapters", getRemainingChapters);
+// router.get("/student/:custom_id/remaining-chapters", getRemainingChapters);
 
 
 export default router;

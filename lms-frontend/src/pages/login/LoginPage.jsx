@@ -69,23 +69,28 @@ const handleSubmit = async (e) => {
           }),
         });
 
-        const enrollData = await enrollRes.json();
-
-        // -----------------------------------------
-        // ⭐ FIXED ENROLLMENT LOGIC
-        // -----------------------------------------
-        if (enrollRes.status === 400 || enrollRes.status === 409) {
-          setError("Already enrolled");
-          navigate("/course-player");
-          return;
-        }
+              const enrollData = await enrollRes.json();
 
         if (!enrollRes.ok) {
-          setError(enrollData.error || "Enrollment failed");
+          // This handles 400 (already enrolled), 500, etc.
+          const message = enrollData.message || "Enrollment failed";
+
+          if (message.includes("Already enrolled")) {
+            setError("You are already enrolled in this course. Redirecting...");
+            setTimeout(() => {
+              navigate("/course-player");
+            }, 2000); // Show message for 2 seconds, then go to course
+          } else {
+            setError(message);
+          }
           return;
         }
 
-        navigate("/course-player");
+        // Fresh enrollment success
+        setError("Enrollment successful! Redirecting...");
+        setTimeout(() => {
+          navigate("/course-player");
+        }, 1200);
         return;
       } catch (err) {
         console.error("Enrollment error:", err);
