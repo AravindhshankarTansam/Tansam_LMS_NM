@@ -37,8 +37,6 @@ const DashboardContent = () => {
         );
         const jsonCourses = await resCourses.json();
 
-        // console.log("RAW COURSES RESPONSE:", jsonCourses);
-
         // Fetch backend progress (percentage)
         const resProgress = await fetch(
           `${DASHBOARD_API}/progress/${custom_id}`,
@@ -54,7 +52,7 @@ const DashboardContent = () => {
           });
         }
 
-        // FIXED: Match backend output
+        // Merge courses with progress
         if (Array.isArray(jsonCourses.courses)) {
           const mergedCourses = (jsonCourses.courses || []).map((course) => ({
             ...course,
@@ -77,29 +75,32 @@ const DashboardContent = () => {
     fetchDashboard();
   }, []);
 
-  // Fetch daily completion
+  // Fetch daily completion for a specific date
   const fetchDayData = async (dateKey) => {
     try {
       const custom_id = userData?.profile?.custom_id;
-      if (!custom_id) return;
+      if (!custom_id || !dateKey) return;
 
       const res = await fetch(
-        `${ADMIN_API}/student/${custom_id}/progress/day?date=${dateKey}`
+        `${ADMIN_API}/student/${custom_id}/progress/day?date=${dateKey}`,
+        { credentials: "include" }
       );
+
       const json = await res.json();
-   const completedCount = Number(json.completed_chapters) || 0;
 
-setDailyCompletion((prev) => ({
-  ...prev,
-  [dateKey]: completedCount,
-}));
-
+      // Store only total_completed_modules
+      setDailyCompletion((prev) => ({
+        ...prev,
+        [dateKey]: {
+          total_completed_modules: json.completed_modules || 0,
+        },
+      }));
     } catch (err) {
       console.error("Error fetching day data:", err);
     }
   };
 
-  // Automatically fetch completion counts for all displayed days
+  // Automatically fetch completion counts for all displayed days (kept as is)
   useEffect(() => {
     if (!userData?.profile?.custom_id) return;
 
@@ -179,13 +180,10 @@ setDailyCompletion((prev) => ({
               <p>No enrolled courses found.</p>
             ) : (
               coursesProgress.map((course) => {
-                const { course_id, course_name, modules = [], progressPercent } =
-                  course;
+                const { course_id, course_name, modules = [], progressPercent } = course;
 
                 const totalModules = modules.length;
-                const completedModules = modules.filter(
-                  (m) => m.isCompleted
-                ).length;
+                const completedModules = modules.filter((m) => m.isCompleted).length;
                 const remainingModules = totalModules - completedModules;
                 const moduleProgressPercent = progressPercent || 0;
 
@@ -208,9 +206,7 @@ setDailyCompletion((prev) => ({
                         modules.map((mod, i) => (
                           <div
                             key={i}
-                            className={`chapter-item ${
-                              mod.isCompleted ? "completed" : "locked"
-                            }`}
+                            className={`chapter-item ${mod.isCompleted ? "completed" : "locked"}`}
                           >
                             {mod.isCompleted ? (
                               <FaCheckCircle className="chapter-icon completed-icon" />
@@ -233,9 +229,7 @@ setDailyCompletion((prev) => ({
                             style={{ width: `${moduleProgressPercent}%` }}
                           ></div>
                         </div>
-                        <span className="progress-text">
-                          {moduleProgressPercent}% completed
-                        </span>
+                        <span className="progress-text">{moduleProgressPercent}% completed</span>
                       </div>
 
                       <button
@@ -262,35 +256,48 @@ setDailyCompletion((prev) => ({
 
               {displayedDays.map((day, i) => {
                 const isActive = selectedDay?.dateKey === day.dateKey;
-                const completedCount = dailyCompletion[day.dateKey] || 0;
 
                 return (
                   <div
                     key={i}
-                    className={`day-card ${
-                      isActive ? "active" : ""
-                    } ${day.isToday ? "today" : ""}`}
+                    className={`day-card ${isActive ? "active" : ""} ${day.isToday ? "today" : ""}`}
                     onClick={() => handleDayClick(day)}
                   >
                     <h4>{day.dateNum}</h4>
                     <p>
                       {day.month} <br /> {day.weekday}
                     </p>
-                    {day.isToday && (
-                      <span className="today-badge">Today</span>
+                    {day.isToday && <span className="today-badge">Today</span>}
+
+                    {/* Mini completion count: only for selected day */}
+                    {isActive && (
+                      <div className="day-status-mini">
+                        {dailyCompletion[day.dateKey]?.total_completed_modules > 0 ? (
+                          <span className="text-green-400 font-bold">
+                            {dailyCompletion[day.dateKey].total_completed_modules} module
+                            {dailyCompletion[day.dateKey].total_completed_modules > 1 ? "s" : ""} completed
+                          </span>
+                        ) : (
+                          "0 completed"
+                        )}
+                      </div>
                     )}
 
-                    <div className="day-status-mini">
-                      {completedCount > 0
-                        ? `${completedCount} completed`
-                        : `0 completed`}
-                    </div>
-
+                    {/* Expanded completion view */}
                     {isActive && (
-                      <div className="day-status">
-                        {completedCount > 0
-                          ? `You’ve completed ${completedCount} chapters`
-                          : "No chapters completed"}
+                      <div className="day-status-expanded mt-4">
+                        {dailyCompletion[day.dateKey]?.total_completed_modules > 0 ? (
+                          <div className="text-center">
+                            <div className="text-2xl mb-3 animate-bounce inline-block">🏆</div>
+                            <div className="text-lg font-bold text-yellow-300">Congratulations!</div>
+                            <div className="text-xl mt-2 text-green-300">
+                              You completed {dailyCompletion[day.dateKey].total_completed_modules} module
+                              {dailyCompletion[day.dateKey].total_completed_modules > 1 ? "s" : ""} today!
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center text-gray-400">No modules completed today</div>
+                        )}
                       </div>
                     )}
                   </div>

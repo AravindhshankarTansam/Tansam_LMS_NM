@@ -246,73 +246,134 @@ export const getOverallLeaderboard = async (req, res) => {
 
 // ------------------------
 // Get day-wise completed chapters
-// ------------------------
 export const getStudentDayProgress = async (req, res) => {
+  const { custom_id } = req.params;
+  const { date } = req.query; // YYYY-MM-DD
+
+  if (!date) {
+    return res.status(400).json({ message: "Date query parameter is required" });
+  }
+
   try {
     const db = await connectDB();
-    const { custom_id } = req.params;
-    const { date } = req.query;
 
-    if (!date) return res.status(400).json({ message: "Date is required" });
+    // 1️⃣ Get all enrolled course_ids for this user
+    const [enrolledCourses] = await db.execute(
+      `SELECT course_id FROM course_enrollments WHERE custom_id = ?`,
+      [custom_id]
+    );
 
-    const [rows] = await db.query(`
-      SELECT COUNT(DISTINCT cc.chapter_id) AS completedCount
-      FROM chapter_completion cc
-      JOIN chapters ch ON cc.chapter_id = ch.chapter_id
-      LEFT JOIN chapter_materials cm ON ch.chapter_id = cm.chapter_id
-      LEFT JOIN material_completion mc 
-        ON mc.custom_id = ? 
-        AND mc.chapter_id = ch.chapter_id 
-        AND DATE(mc.completed_at) = DATE(?)
-        AND mc.material_id = cm.material_id
-      WHERE cc.custom_id = ?
-        AND DATE(cc.completed_at) = DATE(?)
-        AND cc.completed = 1
-      GROUP BY cc.chapter_id
-      HAVING COUNT(cm.material_id) = COUNT(mc.material_id)
-        AND COUNT(cm.material_id) > 0
-    `, [custom_id, date, custom_id, date]);
+    if (enrolledCourses.length === 0) {
+      return res.status(200).json({ custom_id, date, completed_modules: 0 });
+    }
 
-    const completedCount = rows.length;
-    res.json({ custom_id, date, completed_chapters: completedCount });
-  } catch (err) {
-    console.error("Error fetching student day progress:", err);
-    res.status(500).json({ message: "Error fetching student day progress" });
+    const courseIds = enrolledCourses.map(c => c.course_id);
+
+    // 2️⃣ Get all modules for these courses
+    const [modules] = await db.execute(
+      `SELECT module_id, course_id FROM modules WHERE course_id IN (${courseIds.join(",")})`
+    );
+
+    if (modules.length === 0) {
+      return res.status(200).json({ custom_id, date, completed_modules: 0 });
+    }
+
+    const moduleIds = modules.map(m => m.module_id);
+
+    // 3️⃣ Modules WITHOUT quiz — must complete all materials on selected date
+    const [noQuizCompleted] = await db.execute(
+      `
+      SELECT COUNT(*) AS count
+      FROM (
+        SELECT m.module_id
+        FROM modules m
+        JOIN chapters c ON c.module_id = m.module_id
+        LEFT JOIN quizzes q ON q.chapter_id = c.chapter_id
+        JOIN chapter_materials cm ON cm.chapter_id = c.chapter_id
+        LEFT JOIN material_completion mc 
+               ON mc.material_id = cm.material_id
+              AND mc.custom_id = ?
+              AND DATE(mc.completed_at) = ?
+        WHERE m.module_id IN (${moduleIds.join(",")})
+          AND q.quiz_id IS NULL
+        GROUP BY m.module_id
+        HAVING COUNT(cm.material_id) = COUNT(mc.material_id)
+      ) AS x
+      `,
+      [custom_id, date]
+    );
+
+    // 4️⃣ Modules WITH quiz — must pass all quizzes on selected date
+    const [withQuizCompleted] = await db.execute(
+      `
+      SELECT COUNT(*) AS count
+      FROM (
+        SELECT m.module_id
+        FROM modules m
+        JOIN chapters c ON c.module_id = m.module_id
+        JOIN quizzes q ON q.chapter_id = c.chapter_id
+        JOIN quiz_results qr 
+             ON qr.quiz_id = q.quiz_id
+            AND qr.custom_id = ?
+            AND qr.is_correct = 1
+            AND DATE(qr.attempted_at) = ?
+        WHERE m.module_id IN (${moduleIds.join(",")})
+        GROUP BY m.module_id
+        HAVING COUNT(q.quiz_id) = COUNT(qr.quiz_id)
+      ) AS y
+      `,
+      [custom_id, date]
+    );
+
+    const completed_modules = noQuizCompleted[0].count + withQuizCompleted[0].count;
+
+    return res.status(200).json({ custom_id, date, completed_modules });
+
+  } catch (error) {
+    console.error("Error in getStudentDayProgress:", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message
+    });
   }
 };
+
+
+
+
 
 // ------------------------
 // Get remaining chapters for a student in a course
 // ------------------------
-export const getRemainingChapters = async (req, res) => {
-  try {
-    const db = await connectDB();
-    const { custom_id } = req.params;
-    const { course_id } = req.query;
+// export const getRemainingChapters = async (req, res) => {
+//   try {
+//     const db = await connectDB();
+//     const { custom_id } = req.params;
+//     const { course_id } = req.query;
 
-    if (!custom_id || !course_id) {
-      return res.status(400).json({ message: "custom_id and course_id are required" });
-    }
+//     if (!custom_id || !course_id) {
+//       return res.status(400).json({ message: "custom_id and course_id are required" });
+//     }
 
-    const [rows] = await db.query(`
-      SELECT 
-        c.chapter_id,
-        c.chapter_name
-      FROM chapters c
-      JOIN modules m ON c.module_id = m.module_id
-      WHERE m.course_id = ?
-        AND c.chapter_id NOT IN (
-          SELECT chapter_id
-          FROM quiz_results
-          WHERE custom_id = ?
-            AND progress_percent = 100
-        )
-      ORDER BY c.chapter_id
-    `, [course_id, custom_id]);
+//     const [rows] = await db.query(`
+//       SELECT 
+//         c.chapter_id,
+//         c.chapter_name
+//       FROM chapters c
+//       JOIN modules m ON c.module_id = m.module_id
+//       WHERE m.course_id = ?
+//         AND c.chapter_id NOT IN (
+//           SELECT chapter_id
+//           FROM quiz_results
+//           WHERE custom_id = ?
+//             AND progress_percent = 100
+//         )
+//       ORDER BY c.chapter_id
+//     `, [course_id, custom_id]);
 
-    res.json({ custom_id, course_id, remaining_chapters: rows });
-  } catch (err) {
-    console.error("Error fetching remaining chapters:", err);
-    res.status(500).json({ message: "Error fetching remaining chapters" });
-  }
-};
+//     res.json({ custom_id, course_id, remaining_chapters: rows });
+//   } catch (err) {
+//     console.error("Error fetching remaining chapters:", err);
+//     res.status(500).json({ message: "Error fetching remaining chapters" });
+//   }
+// };
