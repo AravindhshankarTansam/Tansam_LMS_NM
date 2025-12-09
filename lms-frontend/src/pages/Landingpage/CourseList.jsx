@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { TextField, Chip, Button, Box, Autocomplete, Paper } from "@mui/material";
 import ClearAllIcon from "@mui/icons-material/ClearAll";
 import { useNavigate } from "react-router-dom";
+import DOMPurify from "dompurify";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
@@ -61,7 +62,36 @@ const CoursesPage = () => {
 
   return (
     <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
-      <h1 style={{ textAlign: "center", marginBottom: "20px" }}>All our Courses</h1>
+      
+      {/* Heading and Back Button */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          position: "relative",
+          marginBottom: "20px",
+        }}
+      >
+        <h1 style={{ margin: 0, textAlign: "center", width: "100%" }}>All our Courses</h1>
+        <button
+          onClick={() => navigate("/")}
+          style={{
+            position: "absolute",
+            right: 0,
+            padding: "10px 20px",
+            borderRadius: "8px",
+            border: "none",
+            backgroundColor: "#1976d2",
+            color: "#fff",
+            fontWeight: 500,
+            cursor: "pointer",
+          }}
+        >
+          Back
+        </button>
+      </div>
+
 
       {/* Search Box */}
       <Paper elevation={3} style={{ padding: "16px", borderRadius: "12px", marginBottom: "20px" }}>
@@ -151,7 +181,9 @@ const CoursesPage = () => {
                   marginBottom: "10px",
                   fontSize: "0.9rem",
                 }}
-                dangerouslySetInnerHTML={{ __html: course.description || "" }}
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(course.description || "")
+                }}
               />
               <p style={{ fontWeight: "bold", marginBottom: "10px" }}>
                 {course.pricing_type === "free" ? "Free" : `₹${course.price_amount}`}

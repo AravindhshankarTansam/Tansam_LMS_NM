@@ -7,7 +7,7 @@ import PlansSection from "./PlansSection";
 import FAQ from "./FAQ.jsx";
 import { ArrowDropUp } from "@mui/icons-material"; 
 import { CircularProgress } from "@mui/material";
-
+import DOMPurify from "dompurify";
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
 
@@ -19,8 +19,6 @@ const LandingPage = () => {
   const coursesPerPage = 9; // 3x3 grid (9 courses per page)
    const [showTopBtn, setShowTopBtn] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0); // 0 to 100
-
-  
 
 
  useEffect(() => {
@@ -268,8 +266,10 @@ const changePage = (page) => {
                   {/* Description - 3 lines only, NOT clickable */}
                   <div
                     className="description"
-                    dangerouslySetInnerHTML={{ __html: course.description || "" }}
-                    onClick={(e) => e.stopPropagation()}   // This prevents any click action
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(course.description || "")
+                    }}
+                    onClick={(e) => e.stopPropagation()} // prevents any click action
                   />
 
                   {/* Price text - just display, not clickable */}

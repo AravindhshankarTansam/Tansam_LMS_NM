@@ -16,6 +16,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import "./CourseDetails.css";
 import herologo from "../../assets/tansamoldlogo.png";
+import DOMPurify from "dompurify";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE;
@@ -130,7 +131,7 @@ const CourseDetails = () => {
         {/* FULL HTML DESCRIPTION WITH READ MORE */}
         <div
           className={`cd-description ${readMore ? "expand" : ""}`}
-          dangerouslySetInnerHTML={{ __html: course.description || "" }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(course.description || "") }}
           onClick={() => setReadMore(!readMore)}
         />
 
