@@ -4,6 +4,7 @@ import Sidebar from "../Sidebar/sidebar";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import DOMPurify from "dompurify";
 import {
   CheckCircle,
   Circle,
@@ -24,6 +25,8 @@ import {
   QUIZ_API,
   PROGRESS_API,
 } from "../../../config/apiConfig";
+
+
 
 import IconButton from "@mui/material/IconButton";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
@@ -219,6 +222,13 @@ const MyCourse = () => {
     }
   };
 
+const getFileNameWithoutExt = (fileName) => {
+  if (!fileName) return "";
+  return fileName.replace(/\.[^/.]+$/, ""); // removes .pdf, .pptx, .docx, etc.
+};
+
+
+
   const buildLessons = () => {
     const list = [];
 
@@ -235,13 +245,21 @@ const MyCourse = () => {
           list.push({
             key: `${chap.chapter_id}_mat${mat.material_id}`,
             material_id: mat.material_id,
-            title: chap.chapter_name,
+
+            // ✅ use file name instead of chapter name for materials
+            title:
+              ["pdf", "ppt", "pptx", "doc", "docx", "image"].includes(mat.material_type)
+                ? getFileNameWithoutExt(mat.file_name)
+                : chap.chapter_name,
+
+
             type: mat.material_type,
             src: mat.file_path,
             module_id: mod.module_id,
             chapter_id: chap.chapter_id,
             countForProgress: ["video", "pdf", "ppt", "doc", "image"].includes(mat.material_type),
           });
+
         });
 
         // Quiz
@@ -803,13 +821,19 @@ const MyCourse = () => {
                   </div>
                 </div>
 
+
                 <div className="tabs-divider"></div>
 
                 <div className="tabs-content">
                   <div key={activeTab} className="tab-animation">
                     {activeTab === "overview" && <p>{course.overview || "No overview available."}</p>}
 
-                    {activeTab === "description" && <p>{course.description || "No description available."}</p>}
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: DOMPurify.sanitize(course.description || "No description available."),
+                      }}
+                    ></div>
+
                   </div>
                 </div>
               </div>

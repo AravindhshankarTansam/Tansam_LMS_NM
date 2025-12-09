@@ -265,6 +265,39 @@
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  
+  max-height: calc(100vh - 150px); /* adjust for header, breadcrumbs, etc. */
+  overflow-y: auto;
+}
+
+
+.lessons-list .lesson-item {
+  display: flex;
+  justify-content: space-between; /* spreads title and overview */
+  align-items: flex-start;
+}
+
+.lessons-list .lesson-item .overview {
+  flex: 1;
+  margin-left: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis; /* optional: truncate if too long */
+}
+
+
+/* Custom scrollbar for lessons list */
+.lessons-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lessons-list::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.lessons-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
 }
 
 .lessons-list h3 {
@@ -311,9 +344,28 @@
   color: #ef4444;
 }
 
+/* Sub-lessons */
 .sub-lessons {
   padding-left: 28px;
   margin-top: 8px;
+
+  max-height: 250px;       /* limit height for long sub-lesson list */
+  overflow-y: auto;        /* enable scrolling */
+}
+
+/* Custom scrollbar for sub-lessons */
+.sub-lessons::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sub-lessons::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.sub-lessons::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 3px;
 }
 
 .sub-lesson {
