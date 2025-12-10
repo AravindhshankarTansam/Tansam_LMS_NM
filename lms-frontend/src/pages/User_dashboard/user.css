@@ -868,7 +868,7 @@
 
 /* Start Learning Button */
 .start-learning-btn {
-  background: #5561ee;
+  background: #009999;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -880,7 +880,7 @@
 }
 
 .start-learning-btn:hover {
-  background: #3f4cd9;
+  background: #009999;
   transform: translateY(-2px);
 }
 
@@ -903,4 +903,77 @@
   border-radius: 12px;
   padding: 16px;
   backdrop-filter: blur(8px);
+}
+
+
+/* 
+pagination */
+/* ========== DASHBOARD PAGINATION - EXACTLY LIKE LANDING PAGE ========== */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin: 40px 0 20px;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  padding: 10px 20px;
+  background: transparent;
+  color: #666;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 80px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #009999;
+  color: white;
+  border-color: #009999;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: #aaa;
+}
+
+.page-box {
+  width: 44px;
+  height: 44px;
+  border: 2px solid #009999;
+  background: white;
+  color: #009999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.page-box:hover {
+  background: #009999;
+  color: white;
+}
+
+.page-box.active {
+  background: #009999 !important;
+  color: white !important;
+  font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0, 153, 153, 0.3);
+}
+
+.pagination-dots {
+  color: #999;
+  font-weight: bold;
+  font-size: 18px;
+  padding: 0 8px;
 }
