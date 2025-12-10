@@ -18,6 +18,8 @@ const DashboardContent = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [dailyCompletion, setDailyCompletion] = useState({});
   const [activeCourse, setActiveCourse] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+const coursesPerPage = 3;
 
   // Fetch user + courses progress
   useEffect(() => {
@@ -142,6 +144,39 @@ const DashboardContent = () => {
   };
 
   if (loading) return <p>Loading user dashboard...</p>;
+  // Pagination logic
+const indexOfLastCourse = currentPage * coursesPerPage;
+const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
+const currentCourses = coursesProgress.slice(indexOfFirstCourse, indexOfLastCourse);
+
+const totalPages = Math.ceil(coursesProgress.length / coursesPerPage);
+
+// Generate page numbers (e.g., 1 2 3 ... 10)
+const getPageNumbers = () => {
+  const pages = [];
+  const maxVisible = 5;
+
+  if (totalPages <= maxVisible) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    if (currentPage <= 3) {
+      for (let i = 1; i <= 4; i++) pages.push(i);
+      pages.push("...");
+      pages.push(totalPages);
+    } else if (currentPage >= totalPages - 2) {
+      pages.push(1);
+      pages.push("...");
+      for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      pages.push("...");
+      for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+      pages.push("...");
+      pages.push(totalPages);
+    }
+  }
+  return pages;
+};
 
   const profile = userData?.profile || {};
   const fullName = profile.full_name || "User";
@@ -176,74 +211,133 @@ const DashboardContent = () => {
 
           {/* Courses Progress */}
           <div className="main-cards">
-            {coursesProgress.length === 0 ? (
-              <p>No enrolled courses found.</p>
-            ) : (
-              coursesProgress.map((course) => {
-                const { course_id, course_name, modules = [], progressPercent } = course;
+          {coursesProgress.length === 0 ? (
+  <p>No enrolled courses found.</p>
+) : currentCourses.length === 0 ? (
+  <p>No courses on this page.</p>
+) : (
+  currentCourses.map((course) => {
+    const { course_id, course_name, modules = [], progressPercent } = course;
 
-                const totalModules = modules.length;
-                const completedModules = modules.filter((m) => m.isCompleted).length;
-                const remainingModules = totalModules - completedModules;
-                const moduleProgressPercent = progressPercent || 0;
+    const totalModules = modules.length;
+    const completedModules = modules.filter((m) => m.isCompleted).length;
+    const remainingModules = totalModules - completedModules;
 
-                return (
-                  <div
-                    className="progress-card"
-                    key={course_id}
-                    onClick={() => setActiveCourse(course)}
-                  >
-                    <h3>{course_name}</h3>
+    return (
+      <div
+        className="progress-card"
+        key={course_id}
+        onClick={() => setActiveCourse(course)}
+      >
+        <h3>{course_name}</h3>
 
-                    <div className="progress-summary">
-                      <p>📚 Total Modules: {totalModules}</p>
-                      <p>✅ Completed Modules: {completedModules}</p>
-                      <p>🔒 Remaining Modules: {remainingModules}</p>
-                    </div>
+        <div className="progress-summary">
+          <p>Total Modules: {totalModules}</p>
+          <p>Completed Modules: {completedModules}</p>
+          <p>Remaining Modules: {remainingModules}</p>
+        </div>
 
-                    <div className="overlay-scroll">
-                      {modules.length > 0 ? (
-                        modules.map((mod, i) => (
-                          <div
-                            key={i}
-                            className={`chapter-item ${mod.isCompleted ? "completed" : "locked"}`}
-                          >
-                            {mod.isCompleted ? (
-                              <FaCheckCircle className="chapter-icon completed-icon" />
-                            ) : (
-                              <FaLock className="chapter-icon locked-icon" />
-                            )}
-                            <span>{mod.module_name}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <p>No modules found</p>
-                      )}
-                    </div>
+      <div className="overlay-scroll modules-preview">
+  {modules.length === 0 ? (
+    <p className="no-modules-text">No modules available</p>
+  ) : (
+    <div className="modules-list">
+      {/* Always show first 3 modules (completed or locked) */}
+      {modules.slice(0, 3).map((mod, i) => (
+        <div
+          key={i}
+          className={`chapter-item ${mod.isCompleted ? "completed" : "locked"}`}
+        >
+          {mod.isCompleted ? (
+            <FaCheckCircle className="chapter-icon completed-icon" />
+          ) : (
+            <FaLock className="chapter-icon locked-icon" />
+          )}
+          <span>{mod.module_name}</span>
+        </div>
+      ))}
 
-                    <div className="card-bottom-row">
-                      <div className="progress-bar-container-horizontal">
-                        <div className="progress-bar-bg">
-                          <div
-                            className="progress-bar-fill"
-                            style={{ width: `${moduleProgressPercent}%` }}
-                          ></div>
-                        </div>
-                        <span className="progress-text">{moduleProgressPercent}% completed</span>
-                      </div>
+      {/* Show remaining modules (4th onwards) only if exist → will trigger scroll */}
+      {modules.length > 3 && (
+        <div className="more-modules-hidden">
+          {modules.slice(3).map((mod, i) => (
+            <div
+              key={i + 3}
+              className={`chapter-item ${mod.isCompleted ? "completed" : "locked"}`}
+            >
+              {mod.isCompleted ? (
+                <FaCheckCircle className="chapter-icon completed-icon" />
+              ) : (
+                <FaLock className="chapter-icon locked-icon" />
+              )}
+              <span>{mod.module_name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )}
+</div>
 
-                      <button
-                        className="start-learning-btn"
-                        onClick={() => navigate(`/mycourse/${course_id}`)}
-                      >
-                        Start Learning
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+        <div className="card-bottom-row">
+          <div className="progress-bar-container-horizontal">
+            <div className="progress-bar-bg">
+              <div
+                className="progress-bar-fill"
+                style={{ width: `${progressPercent || 0}%` }}
+              ></div>
+            </div>
+            <span className="progress-text">{progressPercent || 0}% completed</span>
           </div>
+
+          <button
+            className="start-learning-btn"
+            onClick={(e) => {
+              e.stopPropagation(); // prevent card click
+              navigate(`/mycourse/${course_id}`);
+            }}
+          >
+            Start Learning
+          </button>
+        </div>
+      </div>
+    );
+  })
+)}
+          </div>
+        {coursesProgress.length > coursesPerPage && (
+  <div className="pagination">
+    <button
+      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+      disabled={currentPage === 1}
+      className="pagination-btn"
+    >
+      Prev
+    </button>
+
+    {getPageNumbers().map((page, index) =>
+      page === "..." ? (
+        <span key={index} className="pagination-dots">...</span>
+      ) : (
+        <button
+          key={index}
+          onClick={() => setCurrentPage(page)}
+          className={`page-box ${currentPage === page ? "active" : ""}`}
+        >
+          {page}
+        </button>
+      )
+    )}
+
+    <button
+      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+      disabled={currentPage === totalPages}
+      className="pagination-btn"
+    >
+      Next
+    </button>
+  </div>
+)}
 
           {/* Timetable */}
           <div className="timetable-section">
