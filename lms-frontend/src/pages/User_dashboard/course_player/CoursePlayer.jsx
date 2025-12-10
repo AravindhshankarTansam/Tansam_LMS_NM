@@ -12,12 +12,15 @@ export default function CoursePlayer() {
 
   const [courses, setCourses] = useState([]);
   const [filteredCourses, setFilteredCourses] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const coursesPerPage = 12;
 
+  // Fetch courses
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -29,13 +32,53 @@ export default function CoursePlayer() {
         setFilteredCourses(data);
       } catch (err) {
         console.error("Error fetching courses:", err);
-      } finally {
-        setLoading(false);
       }
     };
     fetchCourses();
   }, []);
 
+  // Fetch current user
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        setUser(data.user);
+      } catch (err) {
+        console.error("Error fetching user:", err);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  // Fetch user enrollments
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchEnrollments = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/dashboard/enrollments`, {
+          credentials: "include",
+        });
+        const data = await res.json();
+        setEnrollments(data);
+      } catch (err) {
+        console.error("Error fetching enrollments:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEnrollments();
+  }, [user]);
+
+  // Helper to check if course is enrolled
+  const isEnrolled = (courseId) => {
+    return enrollments.some((e) => e.course_id === courseId);
+  };
+
+  // Apply filters
   const applyFilters = (searchValue, categoryValue) => {
     let result = courses;
 
@@ -98,44 +141,50 @@ export default function CoursePlayer() {
                   value={search}
                   onChange={(e) => handleSearch(e.target.value)}
                 />
-                {/* <select
-                  className="cp-filter-dropdown"
-                  value={category}
-                  onChange={(e) => handleCategory(e.target.value)}
-                >
-                  <option value="all">All Categories</option>
-                  <option value="engineering">Engineering</option>
-                  <option value="computer science">Computer Science</option>
-                  <option value="iot">IoT</option>
-                  <option value="ai">AI</option>
-                </select> */}
               </div>
             </div>
 
             <div className="cp-course-grid">
               {currentCourses.length === 0 && <p>No matching courses found.</p>}
 
-              {currentCourses.map((course) => (
-                <div className="cp-card" key={course.course_id}>
-                  <img
-                    src={`${UPLOADS_BASE}/${course.course_image?.replace(/^.*uploads\//, "")}`}
-                    alt={course.course_name}
-                    className="cp-img"
-                    onError={(e) => (e.target.src = "/fallback.jpg")}
-                  />
-                  <div className="cp-info">
-                    <h3>{course.course_name}</h3>
-                      <p
-    dangerouslySetInnerHTML={{
-      __html: course.description || ""
-    }}
-  ></p>
-                    <button className="cp-start-btn" onClick={() => openCourse(course)}>
-                      Start Learning
-                    </button>
+              {currentCourses.map((course) => {
+                const enrolled = isEnrolled(course.course_id);
+
+                return (
+                  <div className="cp-card" key={course.course_id}>
+                    <img
+                      src={`${UPLOADS_BASE}/${course.course_image?.replace(/^.*uploads\//, "")}`}
+                      alt={course.course_name}
+                      className="cp-img"
+                      onError={(e) => (e.target.src = "/fallback.jpg")}
+                    />
+                    <div className="cp-info">
+                      <h3>{course.course_name}</h3>
+                      <p dangerouslySetInnerHTML={{ __html: course.description || "" }}></p>
+
+                      {enrolled ? (
+                        <button
+                          className="cp-start-btn"
+                          onClick={() => openCourse(course)}
+                        >
+                          Start Learning
+                        </button>
+                      ) : (
+                        <button
+                          className="cp-enroll-btn"
+                          onClick={() =>
+                            navigate("/login", {
+                              state: { fromEnroll: true, courseId: course.course_id },
+                            })
+                          }
+                        >
+                          Enroll
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="cp-pagination">

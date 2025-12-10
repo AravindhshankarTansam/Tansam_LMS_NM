@@ -30,12 +30,35 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // ✅ Generate JWT
-    const token = jwt.sign(
-      { email: user.email, username: user.username, role: user.role ,custom_id: user.custom_id, },
-      JWT_SECRET,
-      { expiresIn: "10d" }
-    );
+   // Determine which table to fetch custom_id from
+let custom_id = null;
+if (user.role === "student") {
+  const [detailRows] = await db.execute(
+    "SELECT custom_id FROM student_details WHERE user_email = ?",
+    [user.email]
+  );
+  custom_id = detailRows[0]?.custom_id || null;
+}
+
+// Generate JWT with correct custom_id
+const token = jwt.sign(
+  { 
+    email: user.email, 
+    username: user.username, 
+    role: user.role,
+    custom_id // ✅ comes from student_details
+  },
+  JWT_SECRET,
+  { expiresIn: "10d" }
+);
+
+
+
+// 🔍 Log token payload to verify custom_id
+const decoded = jwt.verify(token, JWT_SECRET);
+console.log("✅ JWT payload:", decoded);
+
+
 
     // ✅ Set cookie (NEW)
     res.cookie("token", token, {

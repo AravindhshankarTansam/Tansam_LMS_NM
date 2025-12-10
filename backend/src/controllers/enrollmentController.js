@@ -54,27 +54,33 @@ export const enrollCourse = async (req, res) => {
  * ✅ Get all enrolled courses for a student
  * Includes expiry check — expired courses will be flagged.
  */
+/**
+ * ✅ Get all enrolled courses for a student
+ * Includes expiry check — expired courses will be flagged.
+ */
 export const getUserEnrollments = async (req, res) => {
   try {
+    if (!req.user || !req.user.custom_id) {
+      return res.status(401).json({
+        message: "Unauthorized - custom_id missing from token",
+      });
+    }
+
     const custom_id = req.user.custom_id;
     const db = await connectDB();
 
-    // FIX THIS LINE – THIS IS THE BUG
-    const [rows, fields] = await db.execute(  // ← Add "fields"
-      `SELECT e.*, c.course_name, c.description, c.thumbnail,
-              CASE WHEN NOW() > e.completion_deadline THEN TRUE ELSE FALSE END AS is_expired
-       FROM course_enrollments e
-       JOIN courses c ON e.course_id = c.course_id
-       WHERE e.custom_id = ?`,
+    const [rows] = await db.execute(
+      "SELECT * FROM course_enrollments WHERE custom_id = ?",
       [custom_id]
     );
 
-    res.json(rows); // ← This will now return the array you want
+    return res.status(200).json(rows);
   } catch (error) {
-    console.error("Error fetching enrollments:", error.message);
-    res.status(500).json({ message: "Error fetching enrollments" });
+    console.error("Error fetching enrollments:", error);
+    res.status(500).json({ message: "Server error fetching enrollments" });
   }
 };
+
 export const getEnrolledCourse = async (req, res) => {
   try {
     const custom_id = req.user.custom_id;
