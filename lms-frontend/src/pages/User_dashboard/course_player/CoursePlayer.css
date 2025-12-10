@@ -478,3 +478,19 @@
 @media (max-width: 480px) {
   .cp-course-grid { grid-template-columns: 1fr; }
 }
+/* ENROLL BUTTON */
+.cp-enroll-btn {
+  margin-top: auto; /* ensures button is always at the bottom */
+  background-color: #00b894; /* same green as Start Learning */
+  color: #fff;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cp-enroll-btn:hover {
+  background-color: #019f82; /* same hover effect as Start Learning */
+}
