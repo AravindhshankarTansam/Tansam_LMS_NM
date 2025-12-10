@@ -237,25 +237,47 @@ const getPageNumbers = () => {
           <p>Remaining Modules: {remainingModules}</p>
         </div>
 
-        <div className="overlay-scroll">
-          {modules.length > 0 ? (
-            modules.map((mod, i) => (
-              <div
-                key={i}
-                className={`chapter-item ${mod.isCompleted ? "completed" : "locked"}`}
-              >
-                {mod.isCompleted ? (
-                  <FaCheckCircle className="chapter-icon completed-icon" />
-                ) : (
-                  <FaLock className="chapter-icon locked-icon" />
-                )}
-                <span>{mod.module_name}</span>
-              </div>
-            ))
+      <div className="overlay-scroll modules-preview">
+  {modules.length === 0 ? (
+    <p className="no-modules-text">No modules available</p>
+  ) : (
+    <div className="modules-list">
+      {/* Always show first 3 modules (completed or locked) */}
+      {modules.slice(0, 3).map((mod, i) => (
+        <div
+          key={i}
+          className={`chapter-item ${mod.isCompleted ? "completed" : "locked"}`}
+        >
+          {mod.isCompleted ? (
+            <FaCheckCircle className="chapter-icon completed-icon" />
           ) : (
-            <p>No modules found</p>
+            <FaLock className="chapter-icon locked-icon" />
           )}
+          <span>{mod.module_name}</span>
         </div>
+      ))}
+
+      {/* Show remaining modules (4th onwards) only if exist → will trigger scroll */}
+      {modules.length > 3 && (
+        <div className="more-modules-hidden">
+          {modules.slice(3).map((mod, i) => (
+            <div
+              key={i + 3}
+              className={`chapter-item ${mod.isCompleted ? "completed" : "locked"}`}
+            >
+              {mod.isCompleted ? (
+                <FaCheckCircle className="chapter-icon completed-icon" />
+              ) : (
+                <FaLock className="chapter-icon locked-icon" />
+              )}
+              <span>{mod.module_name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )}
+</div>
 
         <div className="card-bottom-row">
           <div className="progress-bar-container-horizontal">
