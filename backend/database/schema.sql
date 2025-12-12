@@ -195,8 +195,8 @@ CREATE TABLE IF NOT EXISTS course_enrollments (
   enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
   custom_id VARCHAR(50) NOT NULL,
   course_id INT NOT NULL,
-  -- enrollment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-  completion_deadline DATETIME,
+  enrollment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+  -- completion_deadline DATETIME,
   completed BOOLEAN DEFAULT FALSE,
   FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
 );
@@ -306,6 +306,6 @@ CREATE TABLE IF NOT EXISTS staff_details (
   image_path TEXT,
   course_id INT,
   FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE SET NULL,
-  FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
+FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
   
 );
