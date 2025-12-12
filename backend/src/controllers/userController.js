@@ -33,16 +33,16 @@ export const addUser = async (req, res) => {
 // ------------------------
 // Get all users
 // ------------------------
-export const getUsers = async (req, res) => {
-  try {
-    const db = await connectDB();
-    const [users] = await db.query("SELECT * FROM users ORDER BY created_at DESC");
-    res.json(users);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Error fetching users" });
-  }
-};
+// export const getUsers = async (req, res) => {
+//   try {
+//     const db = await connectDB();
+//     const [users] = await db.query("SELECT * FROM users ORDER BY created_at DESC");
+//     res.json(users);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: "Error fetching users" });
+//   }
+// };
 
 // ------------------------
 // Get total students
@@ -377,3 +377,4 @@ export const getStudentDayProgress = async (req, res) => {
 //     res.status(500).json({ message: "Error fetching remaining chapters" });
 //   }
 // };
+

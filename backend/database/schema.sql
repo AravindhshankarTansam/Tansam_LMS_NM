@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) PRIMARY KEY,
   username VARCHAR(100) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('superadmin', 'admin', 'student') NOT NULL,
+  role ENUM('superadmin', 'admin', 'student','staff') NOT NULL,
   status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
   created_by VARCHAR(255),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS course_enrollments (
   enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
   custom_id VARCHAR(50) NOT NULL,
   course_id INT NOT NULL,
-  enrollment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+  -- enrollment_date DATETIME DEFAULT CURRENT_TIMESTAMP,
   completion_deadline DATETIME,
   completed BOOLEAN DEFAULT FALSE,
   FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
@@ -295,4 +295,17 @@ CREATE TABLE IF NOT EXISTS chapter_completion (
   UNIQUE KEY unique_user_chapter (custom_id, chapter_id),
   FOREIGN KEY (chapter_id) REFERENCES chapters(chapter_id) ON DELETE CASCADE,
   FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
+);
+
+
+CREATE TABLE IF NOT EXISTS staff_details (
+  user_email VARCHAR(255) NOT NULL PRIMARY KEY,
+  custom_id VARCHAR(50) UNIQUE,
+  full_name VARCHAR(255),
+  mobile_number VARCHAR(20),
+  image_path TEXT,
+  course_id INT,
+  FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE SET NULL,
+  FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
+  
 );

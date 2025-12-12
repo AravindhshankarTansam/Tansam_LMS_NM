@@ -52,52 +52,26 @@ const handleSubmit = async (e) => {
     // ------------------------------------------------
     // 1️⃣ LOGIN FROM ENROLL BUTTON (SPECIAL RULES)
     // ------------------------------------------------
-    if (fromEnroll && courseId) {
-      if (role !== "student") {
-        setError("You are an admin not provisioned to student access.");
-        return;
-      }
 
-      try {
-        const enrollRes = await fetch(ENROLLMENT_API, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            custom_id: user.profile.custom_id,
-            course_id: courseId,
-          }),
-        });
+if (fromEnroll && courseId) {
 
-              const enrollData = await enrollRes.json();
+  // ❌ Superadmin/Admin cannot enroll
+  if (role !== "student" && role !== "staff") {
+    setError("You are not allowed to access this course.");
+    return;
+  }
 
-        if (!enrollRes.ok) {
-          // This handles 400 (already enrolled), 500, etc.
-          const message = enrollData.message || "Enrollment failed";
+  // ✔ Student or Staff coming from Enroll button
+  // 👉 Directly redirect with message (NO enrollment call)
+  setError("You are already assigned a course. Redirecting...");
+  
+  setTimeout(() => {
+    navigate("/course-player");
+  }, 1500);
 
-          if (message.includes("Already enrolled")) {
-            setError("You are already enrolled in this course. Redirecting...");
-            setTimeout(() => {
-              navigate("/course-player");
-            }, 2000); // Show message for 2 seconds, then go to course
-          } else {
-            setError(message);
-          }
-          return;
-        }
+  return;
+}
 
-        // Fresh enrollment success
-        setError("Enrollment successful! Redirecting...");
-        setTimeout(() => {
-          navigate("/course-player");
-        }, 1200);
-        return;
-      } catch (err) {
-        console.error("Enrollment error:", err);
-        setError("Enrollment failed");
-        return;
-      }
-    }
 
     // ------------------------------------------------
     // 2️⃣ NORMAL LOGIN (WORKS EXACTLY AS BEFORE)
@@ -107,10 +81,12 @@ const handleSubmit = async (e) => {
       return;
     }
 
-    if (role === "student") {
-      navigate("/userdashboard");
-      return;
-    }
+    if (role === "student" || role === "staff") {
+    // if(role==="staff") {
+  navigate("/course-player");
+  return;
+}
+
 
     navigate("/");
 
