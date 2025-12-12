@@ -6,13 +6,13 @@ import { generateCustomId } from "../utils/generateCustomId.js";
 
 // ✅ Add new use
 export const addUser = async (req, res) => {
-  const { email, username, password, role, full_name, mobile_number, course_id } = req.body; // include course_id
+  const { email, username, password, role, full_name, mobile_number, course_id } = req.body;
   let image_path = req.file ? req.file.path : null;
 
   try {
     const db = await connectDB();
 
-    // Check if user already exists
+    // Check if existing user
     const [existingRows] = await db.execute("SELECT * FROM users WHERE email = ?", [email]);
     if (existingRows.length > 0) {
       return res.status(400).json({ message: "Email already exists" });
@@ -21,7 +21,7 @@ export const addUser = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert into main users table
+    // Insert into users table
     await db.execute(
       "INSERT INTO users (email, username, password, role) VALUES (?, ?, ?, ?)",
       [email, username, hashedPassword, role]
@@ -30,7 +30,7 @@ export const addUser = async (req, res) => {
     // Generate custom ID
     const custom_id = await generateCustomId(role, full_name);
 
-    // Map role to details table
+    // Role → Table map
     const tableMap = {
       superadmin: "superadmin_details",
       admin: "admin_details",
@@ -39,39 +39,45 @@ export const addUser = async (req, res) => {
     };
     const table = tableMap[role] || "student_details";
 
-    // Process image path for URL if file exists
+    // Fix image path
     if (image_path) {
       const backendRoot = path.resolve("backend").replace(/\\/g, "/");
       image_path = image_path.replace(/\\/g, "/").replace(backendRoot + "/", "");
-      // image_path = `${req.protocol}://${req.get("host")}/${image_path}`;
     }
 
-    // Insert into role-specific details table
+    // Insert into table
     if (role === "staff") {
-      // ✅ Include course_id for staff
       await db.execute(
-        `INSERT INTO ${table} (user_email, custom_id, full_name, mobile_number, image_path, course_id)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO ${table}
+        (user_email, custom_id, full_name, mobile_number, image_path, course_id)
+        VALUES (?, ?, ?, ?, ?, ?)`,
         [email, custom_id, full_name, mobile_number, image_path, course_id]
       );
 
-      // ✅ Auto-enroll staff into the course
-      const completion_deadline = new Date();
-      completion_deadline.setMonth(completion_deadline.getMonth() + 3);
+      // =============================================================
+      // ✅ EXPLICIT ENROLL INSERT (WITH enrollment_date)
+      // Your schema: enrollment_date DATETIME DEFAULT CURRENT_TIMESTAMP
+      // But you want to save it manually → so we set it here
+      // =============================================================
+      const enrollment_date = new Date();
+
       await db.execute(
-        `INSERT INTO course_enrollments (custom_id, course_id, completion_deadline)
+        `INSERT INTO course_enrollments (custom_id, course_id, enrollment_date)
          VALUES (?, ?, ?)`,
-        [custom_id, course_id, completion_deadline]
+        [custom_id, course_id, enrollment_date]
       );
+
     } else {
       await db.execute(
-        `INSERT INTO ${table} (user_email, custom_id, full_name, mobile_number, image_path)
-         VALUES (?, ?, ?, ?, ?)`,
+        `INSERT INTO ${table}
+        (user_email, custom_id, full_name, mobile_number, image_path)
+        VALUES (?, ?, ?, ?, ?)`,
         [email, custom_id, full_name, mobile_number, image_path]
       );
     }
 
     res.json({ message: "✅ User created successfully", role, custom_id });
+
   } catch (err) {
     console.error("❌ Error creating user:", err);
     res.status(500).json({ message: "Error creating user" });
@@ -118,12 +124,23 @@ export const updateUser = async (req, res) => {
   try {
     const db = await connectDB();
 
-    // Find which table this custom_id belongs to
-    const tables = ["superadmin_details", "admin_details", "student_details"];
+    // -----------------------------
+    // 1️⃣ Map roles to tables
+    // -----------------------------
+    const tableMap = {
+      superadmin: "superadmin_details",
+      admin: "admin_details",
+      student: "student_details",
+      staff: "staff_details",
+    };
+
+    // -----------------------------
+    // 2️⃣ Find the user in details tables
+    // -----------------------------
     let foundUser = null;
     let table = null;
 
-    for (const t of tables) {
+    for (const t of Object.values(tableMap)) {
       const [rows] = await db.execute(`SELECT * FROM ${t} WHERE custom_id = ?`, [custom_id]);
       if (rows.length > 0) {
         foundUser = rows[0];
@@ -135,18 +152,26 @@ export const updateUser = async (req, res) => {
     if (!foundUser)
       return res.status(404).json({ message: "User not found" });
 
-    // Get base user record
-    const [userRows] = await db.execute("SELECT * FROM users WHERE email = ?", [foundUser.user_email]);
+    // -----------------------------
+    // 3️⃣ Get base user record
+    // -----------------------------
+    const [userRows] = await db.execute(
+      "SELECT * FROM users WHERE email = ?",
+      [foundUser.user_email]
+    );
+
     const user = userRows[0];
     if (!user)
       return res.status(404).json({ message: "User record missing in users table" });
 
-    // ✅ Hash password only if provided
-    const hashedPassword = password
-      ? await bcrypt.hash(password, 10)
-      : user.password;
+    // -----------------------------
+    // 4️⃣ Hash password if provided
+    // -----------------------------
+    const hashedPassword = password ? await bcrypt.hash(password, 10) : user.password;
 
-    // ✅ Build dynamic SQL for users table
+    // -----------------------------
+    // 5️⃣ Update users table dynamically
+    // -----------------------------
     const userUpdates = [];
     const userParams = [];
 
@@ -168,13 +193,16 @@ export const updateUser = async (req, res) => {
       await db.execute(`UPDATE users SET ${userUpdates.join(", ")} WHERE email = ?`, userParams);
     }
 
-    // ✅ Process image (clean up and delete old one if new provided)
+    // -----------------------------
+    // 6️⃣ Process image if provided
+    // -----------------------------
     if (image_path) {
       image_path = image_path.replace(/\\/g, "/");
       const backendRoot = path.resolve("backend").replace(/\\/g, "/");
       image_path = image_path.replace(backendRoot + "/", "");
       image_path = `${req.protocol}://${req.get("host")}/${image_path}`;
 
+      // Delete old image
       if (foundUser.image_path && foundUser.image_path !== image_path) {
         fs.unlink(foundUser.image_path, (err) => {
           if (err) console.warn("⚠️ Failed to delete old image:", err);
@@ -182,7 +210,9 @@ export const updateUser = async (req, res) => {
       }
     }
 
-    // ✅ Build dynamic SQL for details table
+    // -----------------------------
+    // 7️⃣ Update details table dynamically
+    // -----------------------------
     const detailUpdates = [];
     const detailParams = [];
 
@@ -213,6 +243,7 @@ export const updateUser = async (req, res) => {
     res.status(500).json({ message: "Error updating user" });
   }
 };
+;
 
 // ✅ Delete user (by custom_id)
 export const deleteUser = async (req, res) => {
@@ -221,18 +252,29 @@ export const deleteUser = async (req, res) => {
   try {
     const db = await connectDB();
 
-    const tables = ["superadmin_details", "admin_details", "student_details"];
-    let userDetail = null;
+    // Include ALL role tables
+    const tables = [
+      "superadmin_details",
+      "admin_details",
+      "student_details",
+      "staff_details"
+    ];
 
+    let userDetail = null;
+    let tableName = null;
+
+    // Find the user in the correct role table
     for (const t of tables) {
       const [rows] = await db.execute(`SELECT * FROM ${t} WHERE custom_id = ?`, [custom_id]);
       if (rows.length > 0) {
         userDetail = rows[0];
+        tableName = t;
         break;
       }
     }
 
-    if (!userDetail) return res.status(404).json({ message: "User not found" });
+    if (!userDetail)
+      return res.status(404).json({ message: "User not found" });
 
     // Delete profile image if exists
     if (userDetail.image_path) {
@@ -241,15 +283,32 @@ export const deleteUser = async (req, res) => {
       });
     }
 
-    // Delete from main users table (cascade handles details)
-    await db.execute("DELETE FROM users WHERE email = ?", [userDetail.user_email]);
+    // Delete enrollments (staff + student both)
+    await db.execute(
+      "DELETE FROM course_enrollments WHERE custom_id = ?",
+      [custom_id]
+    );
+
+    // Delete from role-specific details table
+    await db.execute(
+      `DELETE FROM ${tableName} WHERE custom_id = ?`,
+      [custom_id]
+    );
+
+    // Delete from main users table
+    await db.execute(
+      "DELETE FROM users WHERE email = ?",
+      [userDetail.user_email]
+    );
 
     res.json({ message: "🗑️ User deleted successfully" });
+
   } catch (err) {
     console.error("❌ Error deleting user:", err);
     res.status(500).json({ message: "Error deleting user" });
   }
 };
+
 
 
 
