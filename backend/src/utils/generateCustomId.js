@@ -20,12 +20,25 @@ export const generateCustomId = async (role, name = "") => {
   }
 
   
-  const [rows] = await db.execute(`SELECT COUNT(*) as count FROM ${table}`);
-  const nextNum = (rows[0].count || 0) + 1;
-  const paddedNum = String(nextNum).padStart(3, "0");
+ const [rows] = await db.execute(
+  `SELECT custom_id FROM ${table} WHERE custom_id LIKE ? ORDER BY custom_id DESC LIMIT 1`,
+  [`${prefix}%`]
+);
 
-  const namePart =
-    role === "student" && name ? "_" + name.toUpperCase().slice(0, 3) : "";
+let nextNum = 1;
 
-  return `${prefix}${namePart}${paddedNum}`;
+if (rows.length > 0) {
+  // Extract numeric part at the end
+  const lastId = rows[0].custom_id;
+  const match = lastId.match(/(\d+)$/);
+  if (match) nextNum = parseInt(match[1]) + 1;
+}
+
+const paddedNum = String(nextNum).padStart(3, "0");
+
+const namePart =
+  role === "student" && name ? "_" + name.toUpperCase().slice(0, 3) : "";
+
+return `${prefix}${namePart}${paddedNum}`;
+
 };
