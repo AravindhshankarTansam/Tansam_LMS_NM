@@ -1,6 +1,7 @@
 import express from "express";
-import { addUser, getUsers, updateUser, deleteUser } from "../controllers/adminController.js";
+import { addUser, getUsers, updateUser, deleteUser,getUsersByCourse ,getAllStaffUsers} from "../controllers/adminController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
+
 import { 
   getTotalStudents,
   getAllStudents,
@@ -31,6 +32,8 @@ router.get("/student/:custom_id/progress/day", getStudentDayProgress);
 
 // 🔹 Remaining chapters for a student
 // router.get("/student/:custom_id/remaining-chapters", getRemainingChapters);
+router.get("/users/course/:course_id", getUsersByCourse);
+router.get("/staff", getAllStaffUsers);
 
 
 export default router;

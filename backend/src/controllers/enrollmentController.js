@@ -14,37 +14,32 @@ export const enrollCourse = async (req, res) => {
 
     const db = await connectDB();
 
-    // 🔍 Check if already enrolled
-    // In enrollCourse function
-    const [existingRows, fields] = await db.execute(
-      // ← Fix this too
-      "SELECT 1 FROM course_enrollments WHERE custom_id = ? AND course_id = ? LIMIT 1",
-      [custom_id, course_id]
+    // Ensure course_id is an integer
+    const courseIdInt = parseInt(course_id, 10);
+    if (isNaN(courseIdInt)) {
+      return res.status(400).json({ message: "Invalid course ID" });
+    }
+
+    // ✅ Check if the user has already enrolled in any course
+    const [existingRows] = await db.execute(
+      "SELECT 1 FROM course_enrollments WHERE custom_id = ? LIMIT 1",
+      [custom_id]
     );
 
     if (existingRows.length > 0) {
-      return res
-        .status(400)
-        .json({ message: "Already enrolled in this course" });
+      return res.status(400).json({ message: "You have already enrolled in a course" });
     }
 
-    // ⏰ Set 3-month deadline (from current date)
-    const completion_deadline = new Date();
-    completion_deadline.setMonth(completion_deadline.getMonth() + 3);
-
-    // 📝 Insert enrollment
+    // Insert enrollment for the first course
     await db.execute(
-      `INSERT INTO course_enrollments (custom_id, course_id, completion_deadline)
-       VALUES (?, ?, ?)`,
-      [custom_id, course_id, completion_deadline]
+      `INSERT INTO course_enrollments (custom_id, course_id)
+       VALUES (?, ?)`,
+      [custom_id, courseIdInt]
     );
 
-    res.json({
-      message: "✅ Enrollment successful",
-      expires_on: completion_deadline.toISOString().split("T")[0],
-    });
+    res.json({ message: "✅ Enrollment successful" });
   } catch (error) {
-    console.error("❌ Error enrolling course:", error.message);
+    console.error("❌ Error enrolling course:", error);
     res.status(500).json({ message: "Error enrolling course" });
   }
 };

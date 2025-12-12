@@ -6,8 +6,6 @@ const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key_here";
 
 // 🔐 LOGIN CONTROLLER
 export const loginUser = async (req, res) => {
-  console.log("Login request body:", req.body);
-
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required" });
@@ -16,71 +14,64 @@ export const loginUser = async (req, res) => {
   try {
     const db = await connectDB();
 
-    // ✅ Fetch user by email
+    // Fetch user
     const [userRows] = await db.execute(`SELECT * FROM users WHERE email = ?`, [email]);
     const user = userRows[0];
+    if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
-    if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
-    }
-
-    // ✅ Check password
+    // Check password
     const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      return res.status(401).json({ error: "Invalid credentials" });
-    }
+    if (!valid) return res.status(401).json({ error: "Invalid credentials" });
 
-   // Determine which table to fetch custom_id from
-let custom_id = null;
-if (user.role === "student") {
-  const [detailRows] = await db.execute(
-    "SELECT custom_id FROM student_details WHERE user_email = ?",
-    [user.email]
-  );
-  custom_id = detailRows[0]?.custom_id || null;
-}
-
-// Generate JWT with correct custom_id
-const token = jwt.sign(
-  { 
-    email: user.email, 
-    username: user.username, 
-    role: user.role,
-    custom_id // ✅ comes from student_details
-  },
-  JWT_SECRET,
-  { expiresIn: "10d" }
-);
-
-
-
-// 🔍 Log token payload to verify custom_id
-const decoded = jwt.verify(token, JWT_SECRET);
-console.log("✅ JWT payload:", decoded);
-
-
-
-    // ✅ Set cookie (NEW)
-    res.cookie("token", token, {
-      httpOnly: true,                              // not accessible from JS
-      secure: process.env.NODE_ENV === "production", // use true only with HTTPS
-      sameSite: "Lax",                             // prevents CSRF in most cases
-      maxAge: 10 * 24 * 60 * 60 * 1000,            // 10 days
-    });
-
-    // ✅ Determine which table to fetch details from
-    const tableMap = {
+    // Determine table for custom_id and profile
+    const roleTableMap = {
       superadmin: "superadmin_details",
       admin: "admin_details",
       student: "student_details",
+      staff: "staff_details", // ✅ Add staff here
     };
-    const table = tableMap[user.role] || "student_details";
+    const table = roleTableMap[user.role];
 
-    // ✅ Fetch profile details
-    const [detailRows] = await db.execute(`SELECT * FROM ${table} WHERE user_email = ?`, [user.email]);
-    const details = detailRows[0] || {};
+    // Fetch custom_id
+    let custom_id = null;
+    if (table) {
+      const [detailRows] = await db.execute(
+        `SELECT custom_id FROM ${table} WHERE user_email = ?`,
+        [user.email]
+      );
+      custom_id = detailRows[0]?.custom_id || null;
+    }
 
-    // ✅ Response (keep token for backward compatibility)
+    // Generate JWT
+    const token = jwt.sign(
+      {
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        custom_id,
+      },
+      JWT_SECRET,
+      { expiresIn: "10d" }
+    );
+
+    // Set cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Lax",
+      maxAge: 10 * 24 * 60 * 60 * 1000,
+    });
+
+    // Fetch full profile
+    let profile = {};
+    if (table) {
+      const [profileRows] = await db.execute(
+        `SELECT * FROM ${table} WHERE user_email = ?`,
+        [user.email]
+      );
+      profile = profileRows[0] || {};
+    }
+
     res.json({
       message: "Login successful",
       token,
@@ -88,7 +79,7 @@ console.log("✅ JWT payload:", decoded);
         email: user.email,
         username: user.username,
         role: user.role,
-        profile: details,
+        profile,
       },
     });
   } catch (err) {
@@ -97,29 +88,32 @@ console.log("✅ JWT payload:", decoded);
   }
 };
 
-
 // ✅ Get logged-in user profile using token
 export const getCurrentUser = async (req, res) => {
   try {
     const db = await connectDB();
-    const { email } = req.user;
+    const { email, role } = req.user;
 
     const [userRows] = await db.execute("SELECT * FROM users WHERE email = ?", [email]);
     const user = userRows[0];
+    if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    const tableMap = {
+    const roleTableMap = {
       superadmin: "superadmin_details",
       admin: "admin_details",
       student: "student_details",
+      staff: "staff_details", // ✅ Add staff here
     };
-    const table = tableMap[user.role] || "student_details";
+    const table = roleTableMap[role];
 
-    const [profileRows] = await db.execute(`SELECT * FROM ${table} WHERE user_email = ?`, [email]);
-    const profile = profileRows[0] || {};
+    let profile = {};
+    if (table) {
+      const [profileRows] = await db.execute(
+        `SELECT * FROM ${table} WHERE user_email = ?`,
+        [email]
+      );
+      profile = profileRows[0] || {};
+    }
 
     res.json({
       user: {

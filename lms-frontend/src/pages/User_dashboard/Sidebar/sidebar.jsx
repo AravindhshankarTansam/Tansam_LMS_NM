@@ -43,13 +43,13 @@ const Sidebar = ({ activeCourse }) => {
 
       {/* ===== Menu ===== */}
       <div className="sidebar-menu">
-        <div
+        {/* <div
           className={`menu-item ${isActive("/userdashboard") ? "active" : ""}`}
           onClick={() => navigate("/userdashboard")}
           title="Dashboard"
         >
           <FaBook />
-        </div>
+        </div> */}
 
         <div
           className={`menu-item ${

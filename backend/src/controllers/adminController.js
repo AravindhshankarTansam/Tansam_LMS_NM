@@ -4,10 +4,10 @@ import { connectDB } from "../config/db.js";
 import path from "path";
 import { generateCustomId } from "../utils/generateCustomId.js";
 
-// ✅ Add new user
+// ✅ Add new use
 export const addUser = async (req, res) => {
-  const { email, username, password, role, full_name, mobile_number } = req.body;
-  const image_path = req.file ? req.file.path : null;
+  const { email, username, password, role, full_name, mobile_number, course_id } = req.body; // include course_id
+  let image_path = req.file ? req.file.path : null;
 
   try {
     const db = await connectDB();
@@ -18,26 +18,58 @@ export const addUser = async (req, res) => {
       return res.status(400).json({ message: "Email already exists" });
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert into main users table
     await db.execute(
       "INSERT INTO users (email, username, password, role) VALUES (?, ?, ?, ?)",
       [email, username, hashedPassword, role]
     );
 
+    // Generate custom ID
     const custom_id = await generateCustomId(role, full_name);
 
+    // Map role to details table
     const tableMap = {
       superadmin: "superadmin_details",
       admin: "admin_details",
       student: "student_details",
+      staff: "staff_details",
     };
     const table = tableMap[role] || "student_details";
 
-    await db.execute(
-      `INSERT INTO ${table} (user_email, custom_id, full_name, mobile_number, image_path)
-       VALUES (?, ?, ?, ?, ?)`,
-      [email, custom_id, full_name, mobile_number, image_path]
-    );
+    // Process image path for URL if file exists
+    if (image_path) {
+      const backendRoot = path.resolve("backend").replace(/\\/g, "/");
+      image_path = image_path.replace(/\\/g, "/").replace(backendRoot + "/", "");
+      // image_path = `${req.protocol}://${req.get("host")}/${image_path}`;
+    }
+
+    // Insert into role-specific details table
+    if (role === "staff") {
+      // ✅ Include course_id for staff
+      await db.execute(
+        `INSERT INTO ${table} (user_email, custom_id, full_name, mobile_number, image_path, course_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [email, custom_id, full_name, mobile_number, image_path, course_id]
+      );
+
+      // ✅ Auto-enroll staff into the course
+      const completion_deadline = new Date();
+      completion_deadline.setMonth(completion_deadline.getMonth() + 3);
+      await db.execute(
+        `INSERT INTO course_enrollments (custom_id, course_id, completion_deadline)
+         VALUES (?, ?, ?)`,
+        [custom_id, course_id, completion_deadline]
+      );
+    } else {
+      await db.execute(
+        `INSERT INTO ${table} (user_email, custom_id, full_name, mobile_number, image_path)
+         VALUES (?, ?, ?, ?, ?)`,
+        [email, custom_id, full_name, mobile_number, image_path]
+      );
+    }
 
     res.json({ message: "✅ User created successfully", role, custom_id });
   } catch (err) {
@@ -45,6 +77,7 @@ export const addUser = async (req, res) => {
     res.status(500).json({ message: "Error creating user" });
   }
 };
+
 
 // ✅ Get all users (merged view)
 export const getUsers = async (req, res) => {
@@ -63,8 +96,12 @@ export const getUsers = async (req, res) => {
       `SELECT u.email, u.username, u.role, s.* 
        FROM users u JOIN student_details s ON u.email = s.user_email`
     );
+    const [staff] = await db.execute(
+      `SELECT u.email, u.username, u.role, s.* 
+       FROM users u JOIN staff_details s ON u.email = s.user_email`
+    );
 
-    const users = [...superadmins, ...admins, ...students];
+    const users = [...superadmins, ...admins, ...students, ...staff];
     res.json(users);
   } catch (err) {
     console.error("❌ Error fetching users:", err);
@@ -211,5 +248,62 @@ export const deleteUser = async (req, res) => {
   } catch (err) {
     console.error("❌ Error deleting user:", err);
     res.status(500).json({ message: "Error deleting user" });
+  }
+};
+
+
+
+export const getUsersByCourse = async (req, res) => {
+  try {
+    const { course_id } = req.params;
+    const db = await connectDB();
+
+    // Get only staff users for this course
+    const [rows] = await db.execute(`
+      SELECT 
+        s.custom_id, 
+        s.full_name, 
+        u.email, 
+        s.mobile_number, 
+        u.role,
+        s.image_path
+      FROM users u
+      JOIN staff_details s ON u.email = s.user_email
+      WHERE s.course_id = ?
+    `, [course_id]);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Error fetching staff by course:", err.message);
+    res.status(500).json({ message: "Error fetching staff by course" });
+  }
+};
+
+
+
+
+export const getAllStaffUsers = async (req, res) => {
+  try {
+    const db = await connectDB();
+
+    // Get all staff users with joined user info
+    const [rows] = await db.execute(`
+      SELECT 
+        s.custom_id, 
+        s.full_name, 
+        u.email, 
+        s.mobile_number, 
+        u.role,
+        s.image_path,
+        s.course_id
+      FROM staff_details s
+      JOIN users u ON u.email = s.user_email
+      WHERE u.role = 'staff'
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("❌ Error fetching all staff users:", err.message);
+    res.status(500).json({ message: "Error fetching staff users" });
   }
 };
