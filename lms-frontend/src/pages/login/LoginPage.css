@@ -331,3 +331,29 @@
     fill: white;
   }
 }
+
+/* -------------------- RESPONSIVE -------------------- */
+@media (max-width: 900px) {
+  .signin-container {
+    flex-direction: column;
+  }
+
+  .signin-left {
+    flex: 1; /* take full width */
+    padding: 2rem;
+  }
+
+  /* Hide the right panel on smaller screens */
+  .signin-right {
+    display: none;
+  }
+
+  .input-box input {
+    width: 100%;
+  }
+
+  .overlay-card {
+    padding: 20px;
+    font-size: 0.9rem;
+  }
+}
