@@ -18,6 +18,8 @@ import {
   FormControl,
   FormControlLabel,
   FormLabel,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { Save, Publish, Add } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
@@ -30,10 +32,12 @@ import Header from "../Header";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
 
-// Quill Editor Component - Looks EXACTLY like your screenshot
+// Responsive Quill Editor Component
 const QuillEditor = ({ value, onChange }) => {
   const quillRef = useRef(null);
   const containerRef = useRef(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -42,7 +46,7 @@ const QuillEditor = ({ value, onChange }) => {
       theme: "snow",
       modules: {
         toolbar: [
-          [{ header: [1, 2, 3, false] }], // Normal Text + H1/H2/H3
+          [{ header: [1, 2, 3, false] }],
           ["bold", "italic", "underline"],
           [{ list: "ordered" }, { list: "bullet" }],
         ],
@@ -87,32 +91,35 @@ const QuillEditor = ({ value, onChange }) => {
             borderBottom: "1px solid #ddd",
             backgroundColor: "#fff",
             display: "flex",
-            justifyContent: "space-between",
+            flexWrap: "wrap",
+            justifyContent: isMobile ? "center" : "space-between",
             alignItems: "center",
-            padding: "8px 12px",
+            padding: isMobile ? "8px" : "8px 12px",
+            gap: 1,
           },
           "& .ql-container": {
             border: "none",
-            minHeight: "200px",
+            minHeight: isMobile ? "150px" : "200px",
             fontSize: "14px",
           },
           "& .ql-editor": {
-            padding: "12px 16px",
+            padding: isMobile ? "12px" : "12px 16px",
             lineHeight: 1.7,
           },
           "& .ql-picker-label": {
             fontWeight: 500,
             color: "#374151",
+            fontSize: isMobile ? "12px" : "13px",
           },
         }}
       />
 
-      {/* "Embed Entry" button on the right */}
+      {/* "Embed Entry" button - responsive positioning */}
       <Box
         sx={{
           position: "absolute",
-          top: 8,
-          right: 12,
+          top: isMobile ? 4 : 8,
+          right: isMobile ? 8 : 12,
           zIndex: 10,
         }}
       >
@@ -122,8 +129,10 @@ const QuillEditor = ({ value, onChange }) => {
           sx={{
             color: "#6b7280",
             fontWeight: 500,
-            fontSize: "13px",
+            fontSize: isMobile ? "12px" : "13px",
             textTransform: "none",
+            minWidth: "auto",
+            px: 1,
           }}
         >
           Embed Entry
@@ -135,6 +144,9 @@ const QuillEditor = ({ value, onChange }) => {
 
 export default function CourseCreateForm() {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('md', 'lg'));
   const [tab, setTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [savedCourses, setSavedCourses] = useState([]);
@@ -146,7 +158,7 @@ export default function CourseCreateForm() {
   const [newCourseName, setNewCourseName] = useState("");
   const [newCategory, setNewCategory] = useState("");
   const [newOverview, setNewOverview] = useState("");
-  const [newDescription, setNewDescription] = useState(""); // HTML from Quill
+  const [newDescription, setNewDescription] = useState("");
   const [coverFile, setCoverFile] = useState(null);
   const [promoFile, setPromoFile] = useState(null);
   const [courseStatus, setCourseStatus] = useState("active");
@@ -301,7 +313,21 @@ export default function CourseCreateForm() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
-      <Box sx={{ position: "sticky", top: 0, height: "100vh" }}>
+      {/* Responsive Sidebar */}
+      <Box 
+        sx={{ 
+          position: "sticky", 
+          top: 0, 
+          height: "100vh",
+          width: isMobile ? "280px" : "260px",
+          flexShrink: 0,
+          [theme.breakpoints.down('sm')]: {
+            width: "100%",
+            height: "auto",
+            position: "static",
+          }
+        }}
+      >
         <Sidebar />
       </Box>
 
@@ -310,105 +336,363 @@ export default function CourseCreateForm() {
           <Header />
         </Box>
 
-        <Box sx={{ flex: 1, overflowY: "auto", p: 3 }}>
-          <Paper sx={{ p: 2, mb: 2 }} elevation={2}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography variant="h5" fontWeight="bold">Course Management</Typography>
-              <Stack direction="row" spacing={1}>
-                <Button startIcon={<Add />} variant="outlined" onClick={handleAddCourse}>
-                  Add Course
-                </Button>
-                {/* <Button startIcon={<Save />} variant="outlined">Save Draft</Button>
-                <Button startIcon={<Publish />} variant="contained">Publish</Button> */}
-              </Stack>
+        <Box sx={{ flex: 1, overflowY: "auto", p: { xs: 1.5, sm: 2, md: 3 } }}>
+          {/* Responsive Header */}
+          <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }} elevation={2}>
+            <Stack 
+              direction={isMobile ? "column" : "row"} 
+              justifyContent="space-between" 
+              alignItems={isMobile ? "flex-start" : "center"}
+              spacing={isMobile ? 1.5 : 0}
+            >
+              <Typography variant="h5" fontWeight="bold">
+                Course Management
+              </Typography>
+              <Button 
+                startIcon={<Add />} 
+                variant="outlined" 
+                onClick={handleAddCourse}
+                size={isMobile ? "small" : "medium"}
+                fullWidth={isMobile}
+              >
+                Add Course
+              </Button>
             </Stack>
           </Paper>
 
+          {/* Responsive Course Form */}
           {showCourseForm && (
-            <Box sx={{ display: "flex", gap: 5, mb: 4 }}>
-              <Box sx={{ flex: 2 }}>
-                <TextField fullWidth label="Course Name" value={newCourseName} onChange={(e) => setNewCourseName(e.target.value)} sx={{ mb: 2 }} />
-                <TextField select fullWidth label="Category" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} sx={{ mb: 2 }}>
-                  {categories.map((cat) => (
-                    <MenuItem key={cat.category_id} value={cat.category_id}>{cat.category_name}</MenuItem>
-                  ))}
-                </TextField>
-                <TextField fullWidth label="Overview" value={newOverview} onChange={(e) => setNewOverview(e.target.value)} sx={{ mb: 2 }} />
+            <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 4, borderRadius: 2 }} elevation={1}>
+              <Box 
+                sx={{ 
+                  display: "flex", 
+                  flexDirection: { xs: "column", md: "row" },
+                  gap: { xs: 2, md: 5 }
+                }}
+              >
+                {/* Form Fields - Main Content */}
+                <Box sx={{ flex: { xs: 1, md: 2 }, order: { xs: 2, md: 1 } }}>
+                  <TextField 
+                    fullWidth 
+                    label="Course Name" 
+                    value={newCourseName} 
+                    onChange={(e) => setNewCourseName(e.target.value)} 
+                    sx={{ mb: 2 }} 
+                    size={isMobile ? "small" : "medium"}
+                  />
+                  
+                  <TextField 
+                    select 
+                    fullWidth 
+                    label="Category" 
+                    value={newCategory} 
+                    onChange={(e) => setNewCategory(e.target.value)} 
+                    sx={{ mb: 2 }} 
+                    size={isMobile ? "small" : "medium"}
+                  >
+                    {categories.map((cat) => (
+                      <MenuItem key={cat.category_id} value={cat.category_id}>
+                        {cat.category_name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  
+                  <TextField 
+                    fullWidth 
+                    label="Overview" 
+                    value={newOverview} 
+                    onChange={(e) => setNewOverview(e.target.value)} 
+                    sx={{ mb: 2 }}
+                    multiline
+                    maxRows={3}
+                    size={isMobile ? "small" : "medium"}
+                  />
 
-                {/* Beautiful Quill Editor */}
-                <QuillEditor value={newDescription} onChange={setNewDescription} />
+                  {/* Responsive Quill Editor */}
+                  <QuillEditor value={newDescription} onChange={setNewDescription} />
 
-                <FormControl sx={{ mb: 2 }}>
-                  <FormLabel>Course Status</FormLabel>
-                  <RadioGroup row value={courseStatus} onChange={(e) => setCourseStatus(e.target.value)}>
-                    <FormControlLabel value="active" control={<Radio />} label="Active" />
-                    <FormControlLabel value="inactive" control={<Radio />} label="Inactive" />
-                  </RadioGroup>
-                </FormControl>
+                  <FormControl sx={{ mb: 2, width: "100%" }}>
+                    <FormLabel sx={{ mb: 1 }}>Course Status</FormLabel>
+                    <RadioGroup 
+                      row 
+                      value={courseStatus} 
+                      onChange={(e) => setCourseStatus(e.target.value)}
+                      sx={{ 
+                        flexWrap: "wrap",
+                        gap: 1,
+                        [theme.breakpoints.down('sm')]: {
+                          flexDirection: "column",
+                          alignItems: "flex-start"
+                        }
+                      }}
+                    >
+                      <FormControlLabel value="active" control={<Radio size="small" />} label="Active" />
+                      <FormControlLabel value="inactive" control={<Radio size="small" />} label="Inactive" />
+                    </RadioGroup>
+                  </FormControl>
 
-                <TextField select fullWidth label="Pricing Type" value={pricingType} onChange={(e) => { setPricingType(e.target.value); if (e.target.value === "free") setPricingAmount(""); }} sx={{ mb: 2 }}>
-                  <MenuItem value="free">Free</MenuItem>
-                  <MenuItem value="paid">Paid</MenuItem>
-                </TextField>
+                  <TextField 
+                    select 
+                    fullWidth 
+                    label="Pricing Type" 
+                    value={pricingType} 
+                    onChange={(e) => { 
+                      setPricingType(e.target.value); 
+                      if (e.target.value === "free") setPricingAmount(""); 
+                    }} 
+                    sx={{ mb: 2 }}
+                    size={isMobile ? "small" : "medium"}
+                  >
+                    <MenuItem value="free">Free</MenuItem>
+                    <MenuItem value="paid">Paid</MenuItem>
+                  </TextField>
 
-                {pricingType === "paid" && (
-                  <TextField fullWidth label="Pricing Amount" value={pricingAmount} onChange={(e) => setPricingAmount(e.target.value)} sx={{ mb: 2 }} />
-                )}
+                  {pricingType === "paid" && (
+                    <TextField 
+                      fullWidth 
+                      label="Pricing Amount" 
+                      value={pricingAmount} 
+                      onChange={(e) => setPricingAmount(e.target.value)} 
+                      sx={{ mb: 2 }}
+                      size={isMobile ? "small" : "medium"}
+                    />
+                  )}
 
-                <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
-                  <Button variant="contained" onClick={saveCourse} disabled={saving}>
-                    {saving ? "Saving..." : editingCourse ? "Update" : "Save"}
-                  </Button>
-                  <Button variant="outlined" onClick={() => { setShowCourseForm(false); resetForm(); }}>
-                    Cancel
-                  </Button>
-                </Stack>
+                  <Stack 
+                    direction={isMobile ? "column" : "row"} 
+                    spacing={2} 
+                    sx={{ mt: 3, width: "100%" }}
+                  >
+                    <Button 
+                      variant="contained" 
+                      onClick={saveCourse} 
+                      disabled={saving}
+                      fullWidth={isMobile}
+                      size={isMobile ? "small" : "medium"}
+                    >
+                      {saving ? "Saving..." : editingCourse ? "Update" : "Save"}
+                    </Button>
+                    <Button 
+                      variant="outlined" 
+                      onClick={() => { setShowCourseForm(false); resetForm(); }}
+                      fullWidth={isMobile}
+                      size={isMobile ? "small" : "medium"}
+                    >
+                      Cancel
+                    </Button>
+                  </Stack>
+                </Box>
+
+                {/* Upload Section - Responsive */}
+                <Box 
+                  sx={{ 
+                    flex: { xs: 1, md: 1 }, 
+                    display: "flex", 
+                    flexDirection: "column", 
+                    gap: 2,
+                    order: { xs: 1, md: 2 },
+                    minWidth: 0
+                  }}
+                >
+                  <Paper 
+                    variant="outlined" 
+                    sx={{ 
+                      p: { xs: 2, sm: 3 }, 
+                      textAlign: "center", 
+                      border: "2px dashed #ddd", 
+                      borderRadius: 2,
+                      height: 140,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ mb: 1.5, color: "text.secondary" }}>
+                      Cover Image
+                    </Typography>
+                    {coverFile ? (
+                      <Chip 
+                        label={coverFile.name.length > 20 ? `${coverFile.name.slice(0, 20)}...` : coverFile.name} 
+                        onDelete={() => setCoverFile(null)}
+                        size="small"
+                        sx={{ mb: 1 }}
+                      />
+                    ) : (
+                      <Button 
+                        onClick={() => coverInputRef.current?.click()}
+                        variant="outlined"
+                        size="small"
+                      >
+                        Upload
+                      </Button>
+                    )}
+                    <input 
+                      ref={coverInputRef} 
+                      type="file" 
+                      hidden 
+                      onChange={(e) => setCoverFile(e.target.files?.[0] || null)} 
+                      accept="image/*" 
+                    />
+                  </Paper>
+
+                  <Paper 
+                    variant="outlined" 
+                    sx={{ 
+                      p: { xs: 2, sm: 3 }, 
+                      textAlign: "center", 
+                      border: "2px dashed #ddd", 
+                      borderRadius: 2,
+                      height: 140,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ mb: 1.5, color: "text.secondary" }}>
+                      Promo Video
+                    </Typography>
+                    {promoFile ? (
+                      <Chip 
+                        label={promoFile.name.length > 20 ? `${promoFile.name.slice(0, 20)}...` : promoFile.name} 
+                        onDelete={() => setPromoFile(null)}
+                        size="small"
+                        sx={{ mb: 1 }}
+                      />
+                    ) : (
+                      <Button 
+                        onClick={() => promoInputRef.current?.click()}
+                        variant="outlined"
+                        size="small"
+                      >
+                        Upload
+                      </Button>
+                    )}
+                    <input 
+                      ref={promoInputRef} 
+                      type="file" 
+                      hidden 
+                      onChange={(e) => setPromoFile(e.target.files?.[0] || null)} 
+                      accept="video/*" 
+                    />
+                  </Paper>
+                </Box>
               </Box>
-
-              <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-                <Paper variant="outlined" sx={{ p: 3, textAlign: "center", border: "2px dashed #ddd", borderRadius: 2 }}>
-                  <Typography>Cover Image</Typography>
-                  {coverFile ? <Chip label={coverFile.name} onDelete={() => setCoverFile(null)} /> : <Button onClick={() => coverInputRef.current?.click()}>Upload</Button>}
-                  <input ref={coverInputRef} type="file" hidden onChange={(e) => setCoverFile(e.target.files?.[0] || null)} accept="image/*" />
-                </Paper>
-
-                <Paper variant="outlined" sx={{ p: 3, textAlign: "center", border: "2px dashed #ddd", borderRadius: 2 }}>
-                  <Typography>Promo Video</Typography>
-                  {promoFile ? <Chip label={promoFile.name} onDelete={() => setPromoFile(null)} /> : <Button onClick={() => promoInputRef.current?.click()}>Upload</Button>}
-                  <input ref={promoInputRef} type="file" hidden onChange={(e) => setPromoFile(e.target.files?.[0] || null)} accept="video/*" />
-                </Paper>
-              </Box>
-            </Box>
+            </Paper>
           )}
 
+          {/* Courses List - Responsive */}
           {!showCourseForm && (
-            <Paper elevation={1} sx={{ display: "flex" }}>
-              <Tabs value={tab} onChange={handleTabChange} orientation="vertical" sx={{ minWidth: 180, borderRight: 1, borderColor: "divider" }}>
-                <Tab label="Basic Info" />
+            <Paper elevation={1} sx={{ display: "flex", borderRadius: 2, overflow: "hidden" }}>
+              <Tabs 
+                value={tab} 
+                onChange={handleTabChange} 
+                orientation={isTablet ? "horizontal" : "vertical"} 
+                sx={{ 
+                  minWidth: isTablet ? "auto" : 180, 
+                  borderRight: isTablet ? 0 : 1, 
+                  borderColor: "divider",
+                  [theme.breakpoints.down('md')]: {
+                    minHeight: 48,
+                  }
+                }}
+                variant="fullWidth"
+              >
+                <Tab label="Basic Info" sx={{ minHeight: 48 }} />
               </Tabs>
-              <Box sx={{ flex: 1, p: 3 }}>
+              
+              <Box sx={{ flex: 1, p: { xs: 2, sm: 3 } }}>
                 {loading ? (
                   <Box sx={{ display: "flex", justifyContent: "center", py: 10 }}>
                     <CircularProgress />
                   </Box>
                 ) : savedCourses.length === 0 ? (
-                  <Typography>No courses yet</Typography>
+                  <Typography textAlign="center" sx={{ py: 8, color: "text.secondary" }}>
+                    No courses yet
+                  </Typography>
                 ) : (
-                  <Stack spacing={2}>
+                  <Stack spacing={{ xs: 1.5, sm: 2 }}>
                     {savedCourses.map((course) => (
-                      <Paper key={course.course_id} sx={{ p: 2, display: "flex", alignItems: "center", gap: 2 }}>
+                      <Paper 
+                        key={course.course_id} 
+                        sx={{ 
+                          p: { xs: 1.5, sm: 2 }, 
+                          display: "flex", 
+                          flexDirection: { xs: "column", sm: "row" },
+                          alignItems: { xs: "stretch", sm: "center" },
+                          gap: { xs: 1.5, sm: 2 }
+                        }}
+                      >
                         {course.course_image && (
-                          <Box component="img" src={`${IMAGE_BASE}/${course.course_image.replace(/^.*uploads\//, "")}`} sx={{ width: 80, height: 80, objectFit: "cover", borderRadius: 1 }} />
+                          <Box 
+                            component="img" 
+                            src={`${IMAGE_BASE}/${course.course_image.replace(/^.*uploads\//, "")}`} 
+                            sx={{ 
+                              width: { xs: 60, sm: 80 }, 
+                              height: { xs: 60, sm: 80 }, 
+                              objectFit: "cover", 
+                              borderRadius: 1,
+                              flexShrink: 0
+                            }} 
+                          />
                         )}
-                        <Box sx={{ flex: 1 }}>
-                          <Typography fontWeight="bold">{course.course_name}</Typography>
-                          <Typography variant="caption">{course.overview}</Typography>
-                          {/* <Typography variant="caption">Price: {course.pricing_type === "free" ? "Free" : `$${course.price_amount}`}</Typography> */}
+                        
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography 
+                            fontWeight="bold" 
+                            sx={{ 
+                              fontSize: { xs: "0.95rem", sm: "1.1rem" },
+                              mb: 0.5,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap"
+                            }}
+                          >
+                            {course.course_name}
+                          </Typography>
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden"
+                            }}
+                          >
+                            {course.overview}
+                          </Typography>
                         </Box>
-                        <Stack direction="row" spacing={1}>
-                          <Button size="small" onClick={() => handleEditCourse(course)}>Edit</Button>
-                          <Button size="small" variant="outlined" onClick={() => navigate(`/admin/course/${course.course_id}/modules`)}>Add Modules</Button>
-                          <Button size="small" color="error" onClick={() => deleteCourse(course.course_id)}>Delete</Button>
+                        
+                        <Stack 
+                          direction={{ xs: "column", sm: "row" }} 
+                          spacing={1}
+                          sx={{ 
+                            alignSelf: { xs: "stretch", sm: "center" },
+                            mt: { xs: 1, sm: 0 }
+                          }}
+                        >
+                          <Button 
+                            size="small" 
+                            onClick={() => handleEditCourse(course)}
+                            fullWidth={isMobile}
+                          >
+                            Edit
+                          </Button>
+                          <Button 
+                            size="small" 
+                            variant="outlined" 
+                            onClick={() => navigate(`/admin/course/${course.course_id}/modules`)}
+                            fullWidth={isMobile}
+                          >
+                            Modules
+                          </Button>
+                          <Button 
+                            size="small" 
+                            color="error" 
+                            onClick={() => deleteCourse(course.course_id)}
+                            fullWidth={isMobile}
+                          >
+                            Delete
+                          </Button>
                         </Stack>
                       </Paper>
                     ))}

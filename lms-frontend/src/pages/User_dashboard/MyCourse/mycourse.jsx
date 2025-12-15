@@ -512,32 +512,34 @@ const MyCourse = () => {
                                 {chapterLessons.map((lesson) => (
                                   <div
                                     key={lesson.key}
-                                    className={`sub-lesson ${activeLesson === lesson.key ? "active-lesson" : ""
-                                      }`}
-                                    onClick={() =>
-                                      handleLessonClick(lesson.key, lesson.type)
-                                    }
+                                    className={`sub-lesson ${activeLesson === lesson.key ? "active-lesson" : ""}`}
+                                    onClick={() => handleLessonClick(lesson.key, lesson.type)}
                                   >
-                                    {/* ICONS */}
+                                    {/* CIRCLE INDICATOR */}
+                                    <span className="lesson-circle">
+                                      <span className="lesson-tick">✓</span>
+                                    </span>
+
+
+                                    {/* TYPE ICON */}
                                     {lesson.type === "video" ? (
-                                      <i className="ri-video-line"></i>
+                                      <i className="ri-video-line lesson-icon"></i>
                                     ) : lesson.type === "pdf" ? (
-                                      <i className="ri-file-pdf-2-line"></i>
-                                    ) : lesson.type === "ppt" ||
-                                      lesson.type === "pptx" ? (
-                                      <i className="ri-slideshow-2-line"></i>
-                                    ) : lesson.type === "doc" ||
-                                      lesson.type === "docx" ? (
-                                      <i className="ri-file-text-line"></i>
+                                      <i className="ri-file-pdf-2-line lesson-icon"></i>
+                                    ) : lesson.type === "ppt" || lesson.type === "pptx" ? (
+                                      <i className="ri-slideshow-2-line lesson-icon"></i>
+                                    ) : lesson.type === "doc" || lesson.type === "docx" ? (
+                                      <i className="ri-file-text-line lesson-icon"></i>
                                     ) : lesson.type === "image" ? (
-                                      <i className="ri-image-line"></i>
+                                      <i className="ri-image-line lesson-icon"></i>
                                     ) : lesson.type === "quiz" ? (
-                                      <i className="ri-questionnaire-line"></i>
+                                      <i className="ri-questionnaire-line lesson-icon"></i>
                                     ) : null}
 
                                     {/* TITLE */}
-                                    <span>{lesson.title}</span>
+                                    <span className="lesson-title">{lesson.title}</span>
                                   </div>
+
                                 ))}
                               </div>
                             );

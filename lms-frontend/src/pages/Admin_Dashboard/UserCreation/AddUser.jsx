@@ -43,14 +43,14 @@ export default function AddUserPage() {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
-  const [courseFilter, setCourseFilter] = useState(""); // NEW: course filter
+  const [courseFilter, setCourseFilter] = useState("");
   const [openModal, setOpenModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const [courses, setCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState(""); // Staff course
+  const [selectedCourse, setSelectedCourse] = useState("");
   const [loadingCourses, setLoadingCourses] = useState(true);
 
   const [newUser, setNewUser] = useState({
@@ -63,9 +63,7 @@ export default function AddUserPage() {
     preview: "",
   });
 
-
-  // Fetch all users
-   const fetchUsers = async () => {
+  const fetchUsers = async () => {
     try {
       const res = await fetch(`${ADMIN_API}/all`);
       const data = await res.json();
@@ -78,7 +76,6 @@ export default function AddUserPage() {
     }
   };
 
-  // Fetch courses
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -104,21 +101,18 @@ export default function AddUserPage() {
     fetchUsers();
   }, []);
 
-  // Filtered users (search + role filter)
   const filteredUsers = users.filter((u) => {
-  const matchSearch =
-    u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-    u.email?.toLowerCase().includes(search.toLowerCase());
+    const matchSearch =
+      u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.email?.toLowerCase().includes(search.toLowerCase());
 
-  const matchRole = roleFilter ? u.role === roleFilter.toLowerCase() : true;
+    const matchRole = roleFilter ? u.role === roleFilter.toLowerCase() : true;
+    const matchCourse = courseFilter
+      ? String(u.course_id) === String(courseFilter)
+      : true;
 
-  const matchCourse = courseFilter
-    ? String(u.course_id) === String(courseFilter)
-    : true;
-
-  return matchSearch && matchRole && matchCourse;
-});
-
+    return matchSearch && matchRole && matchCourse;
+  });
 
   const handleAddOrEditUser = async () => {
     const { name, email, mobile, role, password, image } = newUser;
@@ -420,7 +414,6 @@ export default function AddUserPage() {
                   onChange={(e) => { setNewUser({ ...newUser, role: e.target.value }); setSelectedCourse(""); }}
                 >
                   <MenuItem value="student">Student</MenuItem>
-                  {/* <MenuItem value="admin">Admin</MenuItem> */}
                   <MenuItem value="staff">Staff</MenuItem>
                 </Select>
               </FormControl>
