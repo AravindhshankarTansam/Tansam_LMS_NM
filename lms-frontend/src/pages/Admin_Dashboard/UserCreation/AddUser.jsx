@@ -31,6 +31,7 @@ import {
   Visibility,
   VisibilityOff,
 } from "@mui/icons-material";
+import GroupIcon from "@mui/icons-material/Group";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import Sidebar from "../../Admin_Dashboard/Sidebar.jsx";
@@ -261,7 +262,19 @@ export default function AddUserPage() {
         <Box sx={{ flexGrow: 1, p: 4, overflowY: "auto" }}>
           {/* Title & Add Button */}
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
-            <Typography variant="h4" fontWeight="600">👥 User Management</Typography>
+            <Typography
+              variant="h4"
+              fontWeight={600}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.2,
+              }}
+            >
+              <GroupIcon fontSize="large" />
+              User Management
+            </Typography>
+
             <Button
               variant="contained"
               color="primary"
