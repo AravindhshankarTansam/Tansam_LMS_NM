@@ -1,29 +1,38 @@
-// config/env.js
+// src/config/dotenv.js
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 
-// Detect environment (default = development)
+// Detect environment
 const env = process.env.NODE_ENV || "development";
 
-// Select correct .env file
-const envFile = env === "production" ? ".env.production" : ".env.local";
+// Choose env file
+const envFile =
+  env === "production"
+    ? ".env.production"
+    : ".env.local";
 
-// Resolve absolute path
+// Absolute path
 const envPath = path.resolve(process.cwd(), envFile);
 
-// Load the right .env file
+// Load env with OVERRIDE (THIS IS THE KEY FIX)
 if (fs.existsSync(envPath)) {
-  dotenv.config({ path: envPath });
-  console.log(`✅ Loaded environment from ${envFile}`);
+  dotenv.config({
+    path: envPath,
+    override: true, // ?? FORCE production values
+  });
+  console.log(`? Loaded environment from ${envFile}`);
 } else {
-  console.warn(`⚠️  ${envFile} not found — falling back to default .env`);
-  dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+  dotenv.config({
+    path: path.resolve(process.cwd(), ".env"),
+    override: true,
+  });
+  console.warn(`?? ${envFile} not found — fallback to .env`);
 }
 
-// Optional sanity check
+// Sanity check
 if (!process.env.JWT_SECRET) {
-  console.warn("⚠️  Missing JWT_SECRET in environment file!");
+  console.warn("?? Missing JWT_SECRET in environment file!");
 }
 
 export default dotenv;
