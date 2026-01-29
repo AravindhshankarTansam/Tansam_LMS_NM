@@ -8,6 +8,8 @@ import adminRoutes from "./routes/adminRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import createAllRoutesCourse from "./routes/createAllRoutesCourse.js";
 import cookieParser from "cookie-parser"; // ✅ NEW
+import kpRoutes from "./routes/kpRoutes.js";
+
 
 // ✅ Initialize database (MySQL)
 (async () => {
@@ -44,6 +46,7 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 // ✅ Base API routes
 app.use(`${process.env.API_BASE || "/api"}/admin`, adminRoutes);
 app.use(`${process.env.API_BASE || "/api"}/auth`, authRoutes);
+app.use(`${process.env.KP_BASE_URL || "/api"}/kp`, kpRoutes);
 
 // ✅ Mount all LMS routes under /dashboard
 app.use(`${process.env.API_BASE || "/api"}/dashboard`, createAllRoutesCourse);
