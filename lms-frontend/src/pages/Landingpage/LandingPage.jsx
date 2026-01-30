@@ -238,11 +238,11 @@ const changePage = (page) => {
       </section>
 
       {/* ===== COURSES SECTION (Dynamic) ===== */}
-      <section className="courses" id="courses">
-        <h2>SkillSpace</h2>
+      {/* <section className="courses" id="courses">
+        <h2>SkillSpace</h2> */}
 
         {/* Displaying the 3x3 grid of courses */}
-        <div className="courses-grid">
+        {/* <div className="courses-grid">
           {currentCourses.map((course) => {
             const uploadPath = course.course_image
               ? course.course_image.replace(/^.*uploads\//, "")
@@ -259,30 +259,30 @@ const changePage = (page) => {
                   onError={(e) => (e.target.src = "/fallback.jpg")}
                 />
 
-                <div className="course-info">
+                <div className="course-info"> */}
                   {/* Course name - not clickable */}
-                  <p className="category">{course.course_name}</p>
+                  {/* <p className="category">{course.course_name}</p> */}
 
                   {/* Description - 3 lines only, NOT clickable */}
-                  <div
+                  {/* <div
                     className="description"
                     dangerouslySetInnerHTML={{
                       __html: DOMPurify.sanitize(course.description || "")
                     }}
                     onClick={(e) => e.stopPropagation()} // prevents any click action
-                  />
+                  /> */}
 
                   {/* Price text - just display, not clickable */}
-                  <div className="details">
+                  {/* <div className="details">
                     <p>
                       {course.pricing_type === "free"
                         ? "Free"
                         : `₹${course.price_amount}`}
                     </p>
-                  </div>
+                  </div> */}
 
                   {/* ONLY these two are clickable - using your original class names */}
-                <div className="bottom-row">
+                {/* <div className="bottom-row">
   <span className="price" onClick={() => handleEnroll(course.course_id)}>Enroll</span>
   <button className="more-btn" onClick={() => handleMore(course)}>More</button>
 </div>
@@ -291,11 +291,11 @@ const changePage = (page) => {
               </div>
             );
           })}
-        </div>
+        </div> */}
 
         {/* Pagination */}
        {/* Pagination - Only show if there are more than 9 courses */}
-{loading ? (
+{/* {loading ? (
   <div className="pagination-loading">
     <CircularProgress />
   </div>
@@ -328,7 +328,7 @@ const changePage = (page) => {
     </button>
   </div>
 ) : null}
-      </section>
+      </section> */}
 
       <PlansSection />
 

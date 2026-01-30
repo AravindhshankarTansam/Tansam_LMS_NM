@@ -99,23 +99,55 @@ CREATE TABLE IF NOT EXISTS categories (
 
 CREATE TABLE IF NOT EXISTS courses (
   course_id INT AUTO_INCREMENT PRIMARY KEY,
+
+  -- Basic Info
   course_name VARCHAR(255) NOT NULL,
+  course_unique_code VARCHAR(20) UNIQUE,
   category_id INT,
+  department VARCHAR(255),
+  instructor VARCHAR(255),
+
+  -- Media
   course_image TEXT,
   course_video TEXT,
+  course_image_url TEXT,
+
+  -- Content
   description TEXT,
-  requirements TEXT,
   overview TEXT,
+  course_outcome TEXT,
+  system_requirements TEXT,
+  requirements TEXT,
+
+  -- Classification
+  language VARCHAR(100),
+  mainstream VARCHAR(255),
+  substream VARCHAR(255),
+  course_type VARCHAR(100),
+
+  -- Metadata
+  duration_minutes INT,
+  no_of_videos INT DEFAULT 0,
+  subtitles_language VARCHAR(255),
+  has_subtitles TINYINT(1) DEFAULT 0,
+  reference_id VARCHAR(100),
+  location VARCHAR(255),
+
+  -- Pricing & Status
   pricing_type ENUM('free', 'paid') DEFAULT 'free',
   price_amount DECIMAL(10,2) DEFAULT 0,
   status ENUM('draft', 'published', 'archived') DEFAULT 'draft',
   is_active ENUM('active', 'inactive') DEFAULT 'active',
+
+  -- Audit
   created_by VARCHAR(255),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
   FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL,
   FOREIGN KEY (created_by) REFERENCES users(email) ON DELETE SET NULL
 );
+
 
 CREATE TABLE IF NOT EXISTS modules (
   module_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -299,25 +331,31 @@ CREATE TABLE IF NOT EXISTS chapter_completion (
 
 
 CREATE TABLE IF NOT EXISTS staff_details (
-  user_email VARCHAR(255) NOT NULL,
+  user_email VARCHAR(255) NOT NULL PRIMARY KEY,
   custom_id VARCHAR(50) UNIQUE,
   full_name VARCHAR(255),
   mobile_number VARCHAR(20),
   image_path TEXT,
-  course_id INT NULL,
+  course_id INT,
+  FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE SET NULL,
+FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
+  
+);
 
-  PRIMARY KEY (user_email),
+-- ===============================================
+-- COURSE MAINSTREAM & SUBSTREAM MASTERS
+-- ===============================================
 
-  CONSTRAINT fk_staff_course
-    FOREIGN KEY (course_id)
-    REFERENCES courses(course_id)
-    ON DELETE SET NULL,
+CREATE TABLE IF NOT EXISTS mainstream_master (
+  mainstream_id INT AUTO_INCREMENT PRIMARY KEY,
+  mainstream_name VARCHAR(255) NOT NULL UNIQUE,
+  is_active TINYINT(1) DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 
-  CONSTRAINT fk_staff_user
-    FOREIGN KEY (user_email)
-    REFERENCES users(email)
-    ON DELETE CASCADE
-)
-ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS substream_master (
+  substream_id INT AUTO_INCREMENT PRIMARY KEY,
+  substream_name VARCHAR(255) NOT NULL UNIQUE,
+  is_active TINYINT(1) DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

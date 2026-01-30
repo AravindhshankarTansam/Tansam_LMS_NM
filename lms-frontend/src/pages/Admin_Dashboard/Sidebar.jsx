@@ -7,6 +7,8 @@ import {
   FaBook,
   FaTags,
   FaSignOutAlt,
+  FaStream, 
+  FaLayerGroup
 } from "react-icons/fa";
 import "./sidebar.css";
 
@@ -51,11 +53,30 @@ export default function Sidebar() {
         >
           <FaTags />
         </NavLink>
+        <NavLink
+          to="/add-mainstream"
+          className={({ isActive }) => (isActive ? "lnk active" : "lnk")}
+          title="Mainstream Master"
+        >
+          <FaStream />
+        </NavLink>
+
+        <NavLink
+          to="/add-substream"
+          className={({ isActive }) => (isActive ? "lnk active" : "lnk")}
+          title="Substream Master"
+        >
+          <FaLayerGroup />
+        </NavLink>
       </nav>
 
       {/* ===== Bottom Section ===== */}
       <div className="left-bottom-section">
-        <button className="lnk logout-btn" onClick={handleLogout} title="Logout">
+        <button
+          className="lnk logout-btn"
+          onClick={handleLogout}
+          title="Logout"
+        >
           <FaSignOutAlt />
         </button>
       </div>
