@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS courses (
 
   -- Basic Info
   course_name VARCHAR(255) NOT NULL,
+  course_unique_code VARCHAR(20) UNIQUE,
   category_id INT,
   department VARCHAR(255),
   instructor VARCHAR(255),
@@ -146,6 +147,7 @@ CREATE TABLE IF NOT EXISTS courses (
   FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL,
   FOREIGN KEY (created_by) REFERENCES users(email) ON DELETE SET NULL
 );
+
 
 CREATE TABLE IF NOT EXISTS modules (
   module_id INT AUTO_INCREMENT PRIMARY KEY,
