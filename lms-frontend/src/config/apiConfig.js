@@ -24,4 +24,7 @@ export const TEST_API = `${USER_DASHBOARD_API}/tests`;
 export const CLASS_API = `${USER_DASHBOARD_API}/classes`;
 export const MENTOR_API = `${USER_DASHBOARD_API}/mentors`;
 export const TIMETABLE_API = `${USER_DASHBOARD_API}/timetable`;
+export const MAINSTREAM_API = `${API_BASE}/mainstreams`;
+export const SUBSTREAM_API = `${API_BASE}/substreams`;
+
 []

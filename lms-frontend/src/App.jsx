@@ -24,6 +24,9 @@ import CoursePlayer from "./pages/User_dashboard/course_player/CoursePlayer.jsx"
 import QuizPage from "./pages/User_dashboard/Quiz/quiz";
 import MyCourse from "./pages/User_dashboard/MyCourse/mycourse.jsx";
 import CoursesPage from "./pages/Landingpage/CourseList.jsx";
+import MainstreamMaster from "./pages/Admin_Dashboard/Mainstream/MainstreamMaster.jsx";
+import SubstreamMaster from "./pages/Admin_Dashboard/Substream/SubstreamMaster.jsx";
+
 
 // import SignUpPage from "./pages/SignUpPage";
 // import Courses from "./pages/Student_Dashboard/Courses.jsx";
@@ -37,7 +40,6 @@ function App() {
       {/* <Sidebar /> */}
       <main className="content">
         <Routes>
-
           {/* --- Public Routes --- */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -46,15 +48,20 @@ function App() {
 
           <Route path="/courseslist" element={<CoursesPage />} />
 
-
           {/* --- Admin Routes --- */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/admin-profile" element={<AdminProfile />} />
           <Route path="/add-user" element={<AddUserPage />} />
           <Route path="/create-course" element={<CourseCreatePage />} />
           <Route path="/add-category" element={<CourseCategoryPage />} />
-          <Route path="/admin/course/:courseId/modules" element={<ModuleList />} />
-          <Route path="/admin/course/module/:moduleId/add-lesson" element={<AddLessonPage />} />
+          <Route
+            path="/admin/course/:courseId/modules"
+            element={<ModuleList />}
+          />
+          <Route
+            path="/admin/course/module/:moduleId/add-lesson"
+            element={<AddLessonPage />}
+          />
 
           {/* --- User Routes --- */}
           <Route path="/userdashboard" element={<UserDashboard />} />
@@ -63,15 +70,17 @@ function App() {
           <Route path="/course-player" element={<CoursePlayer />} />
           <Route path="/quiz" element={<QuizPage />} />
           <Route path="/mycourse" element={<MyCourse />} />
-          
+
           <Route path="/quiz" element={<QuizPage />} />
-           <Route path="/quiz/:chapterId" element={<QuizPage />} />
+          <Route path="/quiz/:chapterId" element={<QuizPage />} />
           <Route path="/mycourse" element={<MyCourse />} />
           <Route path="/mycourse/:courseId" element={<MyCourse />} />
+          {/* --- Master Routes --- */}
+          <Route path="/add-mainstream" element={<MainstreamMaster />} />
+          <Route path="/add-substream" element={<SubstreamMaster />} />
 
           {/* <Route path="/courses" element={<Courses />} /> */}
           {/* <Route path="/assignments" element={<Assignments />} /> */}
-
         </Routes>
       </main>
     </div>

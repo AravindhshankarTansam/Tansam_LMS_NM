@@ -27,16 +27,20 @@ import Sidebar from "../Sidebar";
 import CurriculumTab from "./Curriculum";
 import { COURSE_API, COURSE_CATEGORY_API } from "../../../config/apiConfig";
 import Header from "../Header";
+import { MAINSTREAM_API, SUBSTREAM_API } from "../../../config/apiConfig";
+
 
 // Quill
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
+
 
 // Responsive Quill Editor Component
 const QuillEditor = ({ value, onChange }) => {
   const quillRef = useRef(null);
   const containerRef = useRef(null);
   const theme = useTheme();
+ 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
@@ -66,6 +70,9 @@ const QuillEditor = ({ value, onChange }) => {
       quillRef.current = null;
     };
   }, []);
+
+
+
 
   useEffect(() => {
     if (quillRef.current && value !== quillRef.current.root.innerHTML) {
@@ -152,6 +159,9 @@ export default function CourseCreateForm() {
   const [savedCourses, setSavedCourses] = useState([]);
   const [modules, setModules] = useState([]);
 
+  const [mainstreams, setMainstreams] = useState([]);
+const [substreams, setSubstreams] = useState([]);
+
   // Form
   const [showCourseForm, setShowCourseForm] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
@@ -222,6 +232,19 @@ export default function CourseCreateForm() {
       console.error(err);
     }
   };
+  useEffect(() => {
+  fetch(MAINSTREAM_API, { credentials: "include" })
+    .then(res => res.json())
+    .then(setMainstreams)
+    .catch(console.error);
+}, []);
+useEffect(() => {
+  fetch(SUBSTREAM_API)
+    .then(res => res.json())
+    .then(setSubstreams)
+    .catch(console.error);
+}, []);
+
 
   useEffect(() => {
     fetchCategories();
@@ -302,8 +325,9 @@ export default function CourseCreateForm() {
     formData.append("instructor", instructor);
     formData.append("duration_minutes", durationMinutes);
     formData.append("language", language);
-    formData.append("mainstream", mainstream);
-    formData.append("substream", substream);
+formData.append("mainstream", mainstream);
+formData.append("substream", substream);
+
     formData.append("course_type", courseType);
     formData.append("course_outcome", courseOutcome);
     formData.append("system_requirements", systemRequirements);
@@ -496,22 +520,39 @@ export default function CourseCreateForm() {
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
                   />
+<TextField
+  select
+  label="Mainstream"
+  fullWidth
+  sx={{ mb: 2 }}
+  value={mainstream}
+  onChange={(e) => setMainstream(e.target.value)}
+>
+  {mainstreams.map(ms => (
+    <MenuItem key={ms.mainstream_id} value={ms.mainstream_name}>
+      {ms.mainstream_name}
+    </MenuItem>
+  ))}
+</TextField>
 
-                  <TextField
-                    label="Main Stream"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={mainstream}
-                    onChange={(e) => setMainstream(e.target.value)}
-                  />
 
-                  <TextField
-                    label="Sub Stream"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={substream}
-                    onChange={(e) => setSubstream(e.target.value)}
-                  />
+
+               <TextField
+  select
+  label="Substream"
+  fullWidth
+  sx={{ mb: 2 }}
+  value={substream}
+  onChange={(e) => setSubstream(e.target.value)}
+>
+  {substreams.map(ss => (
+    <MenuItem key={ss.substream_id} value={ss.substream_name}>
+      {ss.substream_name}
+    </MenuItem>
+  ))}
+</TextField>
+
+
 
                   <TextField
                     label="Course Type"
