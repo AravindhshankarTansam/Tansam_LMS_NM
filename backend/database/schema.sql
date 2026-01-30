@@ -299,13 +299,25 @@ CREATE TABLE IF NOT EXISTS chapter_completion (
 
 
 CREATE TABLE IF NOT EXISTS staff_details (
-  user_email VARCHAR(255) NOT NULL PRIMARY KEY,
+  user_email VARCHAR(255) NOT NULL,
   custom_id VARCHAR(50) UNIQUE,
   full_name VARCHAR(255),
   mobile_number VARCHAR(20),
   image_path TEXT,
-  course_id INT,
-  FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE SET NULL,
-FOREIGN KEY (user_email) REFERENCES users(email) ON DELETE CASCADE
-  
-);
+  course_id INT NULL,
+
+  PRIMARY KEY (user_email),
+
+  CONSTRAINT fk_staff_course
+    FOREIGN KEY (course_id)
+    REFERENCES courses(course_id)
+    ON DELETE SET NULL,
+
+  CONSTRAINT fk_staff_user
+    FOREIGN KEY (user_email)
+    REFERENCES users(email)
+    ON DELETE CASCADE
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;

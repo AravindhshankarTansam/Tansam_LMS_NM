@@ -359,7 +359,7 @@ export default function CourseCreateForm() {
           position: "sticky",
           top: 0,
           height: "100vh",
-          width: isMobile ? "280px" : "260px",
+          width: isMobile ? "200px" : "75px",
           flexShrink: 0,
           [theme.breakpoints.down("sm")]: {
             width: "100%",

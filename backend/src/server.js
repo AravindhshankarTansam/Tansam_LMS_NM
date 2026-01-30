@@ -29,7 +29,7 @@ const app = express();
 // ✅ Middlewares
 app.use(
   cors({
-    origin: "http://localhost:5173", // ⚠️ Change if your frontend runs elsewhere
+    origin: ["http://localhost:5173","https://lms.tansam.org"], // ⚠️ Change if your frontend runs elsewhere
     credentials: true, // ✅ Allow cookies
   })
 ); 

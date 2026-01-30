@@ -27,6 +27,7 @@ import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 import Sidebar from "../Sidebar";
 import Header from "../Header";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
 import { COURSE_CATEGORY_API } from "../../../config/apiConfig";
 
 const CourseCategoryPage = () => {
@@ -177,9 +178,19 @@ const CourseCategoryPage = () => {
         <Box sx={{ flexGrow: 1, overflowY: "auto", p: 4 }}>
           {/* Header */}
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-            <Typography variant="h4" sx={{ fontWeight: "bold" }}>
-              📚 Course Categories
-            </Typography>
+<Typography
+  variant="h4"
+  sx={{
+    fontWeight: "bold",
+    display: "flex",
+    alignItems: "center",
+    gap: 1.2,
+  }}
+>
+  <MenuBookIcon fontSize="large" />
+  Course Categories
+</Typography>
+
             <Button
               variant="contained"
               color="primary"

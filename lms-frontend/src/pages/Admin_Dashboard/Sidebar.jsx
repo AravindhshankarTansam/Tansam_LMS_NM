@@ -1,7 +1,13 @@
 // src/components/Sidebar.jsx
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { FaSignOutAlt } from "react-icons/fa";
+import {
+  FaHome,
+  FaUserPlus,
+  FaBook,
+  FaTags,
+  FaSignOutAlt,
+} from "react-icons/fa";
 import "./sidebar.css";
 
 export default function Sidebar() {
@@ -19,7 +25,7 @@ export default function Sidebar() {
           className={({ isActive }) => (isActive ? "lnk active" : "lnk")}
           title="Dashboard"
         >
-          🏠
+          <FaHome />
         </NavLink>
 
         <NavLink
@@ -27,7 +33,7 @@ export default function Sidebar() {
           className={({ isActive }) => (isActive ? "lnk active" : "lnk")}
           title="Add User"
         >
-          👥
+          <FaUserPlus />
         </NavLink>
 
         <NavLink
@@ -35,7 +41,7 @@ export default function Sidebar() {
           className={({ isActive }) => (isActive ? "lnk active" : "lnk")}
           title="Create Course"
         >
-          📚
+          <FaBook />
         </NavLink>
 
         <NavLink
@@ -43,12 +49,8 @@ export default function Sidebar() {
           className={({ isActive }) => (isActive ? "lnk active" : "lnk")}
           title="Add Category"
         >
-          🔍
+          <FaTags />
         </NavLink>
-
-        {/* <button className="lnk" title="Images">
-          🖼
-        </button> */}
       </nav>
 
       {/* ===== Bottom Section ===== */}
@@ -56,8 +58,6 @@ export default function Sidebar() {
         <button className="lnk logout-btn" onClick={handleLogout} title="Logout">
           <FaSignOutAlt />
         </button>
-
-        {/* <div className="left-bottom">BF</div> */}
       </div>
     </aside>
   );

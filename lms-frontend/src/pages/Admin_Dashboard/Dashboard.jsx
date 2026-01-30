@@ -7,6 +7,8 @@ import ProgressBar from "./ProgressBar";
 import TopLearners from "./TopLearners";
 import UngradedTable from "./UpgradeTable";
 import "./Dashboard.css";
+import { FaUserGraduate, FaBookOpen } from "react-icons/fa";
+
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -65,11 +67,25 @@ export default function Dashboard() {
           {/* Top Greeting & Quick Actions */}
           <div className="top-actions">
             <h2 className="greeting">
-              Good morning, Dr. Bagus <span role="img" aria-label="hand">👋</span>
+              Welcome
             </h2>
             <div className="quick-actions">
-              <button className="qa-btn course" onClick={() => navigate("/add-user")}>🧑‍⚕️ Add Student</button>
-              <button className="qa-btn course" onClick={() => navigate("/create-course")}>📚 Add Module</button>
+<button
+  className="qa-btn course"
+  onClick={() => navigate("/add-user")}
+>
+  <FaUserGraduate className="btn-icon" />
+  Add Student
+</button>
+
+<button
+  className="qa-btn course"
+  onClick={() => navigate("/create-course")}
+>
+  <FaBookOpen className="btn-icon" />
+  Add Module
+</button>
+
               {/* <button className="qa-btn assign">🩺 Case Study +</button>
               <button className="qa-btn quiz">💊 Medical Quiz +</button>
               <button className="qa-btn path">🧬 Learning Path +</button> */}
