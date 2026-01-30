@@ -20,8 +20,8 @@ const generateCourseCode = async (db, courseName) => {
   const prefix = courseName
     .replace(/[^a-zA-Z]/g, "")
     .toUpperCase()
-    .substring(0, 4)
-    .padEnd(4, "X"); // safety for short names
+    .substring(0, 5)
+    .padEnd(5, "X"); // safety for short names
 
   const [rows] = await db.execute(
     `
