@@ -8,6 +8,9 @@ import adminRoutes from "./routes/adminRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import createAllRoutesCourse from "./routes/createAllRoutesCourse.js";
 import cookieParser from "cookie-parser"; // ✅ NEW
+import mainstreamRoutes from "./routes/mainstreamRoutes.js";
+import substreamRoutes from "./routes/substreamRoutes.js";
+
 
 // ✅ Initialize database (MySQL)
 (async () => {
@@ -47,6 +50,9 @@ app.use(`${process.env.API_BASE || "/api"}/auth`, authRoutes);
 
 // ✅ Mount all LMS routes under /dashboard
 app.use(`${process.env.API_BASE || "/api"}/dashboard`, createAllRoutesCourse);
+app.use(`${process.env.API_BASE || "/api"}/mainstreams`, mainstreamRoutes);
+app.use(`${process.env.API_BASE || "/api"}/substreams`, substreamRoutes);
+
 
 // ✅ Root check
 app.get("/", (req, res) => {

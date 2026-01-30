@@ -2,226 +2,196 @@ import { connectDB } from "../config/db.js";
 import path from "path";
 import fs from "fs";
 
-// ✅ Helper: get relative path from absolute file path
+/* ================= HELPERS ================= */
+
 const getRelativePath = (filePath) => {
-  const uploadsIndex = filePath.indexOf("uploads");
-  if (uploadsIndex !== -1) {
-    return filePath.substring(uploadsIndex).replace(/\\/g, "/");
-  }
-  return filePath.replace(/\\/g, "/");
+  const idx = filePath.indexOf("uploads");
+  return idx !== -1 ? filePath.substring(idx).replace(/\\/g, "/") : null;
 };
 
-// ✅ Helper: convert undefined → null for SQL-safe insertions
-const safeValue = (val, fallback = null) =>
-  val === undefined || val === "" ? fallback : val;
+const safe = (v, fallback = null) =>
+  v === undefined || v === "" ? fallback : v;
 
-// ✅ Get all courses (with category name)
+/* ================= GET ALL COURSES ================= */
+
 export const getAllCourses = async (req, res) => {
   try {
     const db = await connectDB();
-    const [courses] = await db.execute(`
+    const [rows] = await db.execute(`
       SELECT c.*, cat.category_name
       FROM courses c
       LEFT JOIN categories cat ON c.category_id = cat.category_id
       ORDER BY c.course_id DESC
     `);
-    res.json(courses);
-  } catch (error) {
-    console.error("❌ Error fetching courses:", error);
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to fetch courses" });
   }
 };
 
-// ✅ Create new course (with image + video + is_active)
+/* ================= CREATE COURSE ================= */
+
 export const createCourse = async (req, res) => {
   try {
     const db = await connectDB();
-    let {
-      course_name,
-      category_id,
-      description,
-      requirements,
-      overview,
-      pricing_type,
-      price_amount,
-      is_active,
-    } = req.body;
+    const b = req.body;
 
-    // ✅ Safely handle uploaded files
-    let course_image = null;
-    let course_video = null;
+    const course_image = req.files?.course_image?.[0]
+      ? getRelativePath(req.files.course_image[0].path)
+      : null;
 
-    if (req.files && req.files.course_image && req.files.course_image.length > 0) {
-      course_image = getRelativePath(req.files.course_image[0].path);
-    }
+    const course_video = req.files?.course_video?.[0]
+      ? getRelativePath(req.files.course_video[0].path)
+      : null;
 
-      if (req.files && req.files.course_video && req.files.course_video.length > 0) {
-    course_video = getRelativePath(req.files.course_video[0].path);
-  }
+    const created_by = req.user?.email || "system";
 
-    // ✅ Get created_by (from auth middleware or default)
-    const created_by = req.user?.email || req.user?.username || "Unknown";
-
-    // ✅ Sanitize all input values
-    course_name = safeValue(course_name);
-    category_id = safeValue(category_id);
-    description = safeValue(description);
-    requirements = safeValue(requirements);
-    overview = safeValue(overview);
-    pricing_type = safeValue(pricing_type, "free");
-    price_amount =
-      pricing_type === "free" ? 0 : safeValue(Number(price_amount), 0);
-    is_active = safeValue(is_active, "active");
-
-    console.log("📦 Incoming course data:", {
-      course_name,
-      category_id,
-      description,
-      requirements,
-      overview,
-      pricing_type,
-      price_amount,
-      is_active,
-      created_by,
-      course_image,
-      course_video,
-    });
-
-    // ✅ Insert into DB
     const [result] = await db.execute(
       `
       INSERT INTO courses (
-        course_name,
-        category_id,
-        course_image,
-        course_video,
-        description,
-        requirements,
-        overview,
-        pricing_type,
-        price_amount,
-        is_active,
+        course_name, category_id, department, instructor,
+        course_image, course_video, course_image_url,
+        description, overview, course_outcome, system_requirements, requirements,
+        language, mainstream, substream, course_type,
+        duration_minutes, no_of_videos, subtitles_language, has_subtitles,
+        reference_id, location,
+        pricing_type, price_amount, status, is_active,
         created_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
-        course_name,
-        category_id,
+        safe(b.course_name),
+        safe(b.category_id),
+        safe(b.department),
+        safe(b.instructor),
+
         course_image,
         course_video,
-        description,
-        requirements,
-        overview,
-        pricing_type,
-        price_amount,
-        is_active,
+        safe(b.course_image_url),
+
+        safe(b.description),
+        safe(b.overview),
+        safe(b.course_outcome),
+        safe(b.system_requirements),
+        safe(b.requirements),
+
+        safe(b.language),
+        safe(b.mainstream),
+        safe(b.substream),
+        safe(b.course_type),
+
+        safe(b.duration_minutes),
+        safe(b.no_of_videos, 0),
+        safe(b.subtitles_language),
+        safe(b.has_subtitles, 0),
+
+        safe(b.reference_id),
+        safe(b.location),
+
+        safe(b.pricing_type, "free"),
+        safe(b.price_amount, 0),
+        safe(b.status, "draft"),
+        safe(b.is_active, "active"),
+
         created_by,
       ]
     );
 
     res.status(201).json({
-      message: "✅ Course created successfully",
+      message: "Course created",
       course_id: result.insertId,
-      course_image,
-      course_video,
     });
-  } catch (error) {
-    console.error("❌ Error creating course:", error);
-    res.status(500).json({ error: "Failed to create course" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Create failed" });
   }
 };
 
-// ✅ Update existing course (with image + video + is_active)
-
+/* ================= UPDATE COURSE ================= */
 
 export const updateCourse = async (req, res) => {
   try {
     const db = await connectDB();
     const { id } = req.params;
 
-    const {
-      course_name,
-      category_id,
-      description,
-      requirements,
-      overview,
-      pricing_type,
-      price_amount,
-      is_active,
-    } = req.body;
-
-    // Get existing course
     const [rows] = await db.execute(
-      "SELECT * FROM courses WHERE course_id = ?",
+      "SELECT * FROM courses WHERE course_id=?",
       [id]
     );
+    if (!rows.length) return res.status(404).json({ message: "Not found" });
 
-    if (rows.length === 0)
-      return res.status(404).json({ message: "Course not found" });
+    const old = rows[0];
+    const b = req.body;
 
-    const existing = rows[0];
+    let course_image = old.course_image;
+    let course_video = old.course_video;
 
-    // =============== FILE HANDLING ===============
-
-    let course_image = existing.course_image;
-    let course_video = existing.course_video;
-
-    // --- Replace image ---
-    if (req.files?.course_image?.length > 0) {
-      if (existing.course_image) {
-        const oldImage = path.join(process.cwd(), existing.course_image);
-        if (fs.existsSync(oldImage)) fs.unlinkSync(oldImage);
-      }
-
+    if (req.files?.course_image?.[0]) {
+      if (course_image && fs.existsSync(course_image)) fs.unlinkSync(course_image);
       course_image = getRelativePath(req.files.course_image[0].path);
     }
 
-    // --- Replace video ---
-    if (req.files?.course_video?.length > 0) {
-      if (existing.course_video) {
-        const oldVideo = path.join(process.cwd(), existing.course_video);
-        if (fs.existsSync(oldVideo)) fs.unlinkSync(oldVideo);
-      }
-
+    if (req.files?.course_video?.[0]) {
+      if (course_video && fs.existsSync(course_video)) fs.unlinkSync(course_video);
       course_video = getRelativePath(req.files.course_video[0].path);
     }
 
-    // =============== UPDATE COURSE ===============
     await db.execute(
       `
       UPDATE courses SET
-        course_name = ?,
-        category_id = ?,
-        course_image = ?,
-        course_video = ?,
-        description = ?,
-        requirements = ?,
-        overview = ?,
-        pricing_type = ?,
-        price_amount = ?,
-        is_active = ?
-      WHERE course_id = ?
+        course_name=?, category_id=?, department=?, instructor=?,
+        course_image=?, course_video=?, course_image_url=?,
+        description=?, overview=?, course_outcome=?, system_requirements=?, requirements=?,
+        language=?, mainstream=?, substream=?, course_type=?,
+        duration_minutes=?, no_of_videos=?, subtitles_language=?, has_subtitles=?,
+        reference_id=?, location=?,
+        pricing_type=?, price_amount=?, status=?, is_active=?
+      WHERE course_id=?
       `,
       [
-        course_name || existing.course_name,
-        category_id || existing.category_id,
+        b.course_name || old.course_name,
+        b.category_id || old.category_id,
+        b.department || old.department,
+        b.instructor || old.instructor,
+
         course_image,
         course_video,
-        description || existing.description,
-        requirements || existing.requirements,
-        overview || existing.overview,
-        pricing_type || existing.pricing_type,
-        price_amount || existing.price_amount,
-        is_active || existing.is_active,
+        b.course_image_url || old.course_image_url,
+
+        b.description || old.description,
+        b.overview || old.overview,
+        b.course_outcome || old.course_outcome,
+        b.system_requirements || old.system_requirements,
+        b.requirements || old.requirements,
+
+        b.language || old.language,
+        b.mainstream || old.mainstream,
+        b.substream || old.substream,
+        b.course_type || old.course_type,
+
+        b.duration_minutes || old.duration_minutes,
+        b.no_of_videos ?? old.no_of_videos,
+        b.subtitles_language || old.subtitles_language,
+        b.has_subtitles ?? old.has_subtitles,
+
+        b.reference_id || old.reference_id,
+        b.location || old.location,
+
+        b.pricing_type || old.pricing_type,
+        b.price_amount || old.price_amount,
+        b.status || old.status,
+        b.is_active || old.is_active,
+
         id,
       ]
     );
 
-    res.json({ message: "✅ Course updated successfully" });
-  } catch (error) {
-    console.error("❌ Error updating course:", error);
-    res.status(500).json({ error: "Failed to update course" });
+    res.json({ message: "Course updated" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Update failed" });
   }
 };
 
