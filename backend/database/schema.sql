@@ -351,7 +351,7 @@ CREATE TABLE IF NOT EXISTS mainstream_master (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE substream_master (
+CREATE TABLE IF NOT EXISTS substream_master (
   substream_id INT AUTO_INCREMENT PRIMARY KEY,
   substream_name VARCHAR(255) NOT NULL UNIQUE,
   is_active TINYINT(1) DEFAULT 1,
