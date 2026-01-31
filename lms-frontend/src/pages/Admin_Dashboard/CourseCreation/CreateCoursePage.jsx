@@ -190,6 +190,7 @@ const [substreams, setSubstreams] = useState([]);
   const [subtitlesLanguage, setSubtitlesLanguage] = useState("");
   const [referenceId, setReferenceId] = useState("");
   const [location, setLocation] = useState("");
+const [errors, setErrors] = useState({});
 
 
   // Snackbar
@@ -300,80 +301,107 @@ useEffect(() => {
     }
   };
 
-  const saveCourse = async () => {
-    if (!newCourseName || !newCategory) {
-      setSnackMsg("Fill required fields");
-      setSnackSeverity("warning");
-      setSnackOpen(true);
-      return;
-    }
+const saveCourse = async () => {
+  const newErrors = {};
 
-    if (pricingType === "paid" && !pricingAmount) {
-      setSnackMsg("Enter price for paid course");
-      setSnackSeverity("warning");
-      setSnackOpen(true);
-      return;
-    }
+  if (!newCourseName) newErrors.courseName = "Please fill Course Name";
+  if (!newCategory) newErrors.category = "Please select Category";
+  if (!newOverview) newErrors.overview = "Please fill Overview";
 
-    const formData = new FormData();
-    formData.append("course_name", newCourseName);
-    formData.append("category_id", newCategory);
-    formData.append("overview", newOverview);
-    formData.append("description", newDescription);
-    formData.append("pricing_type", pricingType);
-    formData.append("department", department);
-    formData.append("instructor", instructor);
-    formData.append("duration_minutes", durationMinutes);
-    formData.append("language", language);
-formData.append("mainstream", mainstream);
-formData.append("substream", substream);
+  if (!newDescription) newErrors.description = "Please fill Description";
+  if (!durationMinutes) newErrors.duration = "Please fill Duration";
+  if (!language) newErrors.language = "Please fill Language";
+  if (!mainstream) newErrors.mainstream = "Please select Mainstream";
+  if (!substream) newErrors.substream = "Please select Substream";
+  if (!department) newErrors.department = "Please fill Department";
+if (!instructor) newErrors.instructor = "Please fill Instructor";
 
-    formData.append("course_type", courseType);
-    formData.append("course_outcome", courseOutcome);
-    formData.append("system_requirements", systemRequirements);
-    formData.append("no_of_videos", noOfVideos || "0");
-    formData.append("has_subtitles", hasSubtitles);
-    formData.append("subtitles_language", subtitlesLanguage);
-    formData.append("reference_id", referenceId);
-    formData.append("location", location);
-    formData.append("status", "draft"); // or published later
+  if (!courseType) newErrors.courseType = "Please fill Course Type";
+  if (!courseOutcome) newErrors.courseOutcome = "Please fill Course Outcome";
+  if (!systemRequirements)
+    newErrors.systemRequirements = "Please fill System Requirements";
+  if (!referenceId) newErrors.referenceId = "Please fill Reference ID";
+  if (!location) newErrors.location = "Please fill Location";
 
-    formData.append("is_active", courseStatus);
-    formData.append(
-      "price_amount",
-      pricingType === "paid" ? pricingAmount : "0",
-    );
-    if (coverFile) formData.append("course_image", coverFile);
-    if (promoFile) formData.append("course_video", promoFile);
+  setErrors(newErrors);
 
-    try {
-      setSaving(true);
-      const url = editingCourse
-        ? `${COURSE_API}/${editingCourse.course_id}`
-        : COURSE_API;
-      const method = editingCourse ? "PUT" : "POST";
+  if (Object.keys(newErrors).length > 0) {
+    setSnackMsg("Please fill all mandatory fields");
+    setSnackSeverity("warning");
+    setSnackOpen(true);
+    return;
+  }
 
-      const res = await fetch(url, {
-        method,
-        credentials: "include",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Failed");
+  // ✅ PAID COURSE PRICE CHECK
+  if (pricingType === "paid" && !pricingAmount) {
+    setSnackMsg("Enter price for paid course");
+    setSnackSeverity("warning");
+    setSnackOpen(true);
+    return;
+  }
 
-      setSnackMsg(editingCourse ? "Updated!" : "Created!");
-      setSnackSeverity("success");
-      setSnackOpen(true);
-      setShowCourseForm(false);
-      resetForm();
-      fetchCourses();
-    } catch (err) {
-      setSnackMsg("Save failed");
-      setSnackSeverity("error");
-      setSnackOpen(true);
-    } finally {
-      setSaving(false);
-    }
-  };
+
+  // ✅ FORM DATA (ONLY AFTER VALIDATION PASSES)
+  const formData = new FormData();
+  formData.append("course_name", newCourseName);
+  formData.append("category_id", newCategory);
+  formData.append("overview", newOverview);
+  formData.append("description", newDescription);
+  formData.append("pricing_type", pricingType);
+  formData.append("department", department);
+  formData.append("instructor", instructor);
+  formData.append("duration_minutes", durationMinutes);
+  formData.append("language", language);
+  formData.append("mainstream", mainstream);
+  formData.append("substream", substream);
+  formData.append("course_type", courseType);
+  formData.append("course_outcome", courseOutcome);
+  formData.append("system_requirements", systemRequirements);
+  formData.append("no_of_videos", noOfVideos || "0"); // optional ✅
+  formData.append("has_subtitles", hasSubtitles);
+  formData.append("subtitles_language", subtitlesLanguage);
+  formData.append("reference_id", referenceId);
+  formData.append("location", location);
+  formData.append("status", "draft");
+  formData.append("is_active", courseStatus);
+  formData.append(
+    "price_amount",
+    pricingType === "paid" ? pricingAmount : "0"
+  );
+
+  if (coverFile) formData.append("course_image", coverFile);
+  if (promoFile) formData.append("course_video", promoFile);
+
+  try {
+    setSaving(true);
+    const url = editingCourse
+      ? `${COURSE_API}/${editingCourse.course_id}`
+      : COURSE_API;
+    const method = editingCourse ? "PUT" : "POST";
+
+    const res = await fetch(url, {
+      method,
+      credentials: "include",
+      body: formData,
+    });
+
+    if (!res.ok) throw new Error("Failed");
+
+    setSnackMsg(editingCourse ? "Updated!" : "Created!");
+    setSnackSeverity("success");
+    setSnackOpen(true);
+    setShowCourseForm(false);
+    resetForm();
+    fetchCourses();
+  } catch (err) {
+    setSnackMsg("Save failed");
+    setSnackSeverity("error");
+    setSnackOpen(true);
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
@@ -409,9 +437,14 @@ formData.append("substream", substream);
               alignItems={isMobile ? "flex-start" : "center"}
               spacing={isMobile ? 1.5 : 0}
             >
-              <Typography variant="h5" fontWeight="bold">
-                Course Management
-              </Typography>
+           <Typography
+  variant="h5"
+  fontWeight="bold"
+  sx={{ color: "#6b7280" }}   // Tailwind gray-500
+>
+  Course Management
+</Typography>
+
               <Button
                 startIcon={<Add />}
                 variant="outlined"
@@ -444,89 +477,138 @@ formData.append("substream", substream);
                     fullWidth
                     label="Course Name"
                     value={newCourseName}
-                    onChange={(e) => setNewCourseName(e.target.value)}
+                    onChange={(e) => {
+                      setNewCourseName(e.target.value);
+                      setErrors({ ...errors, courseName: "" });
+                    }}
+                    error={!!errors.courseName}
+                    helperText={errors.courseName}
                     sx={{ mb: 2 }}
                   />
 
-                  <TextField
-                    required
-                    select
-                    fullWidth
-                    label="Category"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    sx={{ mb: 2 }}
-                    size={isMobile ? "small" : "medium"}
-                  >
-                    {categories.map((cat) => (
-                      <MenuItem key={cat.category_id} value={cat.category_id}>
-                        {cat.category_name}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                 <TextField
+  required
+  select
+  fullWidth
+  label="Category"
+  value={newCategory}
+  onChange={(e) => {
+    setNewCategory(e.target.value);
+    setErrors({ ...errors, category: "" });
+  }}
+  error={!!errors.category}
+  helperText={errors.category}
+  sx={{ mb: 2 }}
+>
+  {categories.map((cat) => (
+    <MenuItem key={cat.category_id} value={cat.category_id}>
+      {cat.category_name}
+    </MenuItem>
+  ))}
+</TextField>
 
-                  <TextField
-                    required
-                    fullWidth
-                    label="Overview"
-                    value={newOverview}
-                    onChange={(e) => setNewOverview(e.target.value)}
-                    sx={{ mb: 2 }}
-                    multiline
-                    maxRows={3}
-                    size={isMobile ? "small" : "medium"}
-                  />
 
-                
+               <TextField
+  required
+  fullWidth
+  label="Overview"
+  value={newOverview}
+  onChange={(e) => {
+    setNewOverview(e.target.value);
+    setErrors({ ...errors, overview: "" });
+  }}
+  error={!!errors.overview}
+  helperText={errors.overview}
+  multiline
+  maxRows={3}
+  sx={{ mb: 2 }}
+/>
 
                   {/* Responsive Quill Editor */}
                   <QuillEditor
+                  
                     value={newDescription}
                     onChange={setNewDescription}
                   />
+
+                  {errors.description && (
+  <Typography color="error" variant="caption">
+    {errors.description}
+  </Typography>
+)}
+
                   {/* ===== Additional Course Details ===== */}
-
-                  <TextField
-                    required
-                    label="Department"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                  />
-
-                  <TextField
-                    required
-                    label="Instructor"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={instructor}
-                    onChange={(e) => setInstructor(e.target.value)}
-                  />
-
-                  <TextField
-                    label="Duration (minutes)"
-                    type="number"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={durationMinutes}
-                    onChange={(e) => setDurationMinutes(e.target.value)}
-                  />
-
-                  <TextField
-                    label="Language"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                  />
 <TextField
+  required
+  label="Department"
+  fullWidth
+  value={department}
+  onChange={(e) => {
+    setDepartment(e.target.value);
+    setErrors({ ...errors, department: "" });
+  }}
+  error={!!errors.department}
+  helperText={errors.department}
+  sx={{ mb: 2 }}
+/>
+
+                  <TextField
+  required
+  label="Instructor"
+  fullWidth
+  value={instructor}
+  onChange={(e) => {
+    setInstructor(e.target.value);
+    setErrors({ ...errors, instructor: "" });
+  }}
+  error={!!errors.instructor}
+  helperText={errors.instructor}
+  sx={{ mb: 2 }}
+/>
+
+
+                <TextField
+  required
+  label="Duration (minutes)"
+  type="number"
+  fullWidth
+  value={durationMinutes}
+  onChange={(e) => {
+    setDurationMinutes(e.target.value);
+    setErrors({ ...errors, duration: "" });
+  }}
+  error={!!errors.duration}
+  helperText={errors.duration}
+  sx={{ mb: 2 }}
+/>
+
+<TextField
+  required
+  label="Language"
+  fullWidth
+  value={language}
+  onChange={(e) => {
+    setLanguage(e.target.value);
+    setErrors({ ...errors, language: "" });
+  }}
+  error={!!errors.language}
+  helperText={errors.language}
+  sx={{ mb: 2 }}
+/>
+
+               <TextField
+  required
   select
   label="Mainstream"
   fullWidth
-  sx={{ mb: 2 }}
   value={mainstream}
-  onChange={(e) => setMainstream(e.target.value)}
+  onChange={(e) => {
+    setMainstream(e.target.value);
+    setErrors({ ...errors, mainstream: "" });
+  }}
+  error={!!errors.mainstream}
+  helperText={errors.mainstream}
+  sx={{ mb: 2 }}
 >
   {mainstreams.map(ms => (
     <MenuItem key={ms.mainstream_id} value={ms.mainstream_name}>
@@ -535,55 +617,77 @@ formData.append("substream", substream);
   ))}
 </TextField>
 
-
-
-               <TextField
+<TextField
+  required
   select
   label="Substream"
   fullWidth
-  sx={{ mb: 2 }}
   value={substream}
-  onChange={(e) => setSubstream(e.target.value)}
+  onChange={(e) => {
+    setSubstream(e.target.value);
+    setErrors({ ...errors, substream: "" });
+  }}
+  error={!!errors.substream}
+  helperText={errors.substream}
+  sx={{ mb: 2 }}
 >
-  {substreams.map(ss => (
+  {substreams.map((ss) => (
     <MenuItem key={ss.substream_id} value={ss.substream_name}>
       {ss.substream_name}
     </MenuItem>
   ))}
 </TextField>
 
+<TextField
+  required
+  label="Course Type"
+  fullWidth
+  value={courseType}
+  onChange={(e) => {
+    setCourseType(e.target.value);
+    setErrors({ ...errors, courseType: "" });
+  }}
+  error={!!errors.courseType}
+  helperText={errors.courseType}
+  sx={{ mb: 2 }}
+/>
+
+
+                <TextField
+  required
+  label="Course Outcome"
+  multiline
+  rows={3}
+  fullWidth
+  value={courseOutcome}
+  onChange={(e) => {
+    setCourseOutcome(e.target.value);
+    setErrors({ ...errors, courseOutcome: "" });
+  }}
+  error={!!errors.courseOutcome}
+  helperText={errors.courseOutcome}
+  sx={{ mb: 2 }}
+/>
 
 
                   <TextField
-                    label="Course Type"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={courseType}
-                    onChange={(e) => setCourseType(e.target.value)}
-                  />
+  required
+  label="System Requirements"
+  multiline
+  rows={3}
+  fullWidth
+  value={systemRequirements}
+  onChange={(e) => {
+    setSystemRequirements(e.target.value);
+    setErrors({ ...errors, systemRequirements: "" });
+  }}
+  error={!!errors.systemRequirements}
+  helperText={errors.systemRequirements}
+  sx={{ mb: 2 }}
+/>
+
 
                   <TextField
-                    label="Course Outcome"
-                    multiline
-                    rows={3}
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={courseOutcome}
-                    onChange={(e) => setCourseOutcome(e.target.value)}
-                  />
-
-                  <TextField
-                    label="System Requirements"
-                    multiline
-                    rows={3}
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={systemRequirements}
-                    onChange={(e) => setSystemRequirements(e.target.value)}
-                  />
-
-                  <TextField
-                    required
                     label="No of Videos"
                     type="number"
                     fullWidth
@@ -621,22 +725,35 @@ formData.append("substream", substream);
                       onChange={(e) => setSubtitlesLanguage(e.target.value)}
                     />
                   )}
+<TextField
+  required
+  label="Reference ID"
+  fullWidth
+  value={referenceId}
+  onChange={(e) => {
+    setReferenceId(e.target.value);
+    setErrors({ ...errors, referenceId: "" });
+  }}
+  error={!!errors.referenceId}
+  helperText={errors.referenceId}
+  sx={{ mb: 2 }}
+/>
 
-                  <TextField
-                    label="Reference ID"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={referenceId}
-                    onChange={(e) => setReferenceId(e.target.value)}
-                  />
 
-                  <TextField
-                    label="Location"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
+               <TextField
+  required
+  label="Location"
+  fullWidth
+  value={location}
+  onChange={(e) => {
+    setLocation(e.target.value);
+    setErrors({ ...errors, location: "" });
+  }}
+  error={!!errors.location}
+  helperText={errors.location}
+  sx={{ mb: 2 }}
+/>
+
 
                   <FormControl sx={{ mb: 2, width: "100%" }}>
                     <FormLabel sx={{ mb: 1 }}>Course Status</FormLabel>
