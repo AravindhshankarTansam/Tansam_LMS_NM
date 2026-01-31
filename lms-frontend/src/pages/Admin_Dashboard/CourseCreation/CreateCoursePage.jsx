@@ -437,9 +437,14 @@ if (!instructor) newErrors.instructor = "Please fill Instructor";
               alignItems={isMobile ? "flex-start" : "center"}
               spacing={isMobile ? 1.5 : 0}
             >
-              <Typography variant="h5" fontWeight="bold">
-                Course Management
-              </Typography>
+           <Typography
+  variant="h5"
+  fontWeight="bold"
+  sx={{ color: "#6b7280" }}   // Tailwind gray-500
+>
+  Course Management
+</Typography>
+
               <Button
                 startIcon={<Add />}
                 variant="outlined"
