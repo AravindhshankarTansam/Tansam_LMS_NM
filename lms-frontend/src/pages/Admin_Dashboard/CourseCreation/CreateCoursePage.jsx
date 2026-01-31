@@ -190,6 +190,7 @@ const [substreams, setSubstreams] = useState([]);
   const [subtitlesLanguage, setSubtitlesLanguage] = useState("");
   const [referenceId, setReferenceId] = useState("");
   const [location, setLocation] = useState("");
+const [errors, setErrors] = useState({});
 
 
   // Snackbar
@@ -300,22 +301,31 @@ useEffect(() => {
     }
   };
 
- const saveCourse = async () => {
-  // ✅ MANDATORY FIELD VALIDATION
-  if (
-    !newCourseName ||
-    !newCategory ||
-    !newDescription ||
-    !durationMinutes ||
-    !language ||
-    !mainstream ||
-    !substream ||
-    !courseType ||
-    !courseOutcome ||
-    !systemRequirements ||
-    !referenceId ||
-    !location
-  ) {
+const saveCourse = async () => {
+  const newErrors = {};
+
+  if (!newCourseName) newErrors.courseName = "Please fill Course Name";
+  if (!newCategory) newErrors.category = "Please select Category";
+  if (!newOverview) newErrors.overview = "Please fill Overview";
+
+  if (!newDescription) newErrors.description = "Please fill Description";
+  if (!durationMinutes) newErrors.duration = "Please fill Duration";
+  if (!language) newErrors.language = "Please fill Language";
+  if (!mainstream) newErrors.mainstream = "Please select Mainstream";
+  if (!substream) newErrors.substream = "Please select Substream";
+  if (!department) newErrors.department = "Please fill Department";
+if (!instructor) newErrors.instructor = "Please fill Instructor";
+
+  if (!courseType) newErrors.courseType = "Please fill Course Type";
+  if (!courseOutcome) newErrors.courseOutcome = "Please fill Course Outcome";
+  if (!systemRequirements)
+    newErrors.systemRequirements = "Please fill System Requirements";
+  if (!referenceId) newErrors.referenceId = "Please fill Reference ID";
+  if (!location) newErrors.location = "Please fill Location";
+
+  setErrors(newErrors);
+
+  if (Object.keys(newErrors).length > 0) {
     setSnackMsg("Please fill all mandatory fields");
     setSnackSeverity("warning");
     setSnackOpen(true);
@@ -329,6 +339,7 @@ useEffect(() => {
     setSnackOpen(true);
     return;
   }
+
 
   // ✅ FORM DATA (ONLY AFTER VALIDATION PASSES)
   const formData = new FormData();
@@ -461,92 +472,138 @@ useEffect(() => {
                     fullWidth
                     label="Course Name"
                     value={newCourseName}
-                    onChange={(e) => setNewCourseName(e.target.value)}
+                    onChange={(e) => {
+                      setNewCourseName(e.target.value);
+                      setErrors({ ...errors, courseName: "" });
+                    }}
+                    error={!!errors.courseName}
+                    helperText={errors.courseName}
                     sx={{ mb: 2 }}
                   />
 
-                  <TextField
-                    required
-                    select
-                    fullWidth
-                    label="Category"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    sx={{ mb: 2 }}
-                    size={isMobile ? "small" : "medium"}
-                  >
-                    {categories.map((cat) => (
-                      <MenuItem key={cat.category_id} value={cat.category_id}>
-                        {cat.category_name}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                 <TextField
+  required
+  select
+  fullWidth
+  label="Category"
+  value={newCategory}
+  onChange={(e) => {
+    setNewCategory(e.target.value);
+    setErrors({ ...errors, category: "" });
+  }}
+  error={!!errors.category}
+  helperText={errors.category}
+  sx={{ mb: 2 }}
+>
+  {categories.map((cat) => (
+    <MenuItem key={cat.category_id} value={cat.category_id}>
+      {cat.category_name}
+    </MenuItem>
+  ))}
+</TextField>
 
-                  <TextField
-                    required
-                    fullWidth
-                    label="Overview"
-                    value={newOverview}
-                    onChange={(e) => setNewOverview(e.target.value)}
-                    sx={{ mb: 2 }}
-                    multiline
-                    maxRows={3}
-                    size={isMobile ? "small" : "medium"}
-                  />
 
-                
+               <TextField
+  required
+  fullWidth
+  label="Overview"
+  value={newOverview}
+  onChange={(e) => {
+    setNewOverview(e.target.value);
+    setErrors({ ...errors, overview: "" });
+  }}
+  error={!!errors.overview}
+  helperText={errors.overview}
+  multiline
+  maxRows={3}
+  sx={{ mb: 2 }}
+/>
 
                   {/* Responsive Quill Editor */}
                   <QuillEditor
+                  
                     value={newDescription}
                     onChange={setNewDescription}
                   />
+
+                  {errors.description && (
+  <Typography color="error" variant="caption">
+    {errors.description}
+  </Typography>
+)}
+
                   {/* ===== Additional Course Details ===== */}
-
-                  <TextField
-                    required
-                    label="Department"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                  />
-
-                  <TextField
-                    required
-                    label="Instructor"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={instructor}
-                    onChange={(e) => setInstructor(e.target.value)}
-                  />
-
-                  <TextField
-                    required
-                    label="Duration (minutes)"
-                    type="number"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={durationMinutes}
-                    onChange={(e) => setDurationMinutes(e.target.value)}
-                  />
-
-                  <TextField
-                    required
-                    label="Language"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                  />
 <TextField
+  required
+  label="Department"
+  fullWidth
+  value={department}
+  onChange={(e) => {
+    setDepartment(e.target.value);
+    setErrors({ ...errors, department: "" });
+  }}
+  error={!!errors.department}
+  helperText={errors.department}
+  sx={{ mb: 2 }}
+/>
+
+                  <TextField
+  required
+  label="Instructor"
+  fullWidth
+  value={instructor}
+  onChange={(e) => {
+    setInstructor(e.target.value);
+    setErrors({ ...errors, instructor: "" });
+  }}
+  error={!!errors.instructor}
+  helperText={errors.instructor}
+  sx={{ mb: 2 }}
+/>
+
+
+                <TextField
+  required
+  label="Duration (minutes)"
+  type="number"
+  fullWidth
+  value={durationMinutes}
+  onChange={(e) => {
+    setDurationMinutes(e.target.value);
+    setErrors({ ...errors, duration: "" });
+  }}
+  error={!!errors.duration}
+  helperText={errors.duration}
+  sx={{ mb: 2 }}
+/>
+
+<TextField
+  required
+  label="Language"
+  fullWidth
+  value={language}
+  onChange={(e) => {
+    setLanguage(e.target.value);
+    setErrors({ ...errors, language: "" });
+  }}
+  error={!!errors.language}
+  helperText={errors.language}
+  sx={{ mb: 2 }}
+/>
+
+               <TextField
   required
   select
   label="Mainstream"
   fullWidth
-  sx={{ mb: 2 }}
   value={mainstream}
-  onChange={(e) => setMainstream(e.target.value)}
+  onChange={(e) => {
+    setMainstream(e.target.value);
+    setErrors({ ...errors, mainstream: "" });
+  }}
+  error={!!errors.mainstream}
+  helperText={errors.mainstream}
+  sx={{ mb: 2 }}
 >
   {mainstreams.map(ms => (
     <MenuItem key={ms.mainstream_id} value={ms.mainstream_name}>
@@ -555,56 +612,75 @@ useEffect(() => {
   ))}
 </TextField>
 
-
-
-               <TextField
-               required
+<TextField
+  required
   select
   label="Substream"
   fullWidth
-  sx={{ mb: 2 }}
   value={substream}
-  onChange={(e) => setSubstream(e.target.value)}
+  onChange={(e) => {
+    setSubstream(e.target.value);
+    setErrors({ ...errors, substream: "" });
+  }}
+  error={!!errors.substream}
+  helperText={errors.substream}
+  sx={{ mb: 2 }}
 >
-  {substreams.map(ss => (
+  {substreams.map((ss) => (
     <MenuItem key={ss.substream_id} value={ss.substream_name}>
       {ss.substream_name}
     </MenuItem>
   ))}
 </TextField>
 
+<TextField
+  required
+  label="Course Type"
+  fullWidth
+  value={courseType}
+  onChange={(e) => {
+    setCourseType(e.target.value);
+    setErrors({ ...errors, courseType: "" });
+  }}
+  error={!!errors.courseType}
+  helperText={errors.courseType}
+  sx={{ mb: 2 }}
+/>
+
+
+                <TextField
+  required
+  label="Course Outcome"
+  multiline
+  rows={3}
+  fullWidth
+  value={courseOutcome}
+  onChange={(e) => {
+    setCourseOutcome(e.target.value);
+    setErrors({ ...errors, courseOutcome: "" });
+  }}
+  error={!!errors.courseOutcome}
+  helperText={errors.courseOutcome}
+  sx={{ mb: 2 }}
+/>
 
 
                   <TextField
-                    required
-                    label="Course Type"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={courseType}
-                    onChange={(e) => setCourseType(e.target.value)}
-                  />
+  required
+  label="System Requirements"
+  multiline
+  rows={3}
+  fullWidth
+  value={systemRequirements}
+  onChange={(e) => {
+    setSystemRequirements(e.target.value);
+    setErrors({ ...errors, systemRequirements: "" });
+  }}
+  error={!!errors.systemRequirements}
+  helperText={errors.systemRequirements}
+  sx={{ mb: 2 }}
+/>
 
-                  <TextField
-                    required
-                    label="Course Outcome"
-                    multiline
-                    rows={3}
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={courseOutcome}
-                    onChange={(e) => setCourseOutcome(e.target.value)}
-                  />
-
-                  <TextField
-                    required
-                    label="System Requirements"
-                    multiline
-                    rows={3}
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={systemRequirements}
-                    onChange={(e) => setSystemRequirements(e.target.value)}
-                  />
 
                   <TextField
                     label="No of Videos"
@@ -644,24 +720,35 @@ useEffect(() => {
                       onChange={(e) => setSubtitlesLanguage(e.target.value)}
                     />
                   )}
+<TextField
+  required
+  label="Reference ID"
+  fullWidth
+  value={referenceId}
+  onChange={(e) => {
+    setReferenceId(e.target.value);
+    setErrors({ ...errors, referenceId: "" });
+  }}
+  error={!!errors.referenceId}
+  helperText={errors.referenceId}
+  sx={{ mb: 2 }}
+/>
 
-                  <TextField
-                    required
-                    label="Reference ID"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={referenceId}
-                    onChange={(e) => setReferenceId(e.target.value)}
-                  />
 
-                  <TextField
-                    required
-                    label="Location"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
+               <TextField
+  required
+  label="Location"
+  fullWidth
+  value={location}
+  onChange={(e) => {
+    setLocation(e.target.value);
+    setErrors({ ...errors, location: "" });
+  }}
+  error={!!errors.location}
+  helperText={errors.location}
+  sx={{ mb: 2 }}
+/>
+
 
                   <FormControl sx={{ mb: 2, width: "100%" }}>
                     <FormLabel sx={{ mb: 1 }}>Course Status</FormLabel>
