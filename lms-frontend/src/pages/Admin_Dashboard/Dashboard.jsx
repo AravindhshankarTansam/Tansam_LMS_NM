@@ -51,12 +51,12 @@ export default function Dashboard() {
     },
   ];
 
-  const courseList = [
-    { id: 1, title: "Human Anatomy", category: "Pre-Clinical", progress: 80 },
-    { id: 2, title: "Pathology Essentials", category: "Para-Clinical", progress: 60 },
-    { id: 3, title: "Clinical Skills in Surgery", category: "Clinical", progress: 45 },
-    { id: 4, title: "Pharmacology & Therapeutics", category: "Para-Clinical", progress: 70 },
-  ];
+  // const courseList = [
+  //   { id: 1, title: "Human Anatomy", category: "Pre-Clinical", progress: 80 },
+  //   { id: 2, title: "Pathology Essentials", category: "Para-Clinical", progress: 60 },
+  //   { id: 3, title: "Clinical Skills in Surgery", category: "Clinical", progress: 45 },
+  //   { id: 4, title: "Pharmacology & Therapeutics", category: "Para-Clinical", progress: 70 },
+  // ];
 
   return (
     <div className="dashboard-app">
@@ -102,15 +102,15 @@ export default function Dashboard() {
                   <div className="card-header">Total Students Overview</div>
                   <div className="card-body" style={{ justifyContent: "space-between" }}>
                     <div className="issued-right">
-                      <div className="big">856</div>
-                      <div className="muted tiny">Active MBBS Students</div>
+                      <div className="big">Not Connected</div>
+                      <div className="muted tiny">Active Students</div>
                       <div style={{ width: "120px", marginTop: 10 }}>
                         <LineChart small />
                       </div>
                     </div>
                     <div className="issued-left">
                       <div className="meta small">Total Enrolled</div>
-                      <div className="title">1,250</div>
+                      <div className="title">Not Connected</div>
                       <div className="meta small">Completion Rate: <strong>68%</strong></div>
                     </div>
                   </div>
@@ -192,7 +192,7 @@ export default function Dashboard() {
             </div>
 
             {/* RIGHT SIDEBAR */}
-            <div className="sidebar-column">
+            {/* <div className="sidebar-column">
               <div className="card course-list-card">
                 <div className="card-header">Active Medical Courses</div>
                 <div className="card-body">
@@ -226,7 +226,7 @@ export default function Dashboard() {
                   </ul>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
