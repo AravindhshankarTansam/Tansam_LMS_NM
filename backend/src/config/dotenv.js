@@ -1,38 +1,29 @@
-// src/config/dotenv.js
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 
-// Detect environment
-const env = process.env.NODE_ENV || "development";
+// Decide environment
+const NODE_ENV = process.env.NODE_ENV || "development";
 
-// Choose env file
+// Only two files for your project
 const envFile =
-  env === "production"
+  NODE_ENV === "production"
     ? ".env.production"
     : ".env.local";
 
-// Absolute path
+// Absolute path (important for PM2/scripts)
 const envPath = path.resolve(process.cwd(), envFile);
 
-// Load env with OVERRIDE (THIS IS THE KEY FIX)
-if (fs.existsSync(envPath)) {
-  dotenv.config({
-    path: envPath,
-    override: true, // ?? FORCE production values
-  });
-  console.log(`? Loaded environment from ${envFile}`);
-} else {
-  dotenv.config({
-    path: path.resolve(process.cwd(), ".env"),
-    override: true,
-  });
-  console.warn(`?? ${envFile} not found — fallback to .env`);
+// Check file exists
+if (!fs.existsSync(envPath)) {
+  console.error(`❌ Env file not found: ${envPath}`);
+  process.exit(1);
 }
 
-// Sanity check
-if (!process.env.JWT_SECRET) {
-  console.warn("?? Missing JWT_SECRET in environment file!");
-}
+// Load it ONCE
+dotenv.config({
+  path: envPath,
+  override: true
+});
 
-export default dotenv;
+console.log(`✅ Loaded environment from ${envFile}`);
