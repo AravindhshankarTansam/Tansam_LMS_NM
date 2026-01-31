@@ -1,10 +1,8 @@
-import dotenv from "dotenv";
+import "../config/dotenv.js";
 import bcrypt from "bcryptjs";
 import { connectDB } from "../config/db.js";
 import { generateCustomId } from "../utils/generateCustomId.js";
 
-dotenv.config({ path: ".env.local" });
-dotenv.config({ path: ".env.production" });
 
 const createSuperAdmin = async () => {
   try {
