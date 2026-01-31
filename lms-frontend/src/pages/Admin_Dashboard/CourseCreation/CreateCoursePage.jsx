@@ -300,80 +300,97 @@ useEffect(() => {
     }
   };
 
-  const saveCourse = async () => {
-    if (!newCourseName || !newCategory) {
-      setSnackMsg("Fill required fields");
-      setSnackSeverity("warning");
-      setSnackOpen(true);
-      return;
-    }
+ const saveCourse = async () => {
+  // ✅ MANDATORY FIELD VALIDATION
+  if (
+    !newCourseName ||
+    !newCategory ||
+    !newDescription ||
+    !durationMinutes ||
+    !language ||
+    !mainstream ||
+    !substream ||
+    !courseType ||
+    !courseOutcome ||
+    !systemRequirements ||
+    !referenceId ||
+    !location
+  ) {
+    setSnackMsg("Please fill all mandatory fields");
+    setSnackSeverity("warning");
+    setSnackOpen(true);
+    return;
+  }
 
-    if (pricingType === "paid" && !pricingAmount) {
-      setSnackMsg("Enter price for paid course");
-      setSnackSeverity("warning");
-      setSnackOpen(true);
-      return;
-    }
+  // ✅ PAID COURSE PRICE CHECK
+  if (pricingType === "paid" && !pricingAmount) {
+    setSnackMsg("Enter price for paid course");
+    setSnackSeverity("warning");
+    setSnackOpen(true);
+    return;
+  }
 
-    const formData = new FormData();
-    formData.append("course_name", newCourseName);
-    formData.append("category_id", newCategory);
-    formData.append("overview", newOverview);
-    formData.append("description", newDescription);
-    formData.append("pricing_type", pricingType);
-    formData.append("department", department);
-    formData.append("instructor", instructor);
-    formData.append("duration_minutes", durationMinutes);
-    formData.append("language", language);
-formData.append("mainstream", mainstream);
-formData.append("substream", substream);
+  // ✅ FORM DATA (ONLY AFTER VALIDATION PASSES)
+  const formData = new FormData();
+  formData.append("course_name", newCourseName);
+  formData.append("category_id", newCategory);
+  formData.append("overview", newOverview);
+  formData.append("description", newDescription);
+  formData.append("pricing_type", pricingType);
+  formData.append("department", department);
+  formData.append("instructor", instructor);
+  formData.append("duration_minutes", durationMinutes);
+  formData.append("language", language);
+  formData.append("mainstream", mainstream);
+  formData.append("substream", substream);
+  formData.append("course_type", courseType);
+  formData.append("course_outcome", courseOutcome);
+  formData.append("system_requirements", systemRequirements);
+  formData.append("no_of_videos", noOfVideos || "0"); // optional ✅
+  formData.append("has_subtitles", hasSubtitles);
+  formData.append("subtitles_language", subtitlesLanguage);
+  formData.append("reference_id", referenceId);
+  formData.append("location", location);
+  formData.append("status", "draft");
+  formData.append("is_active", courseStatus);
+  formData.append(
+    "price_amount",
+    pricingType === "paid" ? pricingAmount : "0"
+  );
 
-    formData.append("course_type", courseType);
-    formData.append("course_outcome", courseOutcome);
-    formData.append("system_requirements", systemRequirements);
-    formData.append("no_of_videos", noOfVideos || "0");
-    formData.append("has_subtitles", hasSubtitles);
-    formData.append("subtitles_language", subtitlesLanguage);
-    formData.append("reference_id", referenceId);
-    formData.append("location", location);
-    formData.append("status", "draft"); // or published later
+  if (coverFile) formData.append("course_image", coverFile);
+  if (promoFile) formData.append("course_video", promoFile);
 
-    formData.append("is_active", courseStatus);
-    formData.append(
-      "price_amount",
-      pricingType === "paid" ? pricingAmount : "0",
-    );
-    if (coverFile) formData.append("course_image", coverFile);
-    if (promoFile) formData.append("course_video", promoFile);
+  try {
+    setSaving(true);
+    const url = editingCourse
+      ? `${COURSE_API}/${editingCourse.course_id}`
+      : COURSE_API;
+    const method = editingCourse ? "PUT" : "POST";
 
-    try {
-      setSaving(true);
-      const url = editingCourse
-        ? `${COURSE_API}/${editingCourse.course_id}`
-        : COURSE_API;
-      const method = editingCourse ? "PUT" : "POST";
+    const res = await fetch(url, {
+      method,
+      credentials: "include",
+      body: formData,
+    });
 
-      const res = await fetch(url, {
-        method,
-        credentials: "include",
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Failed");
+    if (!res.ok) throw new Error("Failed");
 
-      setSnackMsg(editingCourse ? "Updated!" : "Created!");
-      setSnackSeverity("success");
-      setSnackOpen(true);
-      setShowCourseForm(false);
-      resetForm();
-      fetchCourses();
-    } catch (err) {
-      setSnackMsg("Save failed");
-      setSnackSeverity("error");
-      setSnackOpen(true);
-    } finally {
-      setSaving(false);
-    }
-  };
+    setSnackMsg(editingCourse ? "Updated!" : "Created!");
+    setSnackSeverity("success");
+    setSnackOpen(true);
+    setShowCourseForm(false);
+    resetForm();
+    fetchCourses();
+  } catch (err) {
+    setSnackMsg("Save failed");
+    setSnackSeverity("error");
+    setSnackOpen(true);
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f9fafb" }}>
@@ -505,6 +522,7 @@ formData.append("substream", substream);
                   />
 
                   <TextField
+                    required
                     label="Duration (minutes)"
                     type="number"
                     fullWidth
@@ -514,6 +532,7 @@ formData.append("substream", substream);
                   />
 
                   <TextField
+                    required
                     label="Language"
                     fullWidth
                     sx={{ mb: 2 }}
@@ -521,6 +540,7 @@ formData.append("substream", substream);
                     onChange={(e) => setLanguage(e.target.value)}
                   />
 <TextField
+  required
   select
   label="Mainstream"
   fullWidth
@@ -538,6 +558,7 @@ formData.append("substream", substream);
 
 
                <TextField
+               required
   select
   label="Substream"
   fullWidth
@@ -555,6 +576,7 @@ formData.append("substream", substream);
 
 
                   <TextField
+                    required
                     label="Course Type"
                     fullWidth
                     sx={{ mb: 2 }}
@@ -563,6 +585,7 @@ formData.append("substream", substream);
                   />
 
                   <TextField
+                    required
                     label="Course Outcome"
                     multiline
                     rows={3}
@@ -573,6 +596,7 @@ formData.append("substream", substream);
                   />
 
                   <TextField
+                    required
                     label="System Requirements"
                     multiline
                     rows={3}
@@ -583,7 +607,6 @@ formData.append("substream", substream);
                   />
 
                   <TextField
-                    required
                     label="No of Videos"
                     type="number"
                     fullWidth
@@ -623,6 +646,7 @@ formData.append("substream", substream);
                   )}
 
                   <TextField
+                    required
                     label="Reference ID"
                     fullWidth
                     sx={{ mb: 2 }}
@@ -631,6 +655,7 @@ formData.append("substream", substream);
                   />
 
                   <TextField
+                    required
                     label="Location"
                     fullWidth
                     sx={{ mb: 2 }}
