@@ -119,6 +119,9 @@ CREATE TABLE IF NOT EXISTS courses (
   system_requirements TEXT,
   requirements TEXT,
 
+  -- 🔥 NEW: Course structure snapshot (Modules + Chapters)
+  course_content JSON NULL,
+
   -- Classification
   language VARCHAR(100),
   mainstream VARCHAR(255),
@@ -147,6 +150,7 @@ CREATE TABLE IF NOT EXISTS courses (
   FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL,
   FOREIGN KEY (created_by) REFERENCES users(email) ON DELETE SET NULL
 );
+
 
 
 CREATE TABLE IF NOT EXISTS modules (

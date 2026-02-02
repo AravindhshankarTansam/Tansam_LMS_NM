@@ -1,8 +1,10 @@
 import { connectDB } from "../config/db.js";
 import fs from "fs";
 import { detectMaterialType } from "../utils/materialTypeMapper.js";
+import { rebuildCourseContent } from "../utils/courseContentBuilder.js";
 
 // ✅ Create chapter with multiple materials
+/* ================= CREATE CHAPTER ================= */
 export const createChapter = async (req, res) => {
   const db = await connectDB();
   const { module_id, chapter_name } = req.body;
@@ -13,14 +15,15 @@ export const createChapter = async (req, res) => {
   }
 
   try {
-    // Find next order index
+    // 1️⃣ Get next order index
     const [rows] = await db.query(
-      `SELECT COALESCE(MAX(order_index), 0) + 1 AS next_index FROM chapters WHERE module_id = ?`,
+      `SELECT COALESCE(MAX(order_index), 0) + 1 AS next_index 
+       FROM chapters WHERE module_id = ?`,
       [module_id]
     );
     const nextIndex = rows[0].next_index;
 
-    // Insert chapter
+    // 2️⃣ Insert chapter
     const [result] = await db.query(
       `INSERT INTO chapters (module_id, chapter_name, materials_json, order_index)
        VALUES (?, ?, ?, ?)`,
@@ -29,7 +32,7 @@ export const createChapter = async (req, res) => {
 
     const chapter_id = result.insertId;
 
-    // Insert materials
+    // 3️⃣ Insert materials (unchanged)
     if (files && files.length > 0) {
       for (const file of files) {
         const material_type = detectMaterialType(file.originalname);
@@ -42,6 +45,16 @@ export const createChapter = async (req, res) => {
           [chapter_id, material_type, file.originalname, file.path, file_size_kb]
         );
       }
+    }
+
+    // 🔥 ADDED: get course_id via module
+    const [[moduleRow]] = await db.query(
+      `SELECT course_id FROM modules WHERE module_id = ?`,
+      [module_id]
+    );
+
+    if (moduleRow) {
+      await rebuildCourseContent(moduleRow.course_id);
     }
 
     res.json({
