@@ -43,6 +43,8 @@ const QuillEditor = ({ value, onChange }) => {
  
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -149,6 +151,7 @@ const QuillEditor = ({ value, onChange }) => {
   );
 };
 
+
 export default function CourseCreateForm() {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -191,6 +194,45 @@ const [substreams, setSubstreams] = useState([]);
   const [referenceId, setReferenceId] = useState("");
   const [location, setLocation] = useState("");
 const [errors, setErrors] = useState({});
+// 🔥 PREFILL FORM WHEN EDITING A COURSE
+useEffect(() => {
+  if (!editingCourse) return;
+
+  setNewCourseName(editingCourse.course_name || "");
+  setNewCategory(editingCourse.category_id || "");
+  setNewOverview(editingCourse.overview || "");
+  setNewDescription(editingCourse.description || "");
+
+  setDepartment(editingCourse.department || "");
+  setInstructor(editingCourse.instructor || "");
+  setDurationMinutes(editingCourse.duration_minutes || "");
+  setLanguage(editingCourse.language || "");
+
+  setMainstream(editingCourse.mainstream || "");
+  setSubstream(editingCourse.substream || "");
+  setCourseType(editingCourse.course_type || "");
+
+  setCourseOutcome(editingCourse.course_outcome || "");
+  setSystemRequirements(editingCourse.system_requirements || "");
+
+  setNoOfVideos(editingCourse.no_of_videos || "");
+  setHasSubtitles(
+    editingCourse.has_subtitles
+      ? String(editingCourse.has_subtitles)
+      : "0"
+  );
+  setSubtitlesLanguage(editingCourse.subtitles_language || "");
+
+  setReferenceId(editingCourse.reference_id || "");
+  setLocation(editingCourse.location || "");
+
+  setPricingType(editingCourse.pricing_type || "free");
+  setPricingAmount(editingCourse.price_amount || "");
+
+  setCourseStatus(editingCourse.is_active || "active");
+
+}, [editingCourse]);
+
 
 
   // Snackbar
@@ -270,17 +312,10 @@ useEffect(() => {
     setShowCourseForm(true);
   };
 
-  const handleEditCourse = (course) => {
-    setEditingCourse(course);
-    setShowCourseForm(true);
-    setNewCourseName(course.course_name);
-    setNewCategory(course.category_id);
-    setNewOverview(course.overview || "");
-    setNewDescription(course.description || "");
-    setCourseStatus(course.is_active ? "active" : "inactive");
-    setPricingType(course.pricing_type || "free");
-    setPricingAmount(course.price_amount || "");
-  };
+ const handleEditCourse = (course) => {
+  setEditingCourse(course);
+  setShowCourseForm(true);
+};
 
   const deleteCourse = async (courseId) => {
     if (!window.confirm("Delete this course?")) return;

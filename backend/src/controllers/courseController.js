@@ -292,27 +292,71 @@ export const deleteCourse = async (req, res) => {
 };
 
 /* ================= GET COURSE BY ID ================= */
-
 export const getCourseById = async (req, res) => {
   try {
     const db = await connectDB();
     const { id } = req.params;
 
-    const [rows] = await db.query(
-      "SELECT * FROM courses WHERE course_id = ?",
+    const [[course]] = await db.query(
+      `
+      SELECT c.*, cat.category_name
+      FROM courses c
+      LEFT JOIN categories cat ON c.category_id = cat.category_id
+      WHERE c.course_id = ?
+      `,
       [id]
     );
 
-    if (!rows.length) {
+    if (!course) {
       return res.status(404).json({ message: "Course not found" });
     }
 
-    res.json(rows[0]);
-  } catch (error) {
-    console.error("Error fetching course:", error);
+    // ✅ SAFE JSON HANDLING (THIS FIXES YOUR ERROR)
+    const modules =
+      course.course_content
+        ? typeof course.course_content === "string"
+          ? JSON.parse(course.course_content)
+          : course.course_content
+        : [];
+
+    const course_content = modules.map(m => ({
+      content: m.module_name
+    }));
+
+    const course_objective = modules.flatMap(m =>
+      (m.chapters || []).map(ch => ({
+        objective: ch.chapter_name
+      }))
+    );
+
+    res.json({
+      course_unique_code: course.course_unique_code,
+      course_name: course.course_name,
+      course_description: course.description,
+      course_image_url: course.course_image_url,
+      instructor: course.instructor,
+      duration: String(course.duration_minutes),
+      number_of_videos: String(course.no_of_videos),
+      language: course.language,
+      main_stream: course.mainstream,
+      sub_stream: course.substream,
+      category: course.category_name,
+      system_requirements: course.system_requirements,
+      has_subtitles: course.has_subtitles ? "true" : "false",
+      reference_id: course.reference_id,
+      course_type: course.course_type,
+      location: course.location || "",
+      course_content,
+      course_objective
+    });
+
+  } catch (err) {
+    console.error("❌ Error in getCourseById:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
 
 /* ================= COURSE STRUCTURE ================= */
 

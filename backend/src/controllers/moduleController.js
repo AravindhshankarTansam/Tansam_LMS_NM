@@ -1,4 +1,5 @@
 import { connectDB } from "../config/db.js";
+import { rebuildCourseContent } from "../utils/courseContentBuilder.js";
 
 // ✅ Create module
 export const createModule = async (req, res) => {
@@ -7,13 +8,18 @@ export const createModule = async (req, res) => {
 
   try {
     await db.query(
-      `INSERT INTO modules (course_id, module_name, order_index) VALUES (?, ?, ?)`,
+      `INSERT INTO modules (course_id, module_name, order_index)
+       VALUES (?, ?, ?)`,
       [course_id, module_name, order_index || 0]
     );
+
+    // 🔥 rebuild course JSON
+    await rebuildCourseContent(course_id);
+
     res.json({ message: "✅ Module created" });
   } catch (err) {
-    console.error("❌ Error creating module:", err);
-    res.status(500).json({ message: "Server error while creating module" });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 

@@ -146,13 +146,12 @@ if (fromEnroll && courseId) {
         <button type="button" className="cta" onClick={() => navigate("/")}>
           <span className="span">BACK TO HOME</span>
           <span className="second">
-            <svg width="50px" height="20px" viewBox="0 0 66 43">
-              <g fill="none" fillRule="evenodd">
-                <path className="one" fill="#fff" d="M40.15..." />
-                <path className="two" fill="#fff" d="M20.15..." />
-                <path className="three" fill="#fff" d="M0.15..." />
-              </g>
-            </svg>
+          <svg width="50" height="20" viewBox="0 0 66 43">
+  <path className="one" fill="#fff" d="M40 0 L66 21.5 L40 43" />
+  <path className="two" fill="#fff" d="M20 0 L46 21.5 L20 43" />
+  <path className="three" fill="#fff" d="M0 0 L26 21.5 L0 43" />
+</svg>
+
           </span>
         </button>
       </div>
