@@ -11,94 +11,117 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const [allCourses, setAllCourses] = useState([]);
-  const [approvedCourses, setApprovedCourses] = useState([]);
+  const [nmCourses, setNMCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [publishLoading, setPublishLoading] = useState(null);
+  const [nmMessage, setNmMessage] = useState("");
+
+  /* =====================================================
+     LOAD DASHBOARD DATA
+  ===================================================== */
+  const loadDashboardData = async () => {
+    try {
+      const [allRes, nmRes] = await Promise.all([
+        axios.get(`${API_BASE}/dashboard/courses`),
+        axios.get(`${API_BASE}/dashboard/courses/dashboard/nm-courses`)
+      ]);
+
+      setAllCourses(allRes.data || []);
+      setNMCourses(nmRes.data || []);
+    } catch (err) {
+      console.error("Dashboard API error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        const [allRes, nmRes] = await Promise.all([
-          axios.get(`${API_BASE}/dashboard/courses`),
-          axios.get(`${API_BASE}/dashboard/courses/dashboard/nm-courses`)
-        ]);
-
-        setAllCourses(allRes.data || []);
-        setApprovedCourses(nmRes.data || []);
-      } catch (err) {
-        console.error("Dashboard API error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadDashboardData();
   }, []);
 
- const renderCourses = (courses, isNMSection = false) => {
-  if (!courses.length) {
-    return <p className="muted">No courses found</p>;
-  }
+  /* =====================================================
+     PUBLISH COURSE TO NM
+  ===================================================== */
+  const handlePublish = async (courseId) => {
+    try {
+      setPublishLoading(courseId);
+      setNmMessage("");
 
-  return (
-    <div className="course-grid">
-      {courses.map((course) => {
-        const imageSrc =
-          course.course_image_url
-            ? course.course_image_url
-            : course.course_image
-            ? `${import.meta.env.VITE_API_BASE_URL.replace("/api", "")}/${course.course_image}`
-            : "/default-course.png";
+      const res = await axios.post(
+        `${API_BASE}/nm/course/publish/${courseId}`
+      );
 
-        const isApproved = course.nm_approval_status === "approved";
+      setNmMessage(res.data.message);
 
-        return (
-          <div className="course-card" key={course.course_id}>
-            <img
-              src={imageSrc}
-              alt={course.course_name}
-              className="course-image"
-            />
+      // refresh
+      loadDashboardData();
+    } catch (err) {
+      console.error(err);
+      setNmMessage("❌ Failed to publish course");
+    } finally {
+      setPublishLoading(null);
+    }
+  };
 
-            <div className="course-info">
-              <h3>{course.course_name}</h3>
+  /* =====================================================
+     STATUS COLOR
+  ===================================================== */
+  const getStatusColor = (status) => {
+    if (status === "approved") return "green";
+    if (status === "rejected") return "red";
+    return "orange";
+  };
 
-              <p className="muted small">
-                Instructor: {course.instructor || "NA"}
-              </p>
+  /* =====================================================
+     SIMPLE GRID (ALL COURSES - OLD STYLE)
+  ===================================================== */
+  const renderCourses = (courses) => {
+    if (!courses.length) return <p>No courses found</p>;
 
-              <p className="muted small">
-                Duration: {course.duration_minutes || 0} mins
-              </p>
+    return (
+      <div className="course-grid">
+        {courses.map((course) => {
+          const imageSrc =
+            course.course_image_url ||
+            (course.course_image
+              ? `${API_BASE.replace("/api", "")}/${course.course_image}`
+              : "/default-course.png");
 
-              {/* ✅ NM STATUS BUTTON */}
-              {isNMSection && (
-                <button
-                  className={`qa-btn ${
-                    isApproved ? "nm-approved" : "nm-pending"
-                  }`}
-                  disabled={!isApproved}
-                >
-                  {isApproved ? "Approved" : "Pending "}
-                </button>
-              )}
+          return (
+            <div key={course.course_id} className="course-card">
+              <img src={imageSrc} alt="" className="course-image" />
+
+              <div className="course-info">
+                <h3>{course.course_name}</h3>
+                <p className="muted small">
+                  Instructor: {course.instructor || "NA"}
+                </p>
+                <p className="muted small">
+                  Duration: {course.duration_minutes || 0} mins
+                </p>
+              </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+          );
+        })}
+      </div>
+    );
+  };
 
-
+  /* =====================================================
+     UI
+  ===================================================== */
   return (
     <div className="dashboard-app">
       <Sidebar />
+
       <div className="dashboard-main">
         <Header userName="System Superadmin" />
 
         <div className="dashboard-content">
           <div className="top-actions">
-            <h2 className="greeting">Courses Dashboard</h2>
+            <h2>Courses Dashboard</h2>
+
             <button
               className="qa-btn"
               onClick={() => navigate("/create-course")}
@@ -108,20 +131,73 @@ export default function Dashboard() {
           </div>
 
           {loading ? (
-            <p>Loading courses...</p>
+            <p>Loading...</p>
           ) : (
             <>
-              {/* 🔹 ALL COURSES */}
-              {/* ALL COURSES */}
+              {/* =====================================================
+                  ALL COURSES (cards)
+              ===================================================== */}
               <section>
                 <h3>All Courses</h3>
                 {renderCourses(allCourses)}
               </section>
 
-              {/* NM COURSES */}
-              <section style={{ marginTop: "32px" }}>
-                <h3>Approved & Pending Courses</h3>
-                {renderCourses(approvedCourses, true)}
+              {/* =====================================================
+                  NM PUBLISH TABLE (NEW)
+              ===================================================== */}
+              <section style={{ marginTop: "40px" }}>
+                <h3>Publish Courses to NM</h3>
+
+                {nmMessage && (
+                  <div className="nm-toast">{nmMessage}</div>
+                )}
+
+                <table className="nm-table">
+                  <thead>
+                    <tr>
+                      <th>Sl</th>
+                      <th>Course Name</th>
+                      <th>Unique Code</th>
+                      <th>Action</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {nmCourses.map((c, index) => (
+                      <tr key={c.course_id}>
+                        <td>{index + 1}</td>
+
+                        <td>{c.course_name}</td>
+
+                        <td>{c.course_unique_code}</td>
+
+                        <td>
+                          <button
+                            disabled={
+                              publishLoading === c.course_id ||
+                              c.status !== "draft"
+                            }
+                            onClick={() => handlePublish(c.course_id)}
+                          >
+                            {publishLoading === c.course_id
+                              ? "Sending..."
+                              : "Send"}
+                          </button>
+                        </td>
+
+                        <td
+                          style={{
+                            color: getStatusColor(c.nm_approval_status),
+                            fontWeight: 600,
+                          }}
+                        >
+                          {c.nm_approval_status}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </section>
             </>
           )}

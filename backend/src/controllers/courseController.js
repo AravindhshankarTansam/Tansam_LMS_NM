@@ -418,10 +418,12 @@ export const getNMCourses = async (req, res) => {
       SELECT 
         course_id,
         course_name,
+        course_unique_code,
         course_image,
         course_image_url,
         instructor,
         duration_minutes,
+        status,  
         nm_approval_status
       FROM courses
       WHERE nm_approval_status IN ('pending','approved')
