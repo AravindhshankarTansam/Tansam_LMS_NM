@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS courses (
 
   -- Basic Info
   course_name VARCHAR(255) NOT NULL,
-  course_unique_code VARCHAR(20) UNIQUE,
+  course_unique_code VARCHAR(20) UNIQUE NOT NULL,
   category_id INT,
   department VARCHAR(255),
   instructor VARCHAR(255),
@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS courses (
   system_requirements TEXT,
   requirements TEXT,
 
-  -- 🔥 NEW: Course structure snapshot (Modules + Chapters)
+  -- NM snapshot (IMPORTANT)
   course_content JSON NULL,
 
   -- Classification
@@ -136,11 +136,24 @@ CREATE TABLE IF NOT EXISTS courses (
   reference_id VARCHAR(100),
   location VARCHAR(255),
 
-  -- Pricing & Status
-  pricing_type ENUM('free', 'paid') DEFAULT 'free',
+  -- 💰 Pricing
+  pricing_type ENUM('free','paid') DEFAULT 'free',
   price_amount DECIMAL(10,2) DEFAULT 0,
-  status ENUM('draft', 'published', 'archived') DEFAULT 'draft',
-  is_active ENUM('active', 'inactive') DEFAULT 'active',
+
+  -- 🔥 NM STATUS TRACKING (FIX)
+  status ENUM(
+    'draft',
+    'sent_to_nm',
+    'approved',
+    'rejected',
+    'archived'
+  ) DEFAULT 'draft',
+
+  nm_reference_id VARCHAR(100) NULL,
+  nm_approval_status ENUM('pending','approved','rejected') DEFAULT 'pending',
+  nm_last_sync DATETIME NULL,
+
+  is_active ENUM('active','inactive') DEFAULT 'active',
 
   -- Audit
   created_by VARCHAR(255),
@@ -150,8 +163,6 @@ CREATE TABLE IF NOT EXISTS courses (
   FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE SET NULL,
   FOREIGN KEY (created_by) REFERENCES users(email) ON DELETE SET NULL
 );
-
-
 
 CREATE TABLE IF NOT EXISTS modules (
   module_id INT AUTO_INCREMENT PRIMARY KEY,

@@ -1,62 +1,47 @@
-import { connectDB } from "../config/db.js";
+import axios from "axios";
+import { getNMToken } from "../services/nmService.js";
 
 export const subscribeCourse = async (req, res) => {
-  const {
-    user_id,        // NM user id
-    course_id,      // NTEDU0005
-    student_name,
-    college_code,
-    college_name,
-    branch_name,
-    district,
-    university
-  } = req.body;
-
   try {
-    const db = await connectDB();
+    const token = await getNMToken();
 
-    if (!user_id || !course_id) {
-      return res.json({
-        subscription_registration_status: false
-      });
-    }
-
-    // 1️⃣ Find LMS course
-    const [[course]] = await db.execute(
-      `SELECT course_id FROM courses WHERE course_unique_code = ?`,
-      [course_id]
+    const response = await axios.post(
+      `${process.env.NM_API_BASE_URL}/nm/api/course/subscribe/`,
+      req.body,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
     );
 
-    if (!course) {
-      return res.json({
-        subscription_registration_status: false
-      });
-    }
-
-    // 2️⃣ Check existing subscription
-    const [existing] = await db.execute(
-      `SELECT 1 FROM course_enrollments WHERE custom_id = ? AND course_id = ?`,
-      [user_id, course.course_id]
-    );
-
-    if (existing.length === 0) {
-      await db.execute(
-        `INSERT INTO course_enrollments (custom_id, course_id)
-         VALUES (?, ?)`,
-        [user_id, course.course_id]
-      );
-    }
-
-    // 3️⃣ Return NM-required response
-    return res.json({
-      subscription_registration_status: true,
-      subscription_reference_id: `SUB-${user_id}-${course.course_id}`
-    });
-
+    res.json(response.data);
   } catch (err) {
-    console.error("Subscribe error:", err);
-    return res.json({
-      subscription_registration_status: false
-    });
+    console.error("Subscribe error:", err.message);
+    res.json({ subscription_registration_status: false });
   }
+};
+
+
+export const checkSubscriptionStatus = async (req, res) => {
+  try {
+    const token = await getNMToken();
+    const { course_unique_code, user_email } = req.query;
+
+    const response = await axios.get(
+      `${process.env.NM_API_BASE_URL}/nm/api/course/subscription/status/`,
+      {
+        params: { course_unique_code, user_email },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    res.json(response.data);
+  } catch (err) {
+    console.error("Check subscription status error:", err.message);
+    res.status(500).json({ error: "Failed to check subscription status" });
+  } 
 };
