@@ -62,16 +62,19 @@ export const publishCourse = async (req, res) => {
       });
 
     /* ---------------- OBJECTIVES ---------------- */
-    const course_objective = stripHTML(course.course_outcome || "")
+    let course_objective = stripHTML(course.course_outcome || "")
       .split(/\n|,|\./)
       .map(x => x.trim())
       .filter(Boolean)
       .map(o => ({ objective: o }));
 
-    if (!course_objective.length)
-      return res.status(400).json({
-        message: "Add course outcome/objectives"
-      });
+    // 🔥 NM requires minimum 1
+    if (!course_objective.length) {
+      course_objective = [
+        { objective: "Understand the course concepts and complete the training successfully" }
+      ];
+    }
+
 
     /* ---------------- FINAL PAYLOAD ---------------- */
     const payload = {
