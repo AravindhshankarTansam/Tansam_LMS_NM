@@ -17,7 +17,7 @@ import substreamRoutes from "./routes/substreamRoutes.js";
 import nmSubscriptionRoutes from "./routes/nmSubscriptionRoutes.js";
 import nmAccessRoutes from "./routes/nmAccessRoutes.js";
 import nmPublishRoutes from "./routes/nmPublishRoutes.js";
-
+import nmApprovalRoutes from "./routes/nmApprovalRoutes.js";
 
 
 // =====================================================
@@ -71,6 +71,7 @@ app.use(`${API_BASE}/substreams`, substreamRoutes);
 app.use(API_BASE, nmSubscriptionRoutes);
 app.use(API_BASE, nmAccessRoutes);
 app.use(API_BASE, nmPublishRoutes);
+app.use(API_BASE, nmApprovalRoutes);
 
 
 // =====================================================

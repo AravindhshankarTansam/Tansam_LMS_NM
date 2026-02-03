@@ -1,233 +1,206 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
-import LineChart from "./Linechart";
-import DonutChart from "./Donutchart";
-import ProgressBar from "./ProgressBar";
-import TopLearners from "./TopLearners";
-import UngradedTable from "./UpgradeTable";
+import axios from "axios";
 import "./Dashboard.css";
-import { FaUserGraduate, FaBookOpen } from "react-icons/fa";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  const assignment = { submitted: 65, remaining: 35, total: 100 };
+  const [allCourses, setAllCourses] = useState([]);
+  const [nmCourses, setNMCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const learningContents = {
-    total: 120,
-    passed: 80,
-    failed: 10,
-    overdue: 5,
-    inProgress: 15,
-    notStarted: 10,
+  const [publishLoading, setPublishLoading] = useState(null);
+  const [nmMessage, setNmMessage] = useState("");
+
+  /* =====================================================
+     LOAD DASHBOARD DATA
+  ===================================================== */
+  const loadDashboardData = async () => {
+    try {
+      const [allRes, nmRes] = await Promise.all([
+        axios.get(`${API_BASE}/dashboard/courses`),
+        axios.get(`${API_BASE}/dashboard/courses/dashboard/nm-courses`)
+      ]);
+
+      setAllCourses(allRes.data || []);
+      setNMCourses(nmRes.data || []);
+    } catch (err) {
+      console.error("Dashboard API error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const topLearners = [
-    { name: "Dr. Ananya R.", role: "Resident, Cardiology", pts: 98 },
-    { name: "Dr. Mehul S.", role: "Intern, General Medicine", pts: 92 },
-    { name: "Dr. Priya V.", role: "PG, Orthopedics", pts: 88 },
-  ];
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
-  const ungraded = [
-    {
-      id: 1,
-      title: "Diagnosis of Myocardial Infarction",
-      questions: "4 open-ended",
-      learner: "Dr. Riya Singh",
-    },
-    {
-      id: 2,
-      title: "Clinical Case Study: Appendicitis",
-      questions: "6 open-ended",
-      learner: "Dr. Raj Malhotra",
-    },
-    {
-      id: 3,
-      title: "Anatomy of the Human Brain",
-      questions: "3 open-ended",
-      learner: "Dr. Sneha Nair",
-    },
-  ];
+  /* =====================================================
+     PUBLISH COURSE TO NM
+  ===================================================== */
+  const handlePublish = async (courseId) => {
+    try {
+      setPublishLoading(courseId);
+      setNmMessage("");
 
-  // const courseList = [
-  //   { id: 1, title: "Human Anatomy", category: "Pre-Clinical", progress: 80 },
-  //   { id: 2, title: "Pathology Essentials", category: "Para-Clinical", progress: 60 },
-  //   { id: 3, title: "Clinical Skills in Surgery", category: "Clinical", progress: 45 },
-  //   { id: 4, title: "Pharmacology & Therapeutics", category: "Para-Clinical", progress: 70 },
-  // ];
+      const res = await axios.post(
+        `${API_BASE}/nm/course/publish/${courseId}`
+      );
 
+      setNmMessage(res.data.message);
+
+      // refresh
+      loadDashboardData();
+    } catch (err) {
+      console.error(err);
+      setNmMessage("❌ Failed to publish course");
+    } finally {
+      setPublishLoading(null);
+    }
+  };
+
+  /* =====================================================
+     STATUS COLOR
+  ===================================================== */
+  const getStatusColor = (status) => {
+    if (status === "approved") return "green";
+    if (status === "rejected") return "red";
+    return "orange";
+  };
+
+  /* =====================================================
+     SIMPLE GRID (ALL COURSES - OLD STYLE)
+  ===================================================== */
+  const renderCourses = (courses) => {
+    if (!courses.length) return <p>No courses found</p>;
+
+    return (
+      <div className="course-grid">
+        {courses.map((course) => {
+          const imageSrc =
+            course.course_image_url ||
+            (course.course_image
+              ? `${API_BASE.replace("/api", "")}/${course.course_image}`
+              : "/default-course.png");
+
+          return (
+            <div key={course.course_id} className="course-card">
+              <img src={imageSrc} alt="" className="course-image" />
+
+              <div className="course-info">
+                <h3>{course.course_name}</h3>
+                <p className="muted small">
+                  Instructor: {course.instructor || "NA"}
+                </p>
+                <p className="muted small">
+                  Duration: {course.duration_minutes || 0} mins
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  /* =====================================================
+     UI
+  ===================================================== */
   return (
     <div className="dashboard-app">
       <Sidebar />
+
       <div className="dashboard-main">
-        <Header userName="Dr. Bagus" />
+        <Header userName="System Superadmin" />
+
         <div className="dashboard-content">
-          {/* Top Greeting & Quick Actions */}
           <div className="top-actions">
-            <h2 className="greeting">
-              Welcome
-            </h2>
-            <div className="quick-actions">
-<button
-  className="qa-btn course"
-  onClick={() => navigate("/add-user")}
->
-  <FaUserGraduate className="btn-icon" />
-  Add Student
-</button>
+            <h2>Courses Dashboard</h2>
 
-<button
-  className="qa-btn course"
-  onClick={() => navigate("/create-course")}
->
-  <FaBookOpen className="btn-icon" />
-  Add Module
-</button>
-
-              {/* <button className="qa-btn assign">🩺 Case Study +</button>
-              <button className="qa-btn quiz">💊 Medical Quiz +</button>
-              <button className="qa-btn path">🧬 Learning Path +</button> */}
-            </div>
+            <button
+              className="qa-btn"
+              onClick={() => navigate("/create-course")}
+            >
+              + Add Course
+            </button>
           </div>
 
-          <div className="dashboard-grid">
-            {/* Main Column */}
-            <div className="main-column">
-              {/* TOP ROW */}
-              <div className="grid grid-top">
-                {/* Total Students */}
-                <div className="card card-issued">
-                  <div className="card-header">Total Students Overview</div>
-                  <div className="card-body" style={{ justifyContent: "space-between" }}>
-                    <div className="issued-right">
-                      <div className="big">Not Connected</div>
-                      <div className="muted tiny">Active Students</div>
-                      <div style={{ width: "120px", marginTop: 10 }}>
-                        <LineChart small />
-                      </div>
-                    </div>
-                    <div className="issued-left">
-                      <div className="meta small">Total Enrolled</div>
-                      <div className="title">Not Connected</div>
-                      <div className="meta small">Completion Rate: <strong>68%</strong></div>
-                    </div>
-                  </div>
-                </div>
+          {loading ? (
+            <p>Loading...</p>
+          ) : (
+            <>
+              {/* =====================================================
+                  ALL COURSES (cards)
+              ===================================================== */}
+              <section>
+                <h3>All Courses</h3>
+                {renderCourses(allCourses)}
+              </section>
 
-                {/* Assignment Summary */}
-                <div className="card card-assignment">
-                  <div className="card-header">Case Studies Summary</div>
-                  <div className="card-body vertical">
-                    <div className="assignment-top">
-                      <div className="title">
-                        <strong>{assignment.submitted}</strong> submitted
-                      </div>
-                      <div className="muted tiny">{assignment.remaining} pending</div>
-                    </div>
+              {/* =====================================================
+                  NM PUBLISH TABLE (NEW)
+              ===================================================== */}
+              <section style={{ marginTop: "40px" }}>
+                <h3>Publish Courses to NM</h3>
 
-                    <div className="pb-wrapper">
-                      <div className="pb-track">
-                        <div
-                          className="pb-fill"
+                {nmMessage && (
+                  <div className="nm-toast">{nmMessage}</div>
+                )}
+
+                <table className="nm-table">
+                  <thead>
+                    <tr>
+                      <th>Sl</th>
+                      <th>Course Name</th>
+                      <th>Unique Code</th>
+                      <th>Action</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {nmCourses.map((c, index) => (
+                      <tr key={c.course_id}>
+                        <td>{index + 1}</td>
+
+                        <td>{c.course_name}</td>
+
+                        <td>{c.course_unique_code}</td>
+
+                        <td>
+                          <button
+                            disabled={
+                              publishLoading === c.course_id ||
+                              c.status !== "draft"
+                            }
+                            onClick={() => handlePublish(c.course_id)}
+                          >
+                            {publishLoading === c.course_id
+                              ? "Sending..."
+                              : "Send"}
+                          </button>
+                        </td>
+
+                        <td
                           style={{
-                            width: `${(assignment.submitted / assignment.total) * 100}%`,
+                            color: getStatusColor(c.nm_approval_status),
+                            fontWeight: 600,
                           }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    <div className="meta small muted">20 Case Studies • View all →</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* BOTTOM ROW */}
-              <div className="grid grid-bottom">
-                {/* Learning Content */}
-                <div className="card card-learning">
-                  <div className="card-header">Course Performance</div>
-                  <div className="card-body learning-body">
-                    <div className="learning-chart">
-                      <DonutChart
-                        data={{
-                          passed: learningContents.passed,
-                          failed: learningContents.failed,
-                          overdue: learningContents.overdue,
-                          inProgress: learningContents.inProgress,
-                          notStarted: learningContents.notStarted,
-                        }}
-                        total={learningContents.total}
-                        size="small"
-                      />
-                    </div>
-
-                    <div className="learning-legend">
-                      <div><span className="dot" style={{ background: "#3b82f6" }}></span> Passed</div>
-                      <div><span className="dot" style={{ background: "#ef4444" }}></span> Failed</div>
-                      <div><span className="dot" style={{ background: "#facc15" }}></span> Overdue</div>
-                      <div><span className="dot" style={{ background: "#10b981" }}></span> In Progress</div>
-                      <div><span className="dot" style={{ background: "#9ca3af" }}></span> Not Started</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Top Learners */}
-                <div className="card card-toplearn">
-                  <div className="card-header">Top Performing Students</div>
-                  <div className="card-body">
-                    <TopLearners data={topLearners} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Table */}
-              <div className="card ungraded-card full-width">
-                <div className="card-header">Pending Evaluations</div>
-                <div className="card-body">
-                  <UngradedTable rows={ungraded} />
-                </div>
-              </div>
-            </div>
-
-            {/* RIGHT SIDEBAR */}
-            {/* <div className="sidebar-column">
-              <div className="card course-list-card">
-                <div className="card-header">Active Medical Courses</div>
-                <div className="card-body">
-                  <ul className="course-list">
-                    {courseList.map((c) => (
-                      <li key={c.id}>
-                        <div className="course-info">
-                          <div className="course-title">{c.title}</div>
-                          <div className="muted tiny">{c.category}</div>
-                        </div>
-
-                        <div className="pb-wrapper">
-                          <div className="pb-track">
-                            <div className="pb-fill" style={{ width: `${c.progress}%` }}></div>
-                          </div>
-                          <div className="pb-label">{c.progress}%</div>
-                        </div>
-                      </li>
+                        >
+                          {c.nm_approval_status}
+                        </td>
+                      </tr>
                     ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="card tips-card">
-                <div className="card-header">Instructor Insights</div>
-                <div className="card-body">
-                  <ul className="tips-list">
-                    <li>🩻 Radiology session attendance up by 10%</li>
-                    <li>🧬 Anatomy module updated successfully</li>
-                    <li>💉 Add simulation-based surgery modules</li>
-                  </ul>
-                </div>
-              </div>
-            </div> */}
-          </div>
+                  </tbody>
+                </table>
+              </section>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -6,7 +6,8 @@ import {
   // enrollCourse,
   deleteCourse,
   getCourseById,
-  getCourseStructure
+  getCourseStructure,
+  getNMCourses
 } from "../controllers/courseController.js";
 import { authenticateUser } from "../middleware/authMiddleware.js";
 import { uploadCourseMaterial } from "../middleware/courseMiddleware.js";
@@ -26,6 +27,10 @@ const upload = uploadCourseMaterial.fields([
 ]);
 
 // ✅ Get all courses
+
+// ✅ DASHBOARD APIs FIRST
+router.get("/dashboard/nm-courses", getNMCourses);
+
 router.get("/", getAllCourses);
 // ✅ Protected: get a single course by ID
 router.get("/:id", authenticateUser, getCourseById);
@@ -44,5 +49,6 @@ router.delete("/:id", authenticateUser, deleteCourse);
 
 //get list of modules and lessons for a course
 router.get("/course-structure/:course_id", getCourseStructure);
+
 
 export default router;

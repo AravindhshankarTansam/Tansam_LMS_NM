@@ -406,3 +406,36 @@ export const getCourseStructure = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+/* ================= DASHBOARD – APPROVED COURSES ================= */
+
+export const getNMCourses = async (req, res) => {
+  try {
+    const db = await connectDB();
+
+    const [courses] = await db.execute(`
+      SELECT 
+        course_id,
+        course_name,
+        course_unique_code,
+        course_image,
+        course_image_url,
+        instructor,
+        duration_minutes,
+        status,  
+        nm_approval_status
+      FROM courses
+      WHERE nm_approval_status IN ('pending','approved')
+        AND is_active='active'
+      ORDER BY updated_at DESC
+    `);
+
+    res.json(courses);
+  } catch (err) {
+    console.error("❌ Error fetching NM courses:", err);
+    res.status(500).json({ message: "Failed to load NM courses" });
+  }
+};
+
+
