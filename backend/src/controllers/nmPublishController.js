@@ -5,9 +5,15 @@ const stripHTML = (t = "") =>
   t.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
 
 export const publishCourse = async (req, res) => {
+  console.log("\n==============================");
+  console.log("🚀 NM PUBLISH STARTED");
+  console.log("==============================");
+
   try {
     const db = await connectDB();
     const { id } = req.params;
+
+    console.log("📌 Course ID:", id);
 
     /* ---------------- GET COURSE ---------------- */
     const [[course]] = await db.query(
@@ -18,8 +24,12 @@ export const publishCourse = async (req, res) => {
       [id]
     );
 
-    if (!course)
+    console.log("📌 Course DB result:", course);
+
+    if (!course) {
+      console.log("❌ Course not found");
       return res.status(404).json({ message: "Course not found" });
+    }
 
     /* ---------------- MODULES ---------------- */
     const [modules] = await db.query(
@@ -30,9 +40,13 @@ export const publishCourse = async (req, res) => {
       [id]
     );
 
+    console.log("📌 Modules:", modules);
+
     const course_content = [];
 
     for (const mod of modules) {
+      console.log("➡ Processing module:", mod.module_name);
+
       const [chapters] = await db.query(
         `SELECT chapter_name
          FROM chapters
@@ -41,14 +55,17 @@ export const publishCourse = async (req, res) => {
         [mod.module_id]
       );
 
-      if (!chapters.length) continue;
+      console.log("   Chapters:", chapters);
 
       const cleanChapters = chapters
         .map(c => stripHTML(c.chapter_name))
         .filter(Boolean)
         .map(name => ({ content: name }));
 
-      if (!cleanChapters.length) continue;
+      if (!cleanChapters.length) {
+        console.log("   ⚠ Skipped (no valid chapters)");
+        continue;
+      }
 
       course_content.push({
         content: stripHTML(mod.module_name),
@@ -56,10 +73,14 @@ export const publishCourse = async (req, res) => {
       });
     }
 
-    if (!course_content.length)
+    console.log("📌 Final course_content:", JSON.stringify(course_content, null, 2));
+
+    if (!course_content.length) {
+      console.log("❌ course_content EMPTY");
       return res.status(400).json({
         message: "Add at least one module & chapter"
       });
+    }
 
     /* ---------------- OBJECTIVES ---------------- */
     let course_objective = stripHTML(course.course_outcome || "")
@@ -68,13 +89,14 @@ export const publishCourse = async (req, res) => {
       .filter(Boolean)
       .map(o => ({ objective: o }));
 
-    // 🔥 NM requires minimum 1
     if (!course_objective.length) {
+      console.log("⚠ No objectives found → adding fallback");
       course_objective = [
         { objective: "Understand the course concepts and complete the training successfully" }
       ];
     }
 
+    console.log("📌 Final course_objective:", course_objective);
 
     /* ---------------- FINAL PAYLOAD ---------------- */
     const payload = {
@@ -98,10 +120,15 @@ export const publishCourse = async (req, res) => {
       course_objective
     };
 
-    console.log("NM PAYLOAD >>>", JSON.stringify(payload, null, 2));
+    console.log("\n🚀 FINAL NM PAYLOAD >>>");
+    console.log(JSON.stringify(payload, null, 2));
 
+    /* ---------------- SEND TO NM ---------------- */
     const response = await publishCourseToNM(payload);
 
+    console.log("✅ NM RESPONSE:", response.data);
+
+    /* ---------------- UPDATE STATUS ---------------- */
     await db.execute(
       `UPDATE courses
        SET status='sent_to_nm',
@@ -111,10 +138,17 @@ export const publishCourse = async (req, res) => {
       [id]
     );
 
+    console.log("✅ Local DB updated");
+
     res.json(response.data);
 
   } catch (err) {
-    console.error("NM publish error:", err.response?.data || err.message);
+    console.error("\n❌❌❌ NM ERROR CAUGHT ❌❌❌");
+    console.error("STATUS:", err.response?.status);
+    console.error("DATA:", err.response?.data);
+    console.error("MESSAGE:", err.message);
+    console.error("STACK:", err.stack);
+
     res.status(500).json({
       message: err.response?.data?.message || "NM publish failed"
     });
