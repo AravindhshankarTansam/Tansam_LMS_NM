@@ -1,8 +1,10 @@
 import { connectDB } from "../config/db.js";
 import { publishCourseToNM } from "../services/nmService.js";
 
+/* ===================================== */
 const stripHTML = (t = "") =>
   t.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+/* ===================================== */
 
 export const publishCourse = async (req, res) => {
   console.log("\n==============================");
@@ -15,7 +17,9 @@ export const publishCourse = async (req, res) => {
 
     console.log("📌 Course ID:", id);
 
-    /* ---------------- GET COURSE ---------------- */
+    /* -------------------------------------------------
+       1️⃣ COURSE
+    ------------------------------------------------- */
     const [[course]] = await db.query(
       `SELECT c.*, cat.category_name
        FROM courses c
@@ -24,65 +28,47 @@ export const publishCourse = async (req, res) => {
       [id]
     );
 
-    console.log("📌 Course DB result:", course);
+    console.log("📌 Course from DB:", course);
 
     if (!course) {
       console.log("❌ Course not found");
       return res.status(404).json({ message: "Course not found" });
     }
 
-    /* ---------------- MODULES ---------------- */
-    const [modules] = await db.query(
-      `SELECT module_id, module_name
-       FROM modules
-       WHERE course_id=?
-       ORDER BY order_index`,
+    /* -------------------------------------------------
+       2️⃣ FLATTEN CHAPTERS (🔥 NM requires flat list)
+    ------------------------------------------------- */
+    const [chapters] = await db.query(
+      `
+      SELECT ch.chapter_name
+      FROM chapters ch
+      JOIN modules m ON ch.module_id = m.module_id
+      WHERE m.course_id=?
+      ORDER BY m.order_index, ch.order_index
+      `,
       [id]
     );
 
-    console.log("📌 Modules:", modules);
+    console.log("📌 Raw chapters:", chapters);
 
-    const course_content = [];
+    const course_content = chapters
+      .map(c => stripHTML(c.chapter_name))
+      .filter(Boolean)
+      .map(name => ({ content: name }));
 
-    for (const mod of modules) {
-      console.log("➡ Processing module:", mod.module_name);
-
-      const [chapters] = await db.query(
-        `SELECT chapter_name
-         FROM chapters
-         WHERE module_id=?
-         ORDER BY order_index`,
-        [mod.module_id]
-      );
-
-      console.log("   Chapters:", chapters);
-
-      const cleanChapters = chapters
-        .map(c => stripHTML(c.chapter_name))
-        .filter(Boolean)
-        .map(name => ({ content: name }));
-
-      if (!cleanChapters.length) {
-        console.log("   ⚠ Skipped (no valid chapters)");
-        continue;
-      }
-
-      course_content.push({
-        content: stripHTML(mod.module_name),
-        chapters: cleanChapters
-      });
-    }
-
-    console.log("📌 Final course_content:", JSON.stringify(course_content, null, 2));
+    console.log("📌 course_content:", course_content);
+    console.log("📌 course_content length:", course_content.length);
 
     if (!course_content.length) {
       console.log("❌ course_content EMPTY");
       return res.status(400).json({
-        message: "Add at least one module & chapter"
+        message: "Add at least one chapter before publishing"
       });
     }
 
-    /* ---------------- OBJECTIVES ---------------- */
+    /* -------------------------------------------------
+       3️⃣ OBJECTIVES
+    ------------------------------------------------- */
     let course_objective = stripHTML(course.course_outcome || "")
       .split(/\n|,|\./)
       .map(x => x.trim())
@@ -90,15 +76,18 @@ export const publishCourse = async (req, res) => {
       .map(o => ({ objective: o }));
 
     if (!course_objective.length) {
-      console.log("⚠ No objectives found → adding fallback");
+      console.log("⚠ No objectives → adding fallback");
       course_objective = [
-        { objective: "Understand the course concepts and complete the training successfully" }
+        { objective: "Complete the course successfully" }
       ];
     }
 
-    console.log("📌 Final course_objective:", course_objective);
+    console.log("📌 course_objective:", course_objective);
+    console.log("📌 course_objective length:", course_objective.length);
 
-    /* ---------------- FINAL PAYLOAD ---------------- */
+    /* -------------------------------------------------
+       4️⃣ FINAL PAYLOAD
+    ------------------------------------------------- */
     const payload = {
       course_unique_code: course.course_unique_code,
       course_name: stripHTML(course.course_name),
@@ -123,12 +112,16 @@ export const publishCourse = async (req, res) => {
     console.log("\n🚀 FINAL NM PAYLOAD >>>");
     console.log(JSON.stringify(payload, null, 2));
 
-    /* ---------------- SEND TO NM ---------------- */
+    /* -------------------------------------------------
+       5️⃣ CALL NM
+    ------------------------------------------------- */
     const response = await publishCourseToNM(payload);
 
     console.log("✅ NM RESPONSE:", response.data);
 
-    /* ---------------- UPDATE STATUS ---------------- */
+    /* -------------------------------------------------
+       6️⃣ UPDATE LOCAL
+    ------------------------------------------------- */
     await db.execute(
       `UPDATE courses
        SET status='sent_to_nm',
