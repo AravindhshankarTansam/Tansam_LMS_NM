@@ -107,7 +107,8 @@ export const publishCourse = async (req, res) => {
       sub_stream: stripHTML(course.substream),
       category: stripHTML(course.category_name),
       system_requirements: stripHTML(course.system_requirements),
-      reference_id: course.reference_id || "",
+      reference_id: (course.reference_id || "").replace(/[^\w-]/g, ""), // remove slash & special chars
+
 
       course_type: isOnline ? "ONLINE" : "CLASSROOM",
 
