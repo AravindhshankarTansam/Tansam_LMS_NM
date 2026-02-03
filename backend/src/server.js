@@ -14,6 +14,9 @@ import authRoutes from "./routes/authRoutes.js";
 import createAllRoutesCourse from "./routes/createAllRoutesCourse.js";
 import mainstreamRoutes from "./routes/mainstreamRoutes.js";
 import substreamRoutes from "./routes/substreamRoutes.js";
+import nmSubscriptionRoutes from "./routes/nmSubscriptionRoutes.js";
+import nmAccessRoutes from "./routes/nmAccessRoutes.js";
+
 
 
 // =====================================================
@@ -63,6 +66,9 @@ app.use(`${API_BASE}/auth`, authRoutes);
 app.use(`${API_BASE}/dashboard`, createAllRoutesCourse);
 app.use(`${API_BASE}/mainstreams`, mainstreamRoutes);
 app.use(`${API_BASE}/substreams`, substreamRoutes);
+/* 🔥 NM INTEGRATION ROUTES */
+app.use(API_BASE, nmSubscriptionRoutes);
+app.use(API_BASE, nmAccessRoutes);
 
 
 // =====================================================
