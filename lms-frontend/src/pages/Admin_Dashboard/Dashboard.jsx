@@ -120,7 +120,7 @@ export default function Dashboard() {
 
               {/* NM COURSES */}
               <section style={{ marginTop: "32px" }}>
-                <h3>NM Approved Courses</h3>
+                <h3>Approved & Pending Courses</h3>
                 {renderCourses(approvedCourses, true)}
               </section>
             </>
