@@ -837,3 +837,18 @@ section h3 {
     padding: 16px;
   }
 }
+
+/* NM STATUS BUTTONS */
+.nm-pending {
+  background: #fef3c7;
+  border: 1px solid #facc15;
+  color: #92400e;
+  cursor: not-allowed;
+}
+
+.nm-approved {
+  background: #dcfce7;
+  border: 1px solid #22c55e;
+  color: #166534;
+}
+

@@ -17,13 +17,13 @@ export default function Dashboard() {
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        const [allRes, approvedRes] = await Promise.all([
+        const [allRes, nmRes] = await Promise.all([
           axios.get(`${API_BASE}/dashboard/courses`),
-          axios.get(`${API_BASE}/dashboard/courses/dashboard/approved-courses`)
+          axios.get(`${API_BASE}/dashboard/courses/dashboard/nm-courses`)
         ]);
 
         setAllCourses(allRes.data || []);
-        setApprovedCourses(approvedRes.data || []);
+        setApprovedCourses(nmRes.data || []);
       } catch (err) {
         console.error("Dashboard API error:", err);
       } finally {
@@ -34,48 +34,61 @@ export default function Dashboard() {
     loadDashboardData();
   }, []);
 
-  const renderCourses = (courses) => {
-    if (courses.length === 0) {
-      return <p className="muted">No courses found</p>;
-    }
+ const renderCourses = (courses, isNMSection = false) => {
+  if (!courses.length) {
+    return <p className="muted">No courses found</p>;
+  }
 
-    return (
-      <div className="course-grid">
-        {courses.map((course) => (
+  return (
+    <div className="course-grid">
+      {courses.map((course) => {
+        const imageSrc =
+          course.course_image_url
+            ? course.course_image_url
+            : course.course_image
+            ? `${import.meta.env.VITE_API_BASE_URL.replace("/api", "")}/${course.course_image}`
+            : "/default-course.png";
+
+        const isApproved = course.nm_approval_status === "approved";
+
+        return (
           <div className="course-card" key={course.course_id}>
             <img
-              src={
-                course.course_image_url
-                  ? course.course_image_url
-                  : course.course_image
-                    ? `${import.meta.env.VITE_API_BASE_URL.replace("/api", "")}/${course.course_image}`
-                    : "/default-course.png"
-              }
+              src={imageSrc}
               alt={course.course_name}
               className="course-image"
             />
 
             <div className="course-info">
               <h3>{course.course_name}</h3>
+
               <p className="muted small">
                 Instructor: {course.instructor || "NA"}
               </p>
+
               <p className="muted small">
                 Duration: {course.duration_minutes || 0} mins
               </p>
-{/* 
-              <button
-                className="qa-btn"
-                onClick={() => navigate(`/course/${course.course_id}`)}
-              >
-                View Course
-              </button> */}
+
+              {/* ✅ NM STATUS BUTTON */}
+              {isNMSection && (
+                <button
+                  className={`qa-btn ${
+                    isApproved ? "nm-approved" : "nm-pending"
+                  }`}
+                  disabled={!isApproved}
+                >
+                  {isApproved ? "Approved" : "Pending "}
+                </button>
+              )}
             </div>
           </div>
-        ))}
-      </div>
-    );
-  };
+        );
+      })}
+    </div>
+  );
+};
+
 
   return (
     <div className="dashboard-app">
@@ -99,15 +112,16 @@ export default function Dashboard() {
           ) : (
             <>
               {/* 🔹 ALL COURSES */}
+              {/* ALL COURSES */}
               <section>
                 <h3>All Courses</h3>
                 {renderCourses(allCourses)}
               </section>
 
-              {/* 🔹 NM APPROVED COURSES */}
+              {/* NM COURSES */}
               <section style={{ marginTop: "32px" }}>
                 <h3>NM Approved Courses</h3>
-                {renderCourses(approvedCourses)}
+                {renderCourses(approvedCourses, true)}
               </section>
             </>
           )}

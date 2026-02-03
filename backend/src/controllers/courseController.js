@@ -410,7 +410,7 @@ export const getCourseStructure = async (req, res) => {
 
 /* ================= DASHBOARD – APPROVED COURSES ================= */
 
-export const getApprovedCourses = async (req, res) => {
+export const getNMCourses = async (req, res) => {
   try {
     const db = await connectDB();
 
@@ -418,22 +418,22 @@ export const getApprovedCourses = async (req, res) => {
       SELECT 
         course_id,
         course_name,
-        course_unique_code,
+        course_image,
         course_image_url,
         instructor,
         duration_minutes,
-        no_of_videos,
-        language,
-        category_id
+        nm_approval_status
       FROM courses
-      WHERE nm_approval_status = 'approved'
-        AND is_active = 'active'
+      WHERE nm_approval_status IN ('pending','approved')
+        AND is_active='active'
       ORDER BY updated_at DESC
     `);
 
     res.json(courses);
   } catch (err) {
-    console.error("❌ Error fetching approved courses:", err);
-    res.status(500).json({ message: "Failed to load approved courses" });
+    console.error("❌ Error fetching NM courses:", err);
+    res.status(500).json({ message: "Failed to load NM courses" });
   }
 };
+
+

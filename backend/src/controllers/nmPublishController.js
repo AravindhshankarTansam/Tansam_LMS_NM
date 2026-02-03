@@ -45,14 +45,17 @@ export const publishCourse = async (req, res) => {
 
     await publishCourseToNM(payload);
 
-  /* ✅ MARK AS APPROVED (DEV / NM returns 200 OK) */
-await db.execute(`
-  UPDATE courses
-  SET status='approved',
-      nm_approval_status='approved',
-      nm_last_sync=NOW()
-  WHERE course_id=?
-`, [id]);
+   await db.execute(
+      `
+      UPDATE courses
+      SET status='sent_to_nm',
+          nm_approval_status='pending',
+          nm_last_sync=NOW()
+      WHERE course_id=?
+      `,
+      [id]
+    );
+
 
     res.json({
       message: "✅ Course sent to Naan Mudhalvan for approval"
