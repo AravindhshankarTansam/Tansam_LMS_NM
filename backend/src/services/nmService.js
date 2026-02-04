@@ -1,8 +1,12 @@
 import axios from "axios";
+import https from "https";
 
-/* -------------------------------------------------- */
+/* ⭐ FORCE IPv4 ONLY */
+const agent = new https.Agent({
+  family: 4
+});
+
 /* TOKEN */
-/* -------------------------------------------------- */
 export const getNMToken = async () => {
   console.log("🔵 Getting NM token...");
 
@@ -16,7 +20,8 @@ export const getNMToken = async () => {
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      timeout: 60000,
+      httpsAgent: agent,
+      timeout: 30000
     }
   );
 
@@ -25,15 +30,13 @@ export const getNMToken = async () => {
   return res.data.token;
 };
 
-/* -------------------------------------------------- */
 /* PUBLISH */
-/* -------------------------------------------------- */
 export const publishCourseToNM = async (payload) => {
   console.log("🔵 Publishing course...");
 
   const token = await getNMToken();
 
-  const res = await axios.post(
+  return axios.post(
     `${process.env.NM_API_BASE_URL}/lms/client/course/publish/`,
     payload,
     {
@@ -41,11 +44,8 @@ export const publishCourseToNM = async (payload) => {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      timeout: 60000,
+      httpsAgent: agent,
+      timeout: 30000
     }
   );
-
-  console.log("✅ Course publish success");
-
-  return res;
 };
