@@ -1,61 +1,61 @@
 import axios from "axios";
 import https from "https";
 
-/* 🔥 GOV API TLS FIX */
+/* 🔥 FORCE HTTP/1.1 + STABLE TLS */
 const httpsAgent = new https.Agent({
   keepAlive: true,
-  rejectUnauthorized: false,   // important for gov cert chains
+  maxSockets: 1,
+  rejectUnauthorized: false,
+  ALPNProtocols: ["http/1.1"], // ⭐ VERY IMPORTANT
 });
 
-/* ---------------------------------------------------- */
-/* 🔐 Get NM Token */
-/* ---------------------------------------------------- */
+/* -------------------------------------------------- */
+/* TOKEN */
+/* -------------------------------------------------- */
 export const getNMToken = async () => {
   console.log("🔵 Getting NM token...");
 
-  const res = await axios.post(
-    `${process.env.NM_API_BASE_URL}/lms/client/token/`,
-    new URLSearchParams({
+  const res = await axios({
+    method: "post",
+    url: `${process.env.NM_API_BASE_URL}/lms/client/token/`,
+    data: new URLSearchParams({
       client_key: process.env.NM_API_CLIENT_KEY,
       client_secret: process.env.NM_API_CLIENT_SECRET,
-    }),
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      httpsAgent,
-      timeout: 20000,
-      maxRedirects: 0,
-      httpAgent: httpsAgent,
-    }
-  );
+    }).toString(),
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    httpsAgent,
+    timeout: 60000, // increase
+    httpAgent: httpsAgent,
+    maxRedirects: 0,
+  });
 
   console.log("✅ Token received");
 
   return res.data.token;
 };
 
-/* ---------------------------------------------------- */
-/* 📤 Publish Course */
-/* ---------------------------------------------------- */
-export const publishCourseToNM = async (coursePayload) => {
-  console.log("🔵 Publishing course to NM...");
+/* -------------------------------------------------- */
+/* PUBLISH */
+/* -------------------------------------------------- */
+export const publishCourseToNM = async (payload) => {
+  console.log("🔵 Publishing course...");
 
   const token = await getNMToken();
 
-  const res = await axios.post(
-    `${process.env.NM_API_BASE_URL}/lms/client/course/publish/`,
-    coursePayload,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      httpsAgent,
-      timeout: 30000,
-      httpAgent: httpsAgent,
-    }
-  );
+  const res = await axios({
+    method: "post",
+    url: `${process.env.NM_API_BASE_URL}/lms/client/course/publish/`,
+    data: payload,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    httpsAgent,
+    timeout: 60000,
+    httpAgent: httpsAgent,
+  });
 
   console.log("✅ Course publish success");
 
