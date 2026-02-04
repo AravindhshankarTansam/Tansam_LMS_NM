@@ -102,9 +102,11 @@ export const publishCourse = async (req, res) => {
       return res.status(400).json({ message: "Add chapters first" });
     }
 
-    const course_objective = chapters.map(c => ({
-      objective: clean(c.chapter_name)
-    }));
+ const course_objective = [
+  { objective: clean(course.course_outcome) }, // your text
+  ...chapters.map(c => ({ objective: clean(c.chapter_name) }))
+];
+
 
 
     /* =====================================================
@@ -138,7 +140,6 @@ export const publishCourse = async (req, res) => {
 
       reference_id: uniqueRef,
       course_type: isOnline ? "ONLINE" : "CLASSROOM",
-      course_outcomes: clean(course.course_outcome || "contact tansam for no content"),
       course_content,
       course_objective
     };
