@@ -5,6 +5,23 @@ const BASE = process.env.NM_API_BASE_URL;
 let cachedToken = null;
 let tokenExpiry = 0;
 
+
+/* =====================================================
+   AXIOS DEBUG INTERCEPTOR (🔥 shows real NM errors)
+===================================================== */
+axios.interceptors.response.use(
+  res => res,
+  err => {
+    if (err.response) {
+      console.log("\n🚨 AXIOS ERROR INTERCEPTOR");
+      console.log("STATUS:", err.response.status);
+      console.log("DATA:", err.response.data);
+    }
+    return Promise.reject(err);
+  }
+);
+
+
 /* =====================================================
    GET TOKEN
 ===================================================== */
@@ -16,7 +33,7 @@ export async function getNMToken() {
   console.log("🔐 Getting NM token...");
 
   const res = await axios.post(
-    `${BASE}/token`,
+    `${BASE}/lms/client/token/`,
     {
       client_key: process.env.NM_API_CLIENT_KEY,
       client_secret: process.env.NM_API_CLIENT_SECRET
@@ -26,11 +43,12 @@ export async function getNMToken() {
 
   cachedToken = res.data.access_token;
 
-  // 50 mins cache
+  // cache 50 mins
   tokenExpiry = Date.now() + 50 * 60 * 1000;
 
   return cachedToken;
 }
+
 
 /* =====================================================
    PUBLISH COURSE
@@ -38,7 +56,7 @@ export async function getNMToken() {
 export async function publishCourseToNM(payload) {
   const token = await getNMToken();
 
-  const res = await axios.post(
+  return axios.post(
     `${BASE}/lms/client/course/publish/`,
     payload,
     {
@@ -49,6 +67,4 @@ export async function publishCourseToNM(payload) {
       timeout: 120000
     }
   );
-
-  return res.data;
 }

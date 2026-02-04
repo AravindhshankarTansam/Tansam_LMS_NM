@@ -1,18 +1,17 @@
 import { connectDB } from "../config/db.js";
 import { publishCourseToNM } from "../services/nmService.js";
 
+
 /* =====================================================
    HELPERS
 ===================================================== */
 
-// remove html + trim
 const clean = (t = "") =>
   String(t)
     .replace(/<[^>]*>/g, "")
     .replace(/\s+/g, " ")
     .trim();
 
-// DB path → public URL
 const buildPublicUrl = (path = "") => {
   if (!path) return "";
   if (path.startsWith("http")) return path;
@@ -31,6 +30,8 @@ export const publishCourse = async (req, res) => {
   console.log("🚀 NM COURSE PUBLISH STARTED");
   console.log("Course ID:", req.params.id);
   console.log("=================================\n");
+
+  let payload = {};
 
   try {
     const db = await connectDB();
@@ -58,20 +59,16 @@ export const publishCourse = async (req, res) => {
        IMAGE
     ===================================================== */
     if (!course.course_image_url && !course.course_image) {
-      return res.status(400).json({
-        message: "Upload course image first"
-      });
+      return res.status(400).json({ message: "Upload course image first" });
     }
 
     const imageUrl = buildPublicUrl(
       course.course_image_url || course.course_image
     );
 
-    console.log("🖼 Image URL:", imageUrl);
-
 
     /* =====================================================
-       CONTENT → MODULES
+       MODULES → course_content
     ===================================================== */
     const [modules] = await db.query(
       `SELECT module_name
@@ -91,7 +88,7 @@ export const publishCourse = async (req, res) => {
 
 
     /* =====================================================
-       OBJECTIVES → CHAPTERS
+       CHAPTERS → course_outcomes (STRING)
     ===================================================== */
     const [chapters] = await db.query(
       `SELECT ch.chapter_name
@@ -106,9 +103,9 @@ export const publishCourse = async (req, res) => {
       return res.status(400).json({ message: "Add chapters first" });
     }
 
-    const course_objective = chapters.map(c => ({
-      objective: clean(c.chapter_name)
-    }));
+    const course_outcomes = chapters
+      .map(c => clean(c.chapter_name))
+      .join("\n");
 
 
     /* =====================================================
@@ -116,24 +113,20 @@ export const publishCourse = async (req, res) => {
     ===================================================== */
     const isOnline = Number(course.no_of_videos) > 0;
 
-
-    /* =====================================================
-       🔥 IMPORTANT FIX
-       USE ORIGINAL UNIQUE CODE (NO TIMESTAMP)
-    ===================================================== */
     const uniqueCode = clean(course.course_unique_code);
     const uniqueRef = clean(course.reference_id || `REF_${id}`);
 
 
     /* =====================================================
-       FINAL PAYLOAD
+       FINAL PAYLOAD (NM STRICT FORMAT)
     ===================================================== */
-    const payload = {
+    payload = {
       course_unique_code: uniqueCode,
       course_name: clean(course.course_name),
       course_description: clean(course.description),
       course_image_url: imageUrl,
       instructor: clean(course.instructor),
+
       duration: String(course.duration_minutes),
 
       language: clean(course.language).toLowerCase(),
@@ -141,22 +134,30 @@ export const publishCourse = async (req, res) => {
       sub_stream: clean(course.substream).toLowerCase(),
       category: clean(course.category_name).toLowerCase(),
 
-      system_requirements: clean(course.system_requirements),
+      system_requirements:
+        clean(course.system_requirements || "Basic computer knowledge"),
 
       reference_id: uniqueRef,
-
       course_type: isOnline ? "ONLINE" : "CLASSROOM",
 
       course_content,
-      course_objective
+      course_outcomes
     };
+
 
     if (isOnline) {
       payload.number_of_videos = String(course.no_of_videos);
       payload.has_subtitles = course.has_subtitles ? "true" : "false";
-    } else {
+    } else if (course.location) {
       payload.location = clean(course.location);
     }
+
+
+    /* =====================================================
+       DEBUG LOGGING
+    ===================================================== */
+    console.log("\n🌍 REQUEST URL:");
+    console.log(process.env.NM_API_BASE_URL + "/lms/client/course/publish/");
 
     console.log("\n📦 FINAL PAYLOAD >>>");
     console.log(JSON.stringify(payload, null, 2));
@@ -167,7 +168,8 @@ export const publishCourse = async (req, res) => {
     ===================================================== */
     const response = await publishCourseToNM(payload);
 
-    console.log("✅ NM SUCCESS:", response.data);
+    console.log("\n✅ NM SUCCESS:");
+    console.log(JSON.stringify(response.data, null, 2));
 
 
     /* =====================================================
@@ -182,17 +184,19 @@ export const publishCourse = async (req, res) => {
       [id]
     );
 
-    console.log("🎉 PUBLISH COMPLETED\n");
-
     res.json(response.data);
 
+
   } catch (err) {
-    console.log("\n❌❌❌ NM ERROR ❌❌❌");
+    console.log("\n❌❌❌ NM ERROR FULL DEBUG ❌❌❌");
 
     if (err.response) {
-      console.log(err.response.status, err.response.data);
+      console.log("\nSTATUS:", err.response.status);
+      console.log("\nNM RESPONSE:", JSON.stringify(err.response.data, null, 2));
+      console.log("\nPAYLOAD SENT:", JSON.stringify(payload, null, 2));
     } else {
-      console.log(err.message);
+      console.log("\nNETWORK ERROR:", err.message);
+      console.log(err.stack);
     }
 
     res.status(500).json({
