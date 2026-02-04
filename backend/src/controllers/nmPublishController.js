@@ -90,29 +90,25 @@ export const publishCourse = async (req, res) => {
     }));
 
 
-    /* =====================================================
-       CHAPTERS → OBJECTIVES → NM expects STRING
-    ===================================================== */
-    const [chapters] = await db.query(
-      `SELECT ch.chapter_name
-       FROM chapters ch
-       JOIN modules m ON ch.module_id = m.module_id
-       WHERE m.course_id=?
-       ORDER BY m.order_index, ch.order_index`,
-      [id]
-    );
+/* =====================================================
+   CHAPTERS → course_objective (ARRAY 🔥 REQUIRED)
+===================================================== */
+const [chapters] = await db.query(
+  `SELECT ch.chapter_name
+   FROM chapters ch
+   JOIN modules m ON ch.module_id = m.module_id
+   WHERE m.course_id=?
+   ORDER BY m.order_index, ch.order_index`,
+  [id]
+);
 
-    if (!chapters.length) {
-      return res.status(400).json({ message: "Add chapters first" });
-    }
+if (!chapters.length) {
+  return res.status(400).json({ message: "Add chapters first" });
+}
 
-    // internally employee may think "objectives"
-    const course_objective = chapters.map(c =>
-      clean(c.chapter_name)
-    );
-
-    // NM wants newline separated string
-    const course_outcomes = course_objective.join("\n");
+const course_objective = chapters.map(c => ({
+  objective: clean(c.chapter_name)
+}));
 
 
     /* =====================================================
@@ -154,7 +150,7 @@ export const publishCourse = async (req, res) => {
 
       // 🔥 critical fields
       course_content,
-      course_outcomes
+      course_objective 
     };
 
 
