@@ -5,12 +5,14 @@ import { publishCourseToNM } from "../services/nmService.js";
    HELPERS
 ===================================================== */
 
+// remove html only
 const clean = (t = "") =>
   String(t)
     .replace(/<[^>]*>/g, "")
     .replace(/\s+/g, " ")
     .trim();
 
+// build objectives safely
 const buildObjectives = (text = "") =>
   clean(text)
     .split(/\n|\.|,/)
@@ -18,29 +20,30 @@ const buildObjectives = (text = "") =>
     .filter(x => x.length > 5 && x.length < 120)
     .map(o => ({ objective: o }));
 
+// convert DB path → public URL
 const buildPublicUrl = (path = "") => {
   if (!path) return "";
 
   if (path.startsWith("http")) return path;
 
   const base = process.env.PUBLIC_BASE_URL;
-
-  const finalUrl = `${base}/${path.replace(/^\/+/, "")}`;
-
-  console.log("🔗 buildPublicUrl:", finalUrl);
-
-  return finalUrl;
+  return `${base}/${path.replace(/^\/+/, "")}`;
 };
 
+// 🔥 IMPORTANT → avoid duplicate timeout issue
+const makeUnique = (value, id) =>
+  `${clean(value)}_${id}_${Date.now()}`;
+
+
 /* =====================================================
-   MAIN
+   MAIN CONTROLLER
 ===================================================== */
 
 export const publishCourse = async (req, res) => {
-  console.log("\n==============================");
-  console.log("🚀 NM PUBLISH STARTED");
+  console.log("\n=================================");
+  console.log("🚀 NM COURSE PUBLISH STARTED");
   console.log("Course ID:", req.params.id);
-  console.log("==============================\n");
+  console.log("=================================\n");
 
   try {
     /* ------------------------------------------------- */
@@ -63,32 +66,26 @@ export const publishCourse = async (req, res) => {
       [id]
     );
 
-    console.log("📘 Course Data:", course);
-
     if (!course) {
       console.log("❌ Course not found");
       return res.status(404).json({ message: "Course not found" });
     }
 
+    console.log("📘 Course Loaded:", course.course_name);
+
     /* -------------------------------------------------
        IMAGE
     ------------------------------------------------- */
-    console.log("🔵 Checking image...");
-
     if (!course.course_image_url && !course.course_image) {
-      console.log("❌ No image in DB");
       return res.status(400).json({
         message: "Upload course image first"
       });
     }
 
-    const rawImagePath = course.course_image_url || course.course_image;
+    const rawImage = course.course_image_url || course.course_image;
+    const imageUrl = buildPublicUrl(rawImage);
 
-    console.log("🖼 Raw path:", rawImagePath);
-
-    const imageUrl = buildPublicUrl(rawImagePath);
-
-    console.log("🖼 Final image URL:", imageUrl);
+    console.log("🖼 Image URL:", imageUrl);
 
     /* -------------------------------------------------
        CHAPTERS
@@ -98,16 +95,13 @@ export const publishCourse = async (req, res) => {
     const [chapters] = await db.query(
       `SELECT ch.chapter_name
        FROM chapters ch
-       JOIN modules m ON ch.module_id = m.module_id
+       JOIN modules m ON ch.module_id=m.module_id
        WHERE m.course_id=?
        ORDER BY m.order_index, ch.order_index`,
       [id]
     );
 
-    console.log("📚 Chapters count:", chapters.length);
-
     if (!chapters.length) {
-      console.log("❌ No chapters found");
       return res.status(400).json({
         message: "Add chapters first"
       });
@@ -117,14 +111,12 @@ export const publishCourse = async (req, res) => {
       content: clean(c.chapter_name)
     }));
 
+    console.log("📚 Chapters:", course_content.length);
+
     /* -------------------------------------------------
        OBJECTIVES
     ------------------------------------------------- */
-    console.log("🔵 Building objectives...");
-
     let course_objective = buildObjectives(course.course_outcome);
-
-    console.log("🎯 Objectives count:", course_objective.length);
 
     if (!course_objective.length) {
       course_objective = [
@@ -132,31 +124,42 @@ export const publishCourse = async (req, res) => {
       ];
     }
 
+    console.log("🎯 Objectives:", course_objective.length);
+
     /* -------------------------------------------------
        TYPE
     ------------------------------------------------- */
     const isOnline = Number(course.no_of_videos) > 0;
-    console.log("📡 Course Type:", isOnline ? "ONLINE" : "CLASSROOM");
+    console.log("📡 Type:", isOnline ? "ONLINE" : "CLASSROOM");
+
+    /* -------------------------------------------------
+       🔥 UNIQUE FIELDS (prevents NM 504 timeout)
+    ------------------------------------------------- */
+    const uniqueCode = makeUnique(course.course_unique_code, id);
+    const uniqueRef = makeUnique(course.reference_id || "REF", id);
 
     /* -------------------------------------------------
        PAYLOAD
     ------------------------------------------------- */
-    console.log("🔵 Building payload...");
-
     const payload = {
-      course_unique_code: clean(course.course_unique_code),
+      course_unique_code: uniqueCode,
       course_name: clean(course.course_name),
       course_description: clean(course.description),
       course_image_url: imageUrl,
       instructor: clean(course.instructor),
       duration: String(course.duration_minutes),
+
       language: clean(course.language).toLowerCase(),
       main_stream: clean(course.mainstream).toLowerCase(),
       sub_stream: clean(course.substream).toLowerCase(),
       category: clean(course.category_name).toLowerCase(),
+
       system_requirements: clean(course.system_requirements),
-      reference_id: clean(course.reference_id || Date.now()),
+
+      reference_id: uniqueRef,
+
       course_type: isOnline ? "ONLINE" : "CLASSROOM",
+
       course_content,
       course_objective
     };
@@ -178,14 +181,11 @@ export const publishCourse = async (req, res) => {
 
     const response = await publishCourseToNM(payload);
 
-    console.log("✅ NM API Response:");
-    console.log(response?.data);
+    console.log("✅ NM SUCCESS:", response.data);
 
     /* -------------------------------------------------
        UPDATE DB
     ------------------------------------------------- */
-    console.log("🔵 Updating DB status...");
-
     await db.execute(
       `UPDATE courses
        SET status='sent_to_nm',
@@ -196,20 +196,17 @@ export const publishCourse = async (req, res) => {
     );
 
     console.log("✅ DB Updated");
-
-    console.log("\n🎉 NM PUBLISH SUCCESS\n");
+    console.log("🎉 PUBLISH COMPLETED\n");
 
     res.json(response.data);
 
   } catch (err) {
-    console.log("\n❌❌❌ NM ERROR FULL TRACE ❌❌❌");
-
+    console.log("\n❌❌❌ NM ERROR ❌❌❌");
     console.log("Message:", err.message);
-    console.log("Stack:", err.stack);
 
     if (err.response) {
-      console.log("NM Status:", err.response.status);
-      console.log("NM Data:", err.response.data);
+      console.log("Status:", err.response.status);
+      console.log("Data:", err.response.data);
     }
 
     res.status(500).json({
