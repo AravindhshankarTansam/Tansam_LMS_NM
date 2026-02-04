@@ -40,10 +40,10 @@ const QuillEditor = ({ value, onChange }) => {
   const quillRef = useRef(null);
   const containerRef = useRef(null);
   const theme = useTheme();
- 
+
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  
+
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -163,7 +163,7 @@ export default function CourseCreateForm() {
   const [modules, setModules] = useState([]);
 
   const [mainstreams, setMainstreams] = useState([]);
-const [substreams, setSubstreams] = useState([]);
+  const [substreams, setSubstreams] = useState([]);
 
   // Form
   const [showCourseForm, setShowCourseForm] = useState(false);
@@ -193,45 +193,45 @@ const [substreams, setSubstreams] = useState([]);
   const [subtitlesLanguage, setSubtitlesLanguage] = useState("");
   const [referenceId, setReferenceId] = useState("");
   const [location, setLocation] = useState("");
-const [errors, setErrors] = useState({});
-// 🔥 PREFILL FORM WHEN EDITING A COURSE
-useEffect(() => {
-  if (!editingCourse) return;
+  const [errors, setErrors] = useState({});
+  // 🔥 PREFILL FORM WHEN EDITING A COURSE
+  useEffect(() => {
+    if (!editingCourse) return;
 
-  setNewCourseName(editingCourse.course_name || "");
-  setNewCategory(editingCourse.category_id || "");
-  setNewOverview(editingCourse.overview || "");
-  setNewDescription(editingCourse.description || "");
+    setNewCourseName(editingCourse.course_name || "");
+    setNewCategory(editingCourse.category_id || "");
+    setNewOverview(editingCourse.overview || "");
+    setNewDescription(editingCourse.description || "");
 
-  setDepartment(editingCourse.department || "");
-  setInstructor(editingCourse.instructor || "");
-  setDurationMinutes(editingCourse.duration_minutes || "");
-  setLanguage(editingCourse.language || "");
+    setDepartment(editingCourse.department || "");
+    setInstructor(editingCourse.instructor || "");
+    setDurationMinutes(editingCourse.duration_minutes || "");
+    setLanguage(editingCourse.language || "");
 
-  setMainstream(editingCourse.mainstream || "");
-  setSubstream(editingCourse.substream || "");
-  setCourseType(editingCourse.course_type || "");
+    setMainstream(editingCourse.mainstream || "");
+    setSubstream(editingCourse.substream || "");
+    setCourseType(editingCourse.course_type || "");
 
-  setCourseOutcome(editingCourse.course_outcome || "");
-  setSystemRequirements(editingCourse.system_requirements || "");
+    setCourseOutcome(editingCourse.course_outcome || "");
+    setSystemRequirements(editingCourse.system_requirements || "");
 
-  setNoOfVideos(editingCourse.no_of_videos || "");
-  setHasSubtitles(
-    editingCourse.has_subtitles
-      ? String(editingCourse.has_subtitles)
-      : "0"
-  );
-  setSubtitlesLanguage(editingCourse.subtitles_language || "");
+    setNoOfVideos(editingCourse.no_of_videos || "");
+    setHasSubtitles(
+      editingCourse.has_subtitles
+        ? String(editingCourse.has_subtitles)
+        : "0"
+    );
+    setSubtitlesLanguage(editingCourse.subtitles_language || "");
 
-  setReferenceId(editingCourse.reference_id || "");
-  setLocation(editingCourse.location || "");
+    setReferenceId(editingCourse.reference_id || "");
+    setLocation(editingCourse.location || "");
 
-  setPricingType(editingCourse.pricing_type || "free");
-  setPricingAmount(editingCourse.price_amount || "");
+    setPricingType(editingCourse.pricing_type || "free");
+    setPricingAmount(editingCourse.price_amount || "");
 
-  setCourseStatus(editingCourse.is_active || "active");
+    setCourseStatus(editingCourse.is_active || "active");
 
-}, [editingCourse]);
+  }, [editingCourse]);
 
 
 
@@ -276,17 +276,17 @@ useEffect(() => {
     }
   };
   useEffect(() => {
-  fetch(MAINSTREAM_API, { credentials: "include" })
-    .then(res => res.json())
-    .then(setMainstreams)
-    .catch(console.error);
-}, []);
-useEffect(() => {
-  fetch(SUBSTREAM_API)
-    .then(res => res.json())
-    .then(setSubstreams)
-    .catch(console.error);
-}, []);
+    fetch(MAINSTREAM_API, { credentials: "include" })
+      .then(res => res.json())
+      .then(setMainstreams)
+      .catch(console.error);
+  }, []);
+  useEffect(() => {
+    fetch(SUBSTREAM_API)
+      .then(res => res.json())
+      .then(setSubstreams)
+      .catch(console.error);
+  }, []);
 
 
   useEffect(() => {
@@ -312,10 +312,10 @@ useEffect(() => {
     setShowCourseForm(true);
   };
 
- const handleEditCourse = (course) => {
-  setEditingCourse(course);
-  setShowCourseForm(true);
-};
+  const handleEditCourse = (course) => {
+    setEditingCourse(course);
+    setShowCourseForm(true);
+  };
 
   const deleteCourse = async (courseId) => {
     if (!window.confirm("Delete this course?")) return;
@@ -339,66 +339,122 @@ useEffect(() => {
 const saveCourse = async () => {
   const newErrors = {};
 
-  if (!newCourseName) newErrors.courseName = "Please fill Course Name";
-  if (!newCategory) newErrors.category = "Please select Category";
-  if (!newOverview) newErrors.overview = "Please fill Overview";
+  /* =====================================
+     🔥 BASIC REQUIRED
+  ===================================== */
+  if (!newCourseName.trim()) newErrors.courseName = "Required";
+  if (!newCategory) newErrors.category = "Required";
+  if (!newOverview.trim()) newErrors.overview = "Required";
+  if (!newDescription.trim()) newErrors.description = "Required";
+  if (!department.trim()) newErrors.department = "Required";
+  if (!instructor.trim()) newErrors.instructor = "Required";
 
-  if (!newDescription) newErrors.description = "Please fill Description";
-  if (!durationMinutes) newErrors.duration = "Please fill Duration";
-  if (!language) newErrors.language = "Please fill Language";
-  if (!mainstream) newErrors.mainstream = "Please select Mainstream";
-  if (!substream) newErrors.substream = "Please select Substream";
-  if (!department) newErrors.department = "Please fill Department";
-if (!instructor) newErrors.instructor = "Please fill Instructor";
+  if (!durationMinutes || Number(durationMinutes) <= 0)
+    newErrors.duration = "Duration must be > 0";
 
-  if (!courseType) newErrors.courseType = "Please fill Course Type";
-  if (!courseOutcome) newErrors.courseOutcome = "Please fill Course Outcome";
-  if (!systemRequirements)
-    newErrors.systemRequirements = "Please fill System Requirements";
-  if (!referenceId) newErrors.referenceId = "Please fill Reference ID";
-  if (!location) newErrors.location = "Please fill Location";
+  if (!language.trim()) newErrors.language = "Required";
+  if (!mainstream.trim()) newErrors.mainstream = "Required";
+  if (!substream.trim()) newErrors.substream = "Required";
+  if (!courseType) newErrors.courseType = "Required";
+  if (!courseOutcome.trim()) newErrors.courseOutcome = "Required";
+  if (!systemRequirements.trim()) newErrors.systemRequirements = "Required";
+  if (!referenceId.trim()) newErrors.referenceId = "Required";
 
+  /* =====================================
+     🔥 NM STRICT RULES
+  ===================================== */
+
+  // lowercase required
+  if (language !== language.toLowerCase())
+    newErrors.language = "Use lowercase (example: english)";
+
+  if (mainstream !== mainstream.toLowerCase())
+    newErrors.mainstream = "Use lowercase";
+
+  if (substream !== substream.toLowerCase())
+    newErrors.substream = "Use lowercase";
+
+  // single word category only
+  const selectedCategory = categories.find(
+    (c) => c.category_id === newCategory
+  );
+
+  if (selectedCategory?.category_name?.includes(" "))
+    newErrors.category = "Only single word allowed (example: mechanical)";
+
+  // objectives too long
+  if (courseOutcome.length > 800)
+    newErrors.courseOutcome = "Split into short lines (not big paragraph)";
+
+  /* =====================================
+     🔥 COURSE TYPE RULES
+  ===================================== */
+
+  if (courseType === "CLASSROOM") {
+    if (!location.trim()) newErrors.location = "Location required";
+  }
+
+  if (courseType === "ONLINE") {
+    if (!noOfVideos || Number(noOfVideos) <= 0)
+      newErrors.noOfVideos = "Videos required";
+  }
+
+  /* =====================================
+     🔥 IMAGE REQUIRED (NM mandatory)
+  ===================================== */
+  if (!coverFile && !editingCourse?.course_image) {
+    newErrors.image = "Cover image required";
+  }
+
+  /* =====================================
+     STOP IF ERRORS
+  ===================================== */
   setErrors(newErrors);
 
   if (Object.keys(newErrors).length > 0) {
-    setSnackMsg("Please fill all mandatory fields");
-    setSnackSeverity("warning");
+    setSnackMsg("❌ Fix validation errors before saving");
+    setSnackSeverity("error");
     setSnackOpen(true);
     return;
   }
 
-  // ✅ PAID COURSE PRICE CHECK
-  if (pricingType === "paid" && !pricingAmount) {
-    setSnackMsg("Enter price for paid course");
-    setSnackSeverity("warning");
-    setSnackOpen(true);
-    return;
-  }
+  /* =====================================
+     ✅ FORM DATA (NM SAFE)
+  ===================================== */
 
-
-  // ✅ FORM DATA (ONLY AFTER VALIDATION PASSES)
   const formData = new FormData();
-  formData.append("course_name", newCourseName);
+
+  formData.append("course_name", newCourseName.trim());
   formData.append("category_id", newCategory);
-  formData.append("overview", newOverview);
-  formData.append("description", newDescription);
-  formData.append("pricing_type", pricingType);
-  formData.append("department", department);
-  formData.append("instructor", instructor);
+  formData.append("overview", newOverview.trim());
+  formData.append("description", newDescription.trim());
+
+  formData.append("department", department.trim());
+  formData.append("instructor", instructor.trim());
+
   formData.append("duration_minutes", durationMinutes);
-  formData.append("language", language);
-  formData.append("mainstream", mainstream);
-  formData.append("substream", substream);
-  formData.append("course_type", courseType);
-  formData.append("course_outcome", courseOutcome);
-  formData.append("system_requirements", systemRequirements);
-  formData.append("no_of_videos", noOfVideos || "0"); // optional ✅
+
+  // 🔥 always lowercase
+  formData.append("language", language.toLowerCase());
+  formData.append("mainstream", mainstream.toLowerCase());
+  formData.append("substream", substream.toLowerCase());
+
+  // 🔥 NM expects uppercase type
+  formData.append("course_type", courseType.toUpperCase());
+
+  formData.append("course_outcome", courseOutcome.trim());
+  formData.append("system_requirements", systemRequirements.trim());
+
+  formData.append("no_of_videos", noOfVideos || "0");
   formData.append("has_subtitles", hasSubtitles);
   formData.append("subtitles_language", subtitlesLanguage);
-  formData.append("reference_id", referenceId);
-  formData.append("location", location);
+
+  formData.append("reference_id", referenceId.trim());
+  formData.append("location", location.trim());
+
   formData.append("status", "draft");
   formData.append("is_active", courseStatus);
+
   formData.append(
     "price_amount",
     pricingType === "paid" ? pricingAmount : "0"
@@ -407,11 +463,16 @@ if (!instructor) newErrors.instructor = "Please fill Instructor";
   if (coverFile) formData.append("course_image", coverFile);
   if (promoFile) formData.append("course_video", promoFile);
 
+  /* =====================================
+     SAVE
+  ===================================== */
   try {
     setSaving(true);
+
     const url = editingCourse
       ? `${COURSE_API}/${editingCourse.course_id}`
       : COURSE_API;
+
     const method = editingCourse ? "PUT" : "POST";
 
     const res = await fetch(url, {
@@ -420,22 +481,25 @@ if (!instructor) newErrors.instructor = "Please fill Instructor";
       body: formData,
     });
 
-    if (!res.ok) throw new Error("Failed");
+    if (!res.ok) throw new Error("Save failed");
 
-    setSnackMsg(editingCourse ? "Updated!" : "Created!");
+    setSnackMsg(editingCourse ? "✅ Updated!" : "✅ Created!");
     setSnackSeverity("success");
     setSnackOpen(true);
+
     setShowCourseForm(false);
     resetForm();
     fetchCourses();
+
   } catch (err) {
-    setSnackMsg("Save failed");
+    setSnackMsg("❌ Save failed");
     setSnackSeverity("error");
     setSnackOpen(true);
   } finally {
     setSaving(false);
   }
 };
+
 
 
   return (
@@ -472,13 +536,13 @@ if (!instructor) newErrors.instructor = "Please fill Instructor";
               alignItems={isMobile ? "flex-start" : "center"}
               spacing={isMobile ? 1.5 : 0}
             >
-           <Typography
-  variant="h5"
-  fontWeight="bold"
-  sx={{ color: "#6b7280" }}   // Tailwind gray-500
->
-  Course Management
-</Typography>
+              <Typography
+                variant="h5"
+                fontWeight="bold"
+                sx={{ color: "#6b7280" }}   // Tailwind gray-500
+              >
+                Course Management
+              </Typography>
 
               <Button
                 startIcon={<Add />}
@@ -521,205 +585,205 @@ if (!instructor) newErrors.instructor = "Please fill Instructor";
                     sx={{ mb: 2 }}
                   />
 
-                 <TextField
-  required
-  select
-  fullWidth
-  label="Category"
-  value={newCategory}
-  onChange={(e) => {
-    setNewCategory(e.target.value);
-    setErrors({ ...errors, category: "" });
-  }}
-  error={!!errors.category}
-  helperText={errors.category}
-  sx={{ mb: 2 }}
->
-  {categories.map((cat) => (
-    <MenuItem key={cat.category_id} value={cat.category_id}>
-      {cat.category_name}
-    </MenuItem>
-  ))}
-</TextField>
+                  <TextField
+                    required
+                    select
+                    fullWidth
+                    label="Category"
+                    value={newCategory}
+                    onChange={(e) => {
+                      setNewCategory(e.target.value);
+                      setErrors({ ...errors, category: "" });
+                    }}
+                    error={!!errors.category}
+                    helperText={errors.category}
+                    sx={{ mb: 2 }}
+                  >
+                    {categories.map((cat) => (
+                      <MenuItem key={cat.category_id} value={cat.category_id}>
+                        {cat.category_name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
 
 
-               <TextField
-  required
-  fullWidth
-  label="Overview"
-  value={newOverview}
-  onChange={(e) => {
-    setNewOverview(e.target.value);
-    setErrors({ ...errors, overview: "" });
-  }}
-  error={!!errors.overview}
-  helperText={errors.overview}
-  multiline
-  maxRows={3}
-  sx={{ mb: 2 }}
-/>
+                  <TextField
+                    required
+                    fullWidth
+                    label="Overview"
+                    value={newOverview}
+                    onChange={(e) => {
+                      setNewOverview(e.target.value);
+                      setErrors({ ...errors, overview: "" });
+                    }}
+                    error={!!errors.overview}
+                    helperText={errors.overview}
+                    multiline
+                    maxRows={3}
+                    sx={{ mb: 2 }}
+                  />
 
                   {/* Responsive Quill Editor */}
                   <QuillEditor
-                  
+
                     value={newDescription}
                     onChange={setNewDescription}
                   />
 
                   {errors.description && (
-  <Typography color="error" variant="caption">
-    {errors.description}
-  </Typography>
-)}
+                    <Typography color="error" variant="caption">
+                      {errors.description}
+                    </Typography>
+                  )}
 
                   {/* ===== Additional Course Details ===== */}
-<TextField
-  required
-  label="Department"
-  fullWidth
-  value={department}
-  onChange={(e) => {
-    setDepartment(e.target.value);
-    setErrors({ ...errors, department: "" });
-  }}
-  error={!!errors.department}
-  helperText={errors.department}
-  sx={{ mb: 2 }}
-/>
+                  <TextField
+                    required
+                    label="Department"
+                    fullWidth
+                    value={department}
+                    onChange={(e) => {
+                      setDepartment(e.target.value);
+                      setErrors({ ...errors, department: "" });
+                    }}
+                    error={!!errors.department}
+                    helperText={errors.department}
+                    sx={{ mb: 2 }}
+                  />
 
                   <TextField
-  required
-  label="Instructor"
-  fullWidth
-  value={instructor}
-  onChange={(e) => {
-    setInstructor(e.target.value);
-    setErrors({ ...errors, instructor: "" });
-  }}
-  error={!!errors.instructor}
-  helperText={errors.instructor}
-  sx={{ mb: 2 }}
-/>
-
-
-                <TextField
-  required
-  label="Duration (minutes)"
-  type="number"
-  fullWidth
-  value={durationMinutes}
-  onChange={(e) => {
-    setDurationMinutes(e.target.value);
-    setErrors({ ...errors, duration: "" });
-  }}
-  error={!!errors.duration}
-  helperText={errors.duration}
-  sx={{ mb: 2 }}
-/>
-
-<TextField
-  required
-  label="Language"
-  fullWidth
-  value={language}
-  onChange={(e) => {
-    setLanguage(e.target.value);
-    setErrors({ ...errors, language: "" });
-  }}
-  error={!!errors.language}
-  helperText={errors.language}
-  sx={{ mb: 2 }}
-/>
-
-               <TextField
-  required
-  select
-  label="Mainstream"
-  fullWidth
-  value={mainstream}
-  onChange={(e) => {
-    setMainstream(e.target.value);
-    setErrors({ ...errors, mainstream: "" });
-  }}
-  error={!!errors.mainstream}
-  helperText={errors.mainstream}
-  sx={{ mb: 2 }}
->
-  {mainstreams.map(ms => (
-    <MenuItem key={ms.mainstream_id} value={ms.mainstream_name}>
-      {ms.mainstream_name}
-    </MenuItem>
-  ))}
-</TextField>
-
-<TextField
-  required
-  select
-  label="Substream"
-  fullWidth
-  value={substream}
-  onChange={(e) => {
-    setSubstream(e.target.value);
-    setErrors({ ...errors, substream: "" });
-  }}
-  error={!!errors.substream}
-  helperText={errors.substream}
-  sx={{ mb: 2 }}
->
-  {substreams.map((ss) => (
-    <MenuItem key={ss.substream_id} value={ss.substream_name}>
-      {ss.substream_name}
-    </MenuItem>
-  ))}
-</TextField>
-
-<TextField
-  required
-  label="Course Type"
-  fullWidth
-  value={courseType}
-  onChange={(e) => {
-    setCourseType(e.target.value);
-    setErrors({ ...errors, courseType: "" });
-  }}
-  error={!!errors.courseType}
-  helperText={errors.courseType}
-  sx={{ mb: 2 }}
-/>
-
-
-                <TextField
-  required
-  label="Course Outcome"
-  multiline
-  rows={3}
-  fullWidth
-  value={courseOutcome}
-  onChange={(e) => {
-    setCourseOutcome(e.target.value);
-    setErrors({ ...errors, courseOutcome: "" });
-  }}
-  error={!!errors.courseOutcome}
-  helperText={errors.courseOutcome}
-  sx={{ mb: 2 }}
-/>
+                    required
+                    label="Instructor"
+                    fullWidth
+                    value={instructor}
+                    onChange={(e) => {
+                      setInstructor(e.target.value);
+                      setErrors({ ...errors, instructor: "" });
+                    }}
+                    error={!!errors.instructor}
+                    helperText={errors.instructor}
+                    sx={{ mb: 2 }}
+                  />
 
 
                   <TextField
-  required
-  label="System Requirements"
-  multiline
-  rows={3}
-  fullWidth
-  value={systemRequirements}
-  onChange={(e) => {
-    setSystemRequirements(e.target.value);
-    setErrors({ ...errors, systemRequirements: "" });
-  }}
-  error={!!errors.systemRequirements}
-  helperText={errors.systemRequirements}
-  sx={{ mb: 2 }}
-/>
+                    required
+                    label="Duration (minutes)"
+                    type="number"
+                    fullWidth
+                    value={durationMinutes}
+                    onChange={(e) => {
+                      setDurationMinutes(e.target.value);
+                      setErrors({ ...errors, duration: "" });
+                    }}
+                    error={!!errors.duration}
+                    helperText={errors.duration}
+                    sx={{ mb: 2 }}
+                  />
+
+                  <TextField
+                    required
+                    label="Language"
+                    fullWidth
+                    value={language}
+                    onChange={(e) => {
+                      setLanguage(e.target.value);
+                      setErrors({ ...errors, language: "" });
+                    }}
+                    error={!!errors.language}
+                    helperText={errors.language}
+                    sx={{ mb: 2 }}
+                  />
+
+                  <TextField
+                    required
+                    select
+                    label="Mainstream"
+                    fullWidth
+                    value={mainstream}
+                    onChange={(e) => {
+                      setMainstream(e.target.value);
+                      setErrors({ ...errors, mainstream: "" });
+                    }}
+                    error={!!errors.mainstream}
+                    helperText={errors.mainstream}
+                    sx={{ mb: 2 }}
+                  >
+                    {mainstreams.map(ms => (
+                      <MenuItem key={ms.mainstream_id} value={ms.mainstream_name}>
+                        {ms.mainstream_name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
+                  <TextField
+                    required
+                    select
+                    label="Substream"
+                    fullWidth
+                    value={substream}
+                    onChange={(e) => {
+                      setSubstream(e.target.value);
+                      setErrors({ ...errors, substream: "" });
+                    }}
+                    error={!!errors.substream}
+                    helperText={errors.substream}
+                    sx={{ mb: 2 }}
+                  >
+                    {substreams.map((ss) => (
+                      <MenuItem key={ss.substream_id} value={ss.substream_name}>
+                        {ss.substream_name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+
+                  <TextField
+                    required
+                    label="Course Type"
+                    fullWidth
+                    value={courseType}
+                    onChange={(e) => {
+                      setCourseType(e.target.value);
+                      setErrors({ ...errors, courseType: "" });
+                    }}
+                    error={!!errors.courseType}
+                    helperText={errors.courseType}
+                    sx={{ mb: 2 }}
+                  />
+
+
+                  <TextField
+                    required
+                    label="Course Outcome"
+                    multiline
+                    rows={3}
+                    fullWidth
+                    value={courseOutcome}
+                    onChange={(e) => {
+                      setCourseOutcome(e.target.value);
+                      setErrors({ ...errors, courseOutcome: "" });
+                    }}
+                    error={!!errors.courseOutcome}
+                    helperText={errors.courseOutcome}
+                    sx={{ mb: 2 }}
+                  />
+
+
+                  <TextField
+                    required
+                    label="System Requirements"
+                    multiline
+                    rows={3}
+                    fullWidth
+                    value={systemRequirements}
+                    onChange={(e) => {
+                      setSystemRequirements(e.target.value);
+                      setErrors({ ...errors, systemRequirements: "" });
+                    }}
+                    error={!!errors.systemRequirements}
+                    helperText={errors.systemRequirements}
+                    sx={{ mb: 2 }}
+                  />
 
 
                   <TextField
@@ -760,34 +824,34 @@ if (!instructor) newErrors.instructor = "Please fill Instructor";
                       onChange={(e) => setSubtitlesLanguage(e.target.value)}
                     />
                   )}
-<TextField
-  required
-  label="Reference ID"
-  fullWidth
-  value={referenceId}
-  onChange={(e) => {
-    setReferenceId(e.target.value);
-    setErrors({ ...errors, referenceId: "" });
-  }}
-  error={!!errors.referenceId}
-  helperText={errors.referenceId}
-  sx={{ mb: 2 }}
-/>
+                  <TextField
+                    required
+                    label="Reference ID"
+                    fullWidth
+                    value={referenceId}
+                    onChange={(e) => {
+                      setReferenceId(e.target.value);
+                      setErrors({ ...errors, referenceId: "" });
+                    }}
+                    error={!!errors.referenceId}
+                    helperText={errors.referenceId}
+                    sx={{ mb: 2 }}
+                  />
 
 
-               <TextField
-  required
-  label="Location"
-  fullWidth
-  value={location}
-  onChange={(e) => {
-    setLocation(e.target.value);
-    setErrors({ ...errors, location: "" });
-  }}
-  error={!!errors.location}
-  helperText={errors.location}
-  sx={{ mb: 2 }}
-/>
+                  <TextField
+                    required
+                    label="Location"
+                    fullWidth
+                    value={location}
+                    onChange={(e) => {
+                      setLocation(e.target.value);
+                      setErrors({ ...errors, location: "" });
+                    }}
+                    error={!!errors.location}
+                    helperText={errors.location}
+                    sx={{ mb: 2 }}
+                  />
 
 
                   <FormControl sx={{ mb: 2, width: "100%" }}>

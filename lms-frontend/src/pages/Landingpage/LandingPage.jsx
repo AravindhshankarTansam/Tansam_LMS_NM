@@ -213,7 +213,7 @@ const changePage = (page) => {
               Explore Courses
             </button>
 
-            <div class="stats">
+            <div className="stats">
               <div>
                 <h3 data-num="12K+">12K+</h3>
                 <p>Active Students</p>
