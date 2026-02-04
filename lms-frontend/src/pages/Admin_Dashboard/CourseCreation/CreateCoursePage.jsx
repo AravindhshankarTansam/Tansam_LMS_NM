@@ -246,6 +246,14 @@ export default function CourseCreateForm() {
 
   const handleTabChange = (e, v) => setTab(v);
 
+  const generateReferenceId = () => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    return `${yyyy}/${mm}/${dd}/001`;
+  };
+
   // Fetch Courses
   const fetchCourses = async () => {
     try {
@@ -359,9 +367,9 @@ const saveCourse = async () => {
   if (!courseType) newErrors.courseType = "Required";
   if (!courseOutcome.trim()) newErrors.courseOutcome = "Required";
   if (!systemRequirements.trim()) newErrors.systemRequirements = "Required";
-  const safeReferenceId =
-  referenceId.trim() ||
-  Math.random().toString(36).slice(2, 10);
+
+
+
 
   /* =====================================
      🔥 NM STRICT RULES
@@ -420,9 +428,6 @@ const saveCourse = async () => {
     setSnackOpen(true);
     return;
   }
-
-
-
 
   /* =====================================
      ✅ FORM DATA (NM SAFE)
@@ -513,9 +518,10 @@ const saveCourse = async () => {
 
 useEffect(() => {
   if (!referenceId) {
-    setReferenceId(Math.random().toString(36).slice(2, 10));
+    setReferenceId(generateReferenceId());
   }
 }, []);
+
 
 
   return (
