@@ -1,4 +1,3 @@
-// services/nmService.js
 import axios from "axios";
 
 const BASE = process.env.NM_API_BASE_URL;
@@ -24,35 +23,45 @@ axios.interceptors.response.use(
 
 
 /* =====================================================
-   GET TOKEN (form-urlencoded + cache)
+   GET TOKEN  ✅ FIXED
 ===================================================== */
 export const getNMToken = async () => {
-  if (cachedToken && Date.now() < tokenExpiry) {
-    return cachedToken;
-  }
-
-  console.log("🔐 Getting NM token...");
-
-  const res = await axios.post(
-    `${BASE}/lms/client/token/`,
-    new URLSearchParams({
-      client_key: process.env.NM_API_CLIENT_KEY,
-      client_secret: process.env.NM_API_CLIENT_SECRET,
-    }),
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      timeout: 60000
+  try {
+    if (cachedToken && Date.now() < tokenExpiry) {
+      return cachedToken;
     }
-  );
 
-  cachedToken = res.data.token; // from your curl
-  tokenExpiry = Date.now() + 50 * 60 * 1000;
+    console.log("🔐 Getting NM token...");
 
-  console.log("✅ Token received");
+    const res = await axios.post(
+      `${BASE}/lms/client/token/`,
+      {
+        client_key: process.env.NM_API_CLIENT_KEY,
+        client_secret: process.env.NM_API_CLIENT_SECRET
+      },
+      {
+        headers: {
+          "Content-Type": "application/json"   // ✅ IMPORTANT
+        },
+        timeout: 60000
+      }
+    );
 
-  return cachedToken;
+    console.log("🔑 TOKEN RESPONSE:", res.data);
+
+    // ✅ correct key from NM
+    cachedToken = res.data.access_key;
+
+    tokenExpiry = Date.now() + 50 * 60 * 1000;
+
+    console.log("✅ Token cached successfully");
+
+    return cachedToken;
+
+  } catch (err) {
+    console.log("❌ Token fetch failed:", err.response?.data || err.message);
+    throw err;
+  }
 };
 
 
@@ -78,7 +87,7 @@ export const publishCourseToNM = async (payload) => {
     return res.data;
 
   } catch (err) {
-    // auto retry once if token expired
+    // auto retry if token expired
     if (err.response?.status === 401) {
       console.log("♻️ Token expired → retrying...");
       cachedToken = null;
