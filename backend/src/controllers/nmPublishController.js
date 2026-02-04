@@ -21,10 +21,6 @@ const buildPublicUrl = (path = "") => {
   return `${base}/${path.replace(/^\/+/, "")}`;
 };
 
-// unique value to avoid NM duplicate timeout
-const makeUnique = (value, id) =>
-  `${clean(value)}_${id}_${Date.now()}`;
-
 
 /* =====================================================
    MAIN CONTROLLER
@@ -75,10 +71,8 @@ export const publishCourse = async (req, res) => {
 
 
     /* =====================================================
-       CONTENT → MODULES (NM syllabus)
+       CONTENT → MODULES
     ===================================================== */
-    console.log("🔵 Building course_content from modules...");
-
     const [modules] = await db.query(
       `SELECT module_name
        FROM modules
@@ -88,23 +82,17 @@ export const publishCourse = async (req, res) => {
     );
 
     if (!modules.length) {
-      return res.status(400).json({
-        message: "Add modules first"
-      });
+      return res.status(400).json({ message: "Add modules first" });
     }
 
     const course_content = modules.map(m => ({
       content: clean(m.module_name)
     }));
 
-    console.log("📚 Content count:", course_content.length);
-
 
     /* =====================================================
-       OBJECTIVES → CHAPTERS (NM outcomes)
+       OBJECTIVES → CHAPTERS
     ===================================================== */
-    console.log("🔵 Building course_objective from chapters...");
-
     const [chapters] = await db.query(
       `SELECT ch.chapter_name
        FROM chapters ch
@@ -115,16 +103,12 @@ export const publishCourse = async (req, res) => {
     );
 
     if (!chapters.length) {
-      return res.status(400).json({
-        message: "Add chapters first"
-      });
+      return res.status(400).json({ message: "Add chapters first" });
     }
 
     const course_objective = chapters.map(c => ({
       objective: clean(c.chapter_name)
     }));
-
-    console.log("🎯 Objectives count:", course_objective.length);
 
 
     /* =====================================================
@@ -134,10 +118,11 @@ export const publishCourse = async (req, res) => {
 
 
     /* =====================================================
-       UNIQUE FIELDS (prevents NM duplicate timeout)
+       🔥 IMPORTANT FIX
+       USE ORIGINAL UNIQUE CODE (NO TIMESTAMP)
     ===================================================== */
-    const uniqueCode = makeUnique(course.course_unique_code, id);
-    const uniqueRef = makeUnique(course.reference_id || "REF", id);
+    const uniqueCode = clean(course.course_unique_code);
+    const uniqueRef = clean(course.reference_id || `REF_${id}`);
 
 
     /* =====================================================
@@ -162,9 +147,8 @@ export const publishCourse = async (req, res) => {
 
       course_type: isOnline ? "ONLINE" : "CLASSROOM",
 
-      // 🔥 CORRECT NM MAPPING
-      course_content,     // modules
-      course_objective    // chapters
+      course_content,
+      course_objective
     };
 
     if (isOnline) {
@@ -204,10 +188,11 @@ export const publishCourse = async (req, res) => {
 
   } catch (err) {
     console.log("\n❌❌❌ NM ERROR ❌❌❌");
-    console.log(err.message);
 
     if (err.response) {
       console.log(err.response.status, err.response.data);
+    } else {
+      console.log(err.message);
     }
 
     res.status(500).json({

@@ -1,51 +1,57 @@
 import axios from "axios";
-import https from "https";
 
-/* ⭐ FORCE IPv4 ONLY */
-const agent = new https.Agent({
-  family: 4
-});
+const BASE = process.env.NM_API_base_url;
 
-/* TOKEN */
-export const getNMToken = async () => {
-  console.log("🔵 Getting NM token...");
+let cachedToken = null;
+let tokenExpiry = 0;
+
+
+/* =====================================================
+   GET TOKEN
+===================================================== */
+async function getNMToken() {
+  if (cachedToken && Date.now() < tokenExpiry) {
+    return cachedToken;
+  }
+
+  console.log("$$$$ Getting NM token...");
 
   const res = await axios.post(
-    `${process.env.NM_API_BASE_URL}/lms/client/token/`,
-    new URLSearchParams({
-      client_key: process.env.NM_API_CLIENT_KEY,
-      client_secret: process.env.NM_API_CLIENT_SECRET,
-    }),
+    `${BASE}/token`,
     {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      httpsAgent: agent,
-      timeout: 30000
+      client_key: process.env.NM_API_client_key,
+      client_secret: process.env.NM_API_client_secret
+    },
+    {
+      timeout: 60000
     }
   );
 
-  console.log("✅ Token received");
+  cachedToken = res.data.access_token;
 
-  return res.data.token;
-};
+  tokenExpiry = Date.now() + (50 * 60 * 1000);
 
-/* PUBLISH */
-export const publishCourseToNM = async (payload) => {
-  console.log("🔵 Publishing course...");
+  return cachedToken;
+}
 
+
+/* =====================================================
+   PUBLISH COURSE
+===================================================== */
+export async function publishCourseToNM(payload) {
   const token = await getNMToken();
 
+  console.log("--> Publishing course...");
+
   return axios.post(
-    `${process.env.NM_API_BASE_URL}/lms/client/course/publish/`,
+    `${BASE}/courses/publish`,
     payload,
     {
       headers: {
         Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      httpsAgent: agent,
-      timeout: 30000
+      timeout: 120000 // ⭐ VERY IMPORTANT (NM slow server)
     }
   );
-};
+}
