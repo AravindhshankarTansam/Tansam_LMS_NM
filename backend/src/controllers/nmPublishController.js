@@ -112,19 +112,15 @@ export const publishCourse = async (req, res) => {
     }));
 
     console.log("📚 Chapters:", course_content.length);
+/* -------------------------------------------------
+   OBJECTIVES (DB ONLY - no defaults)
+------------------------------------------------- */
+console.log("🔵 Building objectives...");
 
-    /* -------------------------------------------------
-       OBJECTIVES
-    ------------------------------------------------- */
-    let course_objective = buildObjectives(course.course_outcome);
+const course_objective = buildObjectives(course.course_outcome);
 
-    if (!course_objective.length) {
-      course_objective = [
-        { objective: "Complete the course successfully" }
-      ];
-    }
+console.log("🎯 Objectives:", course_objective.length);
 
-    console.log("🎯 Objectives:", course_objective.length);
 
     /* -------------------------------------------------
        TYPE
