@@ -33,15 +33,16 @@ export const getNMToken = async () => {
 
     console.log("🔐 Getting NM token...");
 
+    const body = new URLSearchParams();
+    body.append("client_key", process.env.NM_API_CLIENT_KEY);
+    body.append("client_secret", process.env.NM_API_CLIENT_SECRET);
+
     const res = await axios.post(
       `${BASE}/lms/client/token/`,
-      {
-        client_key: process.env.NM_API_CLIENT_KEY,
-        client_secret: process.env.NM_API_CLIENT_SECRET
-      },
+      body.toString(),
       {
         headers: {
-          "Content-Type": "application/json"   // ✅ IMPORTANT
+          "Content-Type": "application/x-www-form-urlencoded"
         },
         timeout: 60000
       }
@@ -49,8 +50,8 @@ export const getNMToken = async () => {
 
     console.log("🔑 TOKEN RESPONSE:", res.data);
 
-    // ✅ correct key from NM
-    cachedToken = res.data.access_key;
+    // ✅ CORRECT KEY FROM YOUR CURL
+    cachedToken = res.data.token;
 
     tokenExpiry = Date.now() + 50 * 60 * 1000;
 
