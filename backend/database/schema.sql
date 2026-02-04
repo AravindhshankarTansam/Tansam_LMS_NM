@@ -89,14 +89,15 @@ CREATE TABLE IF NOT EXISTS courses (
   language VARCHAR(100),
   mainstream VARCHAR(255),
   substream VARCHAR(255),
-  course_type VARCHAR(100),
+  course_type ENUM('ONLINE','CLASSROOM') NOT NULL,
+
 
   -- Metadata
-  duration_minutes INT,
+  duration_minutes INT UNSIGNED NOT NULL,
   no_of_videos INT DEFAULT 0,
   subtitles_language VARCHAR(255),
   has_subtitles TINYINT(1) DEFAULT 0,
-  reference_id VARCHAR(100),
+  reference_id VARCHAR(50),
   location VARCHAR(255),
 
   -- 💰 Pricing

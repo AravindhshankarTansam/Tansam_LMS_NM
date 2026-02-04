@@ -351,14 +351,17 @@ const saveCourse = async () => {
 
   if (!durationMinutes || Number(durationMinutes) <= 0)
     newErrors.duration = "Duration must be > 0";
-
+  if (Number(durationMinutes) > 6000)
+  newErrors.duration = "Enter minutes only (not seconds)";
   if (!language.trim()) newErrors.language = "Required";
   if (!mainstream.trim()) newErrors.mainstream = "Required";
   if (!substream.trim()) newErrors.substream = "Required";
   if (!courseType) newErrors.courseType = "Required";
   if (!courseOutcome.trim()) newErrors.courseOutcome = "Required";
   if (!systemRequirements.trim()) newErrors.systemRequirements = "Required";
-  if (!referenceId.trim()) newErrors.referenceId = "Required";
+  const safeReferenceId =
+  referenceId.trim() ||
+  Math.random().toString(36).slice(2, 10);
 
   /* =====================================
      🔥 NM STRICT RULES
@@ -418,6 +421,9 @@ const saveCourse = async () => {
     return;
   }
 
+
+
+
   /* =====================================
      ✅ FORM DATA (NM SAFE)
   ===================================== */
@@ -449,11 +455,16 @@ const saveCourse = async () => {
   formData.append("has_subtitles", hasSubtitles);
   formData.append("subtitles_language", subtitlesLanguage);
 
-  formData.append("reference_id", referenceId.trim());
   formData.append("location", location.trim());
 
   formData.append("status", "draft");
   formData.append("is_active", courseStatus);
+
+  formData.append(
+  "reference_id",
+  referenceId.trim() || Math.random().toString(36).slice(2, 10)
+);
+
 
   formData.append(
     "price_amount",
@@ -500,6 +511,11 @@ const saveCourse = async () => {
   }
 };
 
+useEffect(() => {
+  if (!referenceId) {
+    setReferenceId(Math.random().toString(36).slice(2, 10));
+  }
+}, []);
 
 
   return (
@@ -687,7 +703,7 @@ const saveCourse = async () => {
                     fullWidth
                     value={language}
                     onChange={(e) => {
-                      setLanguage(e.target.value);
+                      setLanguage(e.target.value.toLowerCase());
                       setErrors({ ...errors, language: "" });
                     }}
                     error={!!errors.language}
@@ -702,7 +718,7 @@ const saveCourse = async () => {
                     fullWidth
                     value={mainstream}
                     onChange={(e) => {
-                      setMainstream(e.target.value);
+                      setMainstream(e.target.value.toLowerCase());
                       setErrors({ ...errors, mainstream: "" });
                     }}
                     error={!!errors.mainstream}
@@ -723,7 +739,7 @@ const saveCourse = async () => {
                     fullWidth
                     value={substream}
                     onChange={(e) => {
-                      setSubstream(e.target.value);
+                      setSubstream(e.target.value.toLowerCase());
                       setErrors({ ...errors, substream: "" });
                     }}
                     error={!!errors.substream}
@@ -738,18 +754,17 @@ const saveCourse = async () => {
                   </TextField>
 
                   <TextField
+                    select
                     required
                     label="Course Type"
-                    fullWidth
                     value={courseType}
-                    onChange={(e) => {
-                      setCourseType(e.target.value);
-                      setErrors({ ...errors, courseType: "" });
-                    }}
-                    error={!!errors.courseType}
-                    helperText={errors.courseType}
+                    onChange={(e) => setCourseType(e.target.value)}
                     sx={{ mb: 2 }}
-                  />
+                  >
+                    <MenuItem value="ONLINE">ONLINE</MenuItem>
+                    <MenuItem value="CLASSROOM">CLASSROOM</MenuItem>
+                  </TextField>
+
 
 
                   <TextField
@@ -786,14 +801,18 @@ const saveCourse = async () => {
                   />
 
 
-                  <TextField
-                    label="No of Videos"
-                    type="number"
-                    fullWidth
-                    sx={{ mb: 2 }}
-                    value={noOfVideos}
-                    onChange={(e) => setNoOfVideos(e.target.value)}
-                  />
+                  {courseType === "ONLINE" && (
+                    <TextField
+                      required
+                      label="Number of Videos"
+                      type="number"
+                      fullWidth
+                      value={noOfVideos}
+                      onChange={(e) => setNoOfVideos(e.target.value)}
+                      sx={{ mb: 2 }}
+                    />
+                  )}
+
 
                   <FormControl sx={{ mb: 2 }}>
                     <FormLabel>Has Subtitles</FormLabel>
@@ -825,7 +844,6 @@ const saveCourse = async () => {
                     />
                   )}
                   <TextField
-                    required
                     label="Reference ID"
                     fullWidth
                     value={referenceId}
@@ -839,19 +857,17 @@ const saveCourse = async () => {
                   />
 
 
-                  <TextField
-                    required
-                    label="Location"
-                    fullWidth
-                    value={location}
-                    onChange={(e) => {
-                      setLocation(e.target.value);
-                      setErrors({ ...errors, location: "" });
-                    }}
-                    error={!!errors.location}
-                    helperText={errors.location}
-                    sx={{ mb: 2 }}
-                  />
+                  {courseType === "CLASSROOM" && (
+                    <TextField
+                      required
+                      label="Location"
+                      fullWidth
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      sx={{ mb: 2 }}
+                    />
+                  )}
+
 
 
                   <FormControl sx={{ mb: 2, width: "100%" }}>
