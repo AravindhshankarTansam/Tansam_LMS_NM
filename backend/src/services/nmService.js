@@ -1,4 +1,6 @@
 import axios from "axios";
+import FormData from "form-data";
+import https from "https";
 
 const BASE = process.env.NM_API_BASE_URL;
 
@@ -7,13 +9,22 @@ let tokenExpiry = 0;
 
 
 /* =====================================================
-   AXIOS DEBUG (shows real NM errors)
+   HTTPS AGENT (prevents socket hang up with govt APIs)
+===================================================== */
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  rejectUnauthorized: false
+});
+
+
+/* =====================================================
+   AXIOS DEBUG
 ===================================================== */
 axios.interceptors.response.use(
   res => res,
   err => {
     if (err.response) {
-      console.log("\n🚨 NM ERROR");
+      console.log("\n🚨 NM ERROR RESPONSE");
       console.log("STATUS:", err.response.status);
       console.log("DATA:", err.response.data);
     }
@@ -23,7 +34,7 @@ axios.interceptors.response.use(
 
 
 /* =====================================================
-   GET TOKEN  ✅ FIXED
+   GET TOKEN  ⭐ FINAL (multipart/form-data like curl)
 ===================================================== */
 export const getNMToken = async () => {
   try {
@@ -33,34 +44,31 @@ export const getNMToken = async () => {
 
     console.log("🔐 Getting NM token...");
 
-    const body = new URLSearchParams();
-    body.append("client_key", process.env.NM_API_CLIENT_KEY);
-    body.append("client_secret", process.env.NM_API_CLIENT_SECRET);
+    const form = new FormData();
+    form.append("client_key", process.env.NM_API_CLIENT_KEY);
+    form.append("client_secret", process.env.NM_API_CLIENT_SECRET);
 
     const res = await axios.post(
       `${BASE}/lms/client/token/`,
-      body.toString(),
+      form,
       {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
+        httpsAgent,
+        headers: form.getHeaders(),
         timeout: 60000
       }
     );
 
     console.log("🔑 TOKEN RESPONSE:", res.data);
 
-    // ✅ CORRECT KEY FROM YOUR CURL
     cachedToken = res.data.token;
-
     tokenExpiry = Date.now() + 50 * 60 * 1000;
 
-    console.log("✅ Token cached successfully");
+    console.log("✅ Token cached");
 
     return cachedToken;
 
   } catch (err) {
-    console.log("❌ Token fetch failed:", err.response?.data || err.message);
+    console.log("❌ Token fetch failed:", err.message);
     throw err;
   }
 };
@@ -70,31 +78,20 @@ export const getNMToken = async () => {
    PUBLISH COURSE
 ===================================================== */
 export const publishCourseToNM = async (payload) => {
-  try {
-    const token = await getNMToken();
+  const token = await getNMToken();
 
-    const res = await axios.post(
-      `${BASE}/lms/client/course/publish/`,
-      payload,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        timeout: 120000
-      }
-    );
-
-    return res.data;
-
-  } catch (err) {
-    // auto retry if token expired
-    if (err.response?.status === 401) {
-      console.log("♻️ Token expired → retrying...");
-      cachedToken = null;
-      return publishCourseToNM(payload);
+  const res = await axios.post(
+    `${BASE}/lms/client/course/publish/`,
+    payload,
+    {
+      httpsAgent,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      timeout: 120000
     }
+  );
 
-    throw err;
-  }
+  return res.data;
 };

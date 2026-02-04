@@ -1,18 +1,17 @@
 import { connectDB } from "../config/db.js";
 import { publishCourseToNM } from "../services/nmService.js";
 
+
 /* =====================================================
    HELPERS
 ===================================================== */
 
-// remove html + trim
 const clean = (t = "") =>
   String(t)
     .replace(/<[^>]*>/g, "")
     .replace(/\s+/g, " ")
     .trim();
 
-// DB path → public URL
 const buildPublicUrl = (path = "") => {
   if (!path) return "";
   if (path.startsWith("http")) return path;
@@ -38,6 +37,7 @@ export const publishCourse = async (req, res) => {
     const db = await connectDB();
     const { id } = req.params;
 
+
     /* =====================================================
        FETCH COURSE
     ===================================================== */
@@ -53,16 +53,12 @@ export const publishCourse = async (req, res) => {
       return res.status(404).json({ message: "Course not found" });
     }
 
-    console.log("📘 Course Loaded:", course.course_name);
-
 
     /* =====================================================
-       IMAGE CHECK
+       IMAGE
     ===================================================== */
     if (!course.course_image_url && !course.course_image) {
-      return res.status(400).json({
-        message: "Upload course image first"
-      });
+      return res.status(400).json({ message: "Upload course image first" });
     }
 
     const imageUrl = buildPublicUrl(
@@ -71,7 +67,7 @@ export const publishCourse = async (req, res) => {
 
 
     /* =====================================================
-       MODULES → course_content (ARRAY)
+       MODULES → course_content
     ===================================================== */
     const [modules] = await db.query(
       `SELECT module_name
@@ -90,25 +86,25 @@ export const publishCourse = async (req, res) => {
     }));
 
 
-/* =====================================================
-   CHAPTERS → course_objective (ARRAY 🔥 REQUIRED)
-===================================================== */
-const [chapters] = await db.query(
-  `SELECT ch.chapter_name
-   FROM chapters ch
-   JOIN modules m ON ch.module_id = m.module_id
-   WHERE m.course_id=?
-   ORDER BY m.order_index, ch.order_index`,
-  [id]
-);
+    /* =====================================================
+       CHAPTERS → course_objective
+    ===================================================== */
+    const [chapters] = await db.query(
+      `SELECT ch.chapter_name
+       FROM chapters ch
+       JOIN modules m ON ch.module_id = m.module_id
+       WHERE m.course_id=?
+       ORDER BY m.order_index, ch.order_index`,
+      [id]
+    );
 
-if (!chapters.length) {
-  return res.status(400).json({ message: "Add chapters first" });
-}
+    if (!chapters.length) {
+      return res.status(400).json({ message: "Add chapters first" });
+    }
 
-const course_objective = chapters.map(c => ({
-  objective: clean(c.chapter_name)
-}));
+    const course_objective = chapters.map(c => ({
+      objective: clean(c.chapter_name)
+    }));
 
 
     /* =====================================================
@@ -116,24 +112,20 @@ const course_objective = chapters.map(c => ({
     ===================================================== */
     const isOnline = Number(course.no_of_videos) > 0;
 
-    const uniqueCode = clean(course.course_unique_code);
-
-    // safer unique reference
     const uniqueRef =
       clean(course.reference_id) || `REF_${Date.now()}`;
 
 
     /* =====================================================
-       FINAL NM PAYLOAD
+       FINAL PAYLOAD
     ===================================================== */
     payload = {
-      course_unique_code: uniqueCode,
+      course_unique_code: clean(course.course_unique_code),
       course_name: clean(course.course_name),
       course_description: clean(course.description),
       course_image_url: imageUrl,
       instructor: clean(course.instructor),
 
-      // NM expects strings
       duration: String(course.duration_minutes),
 
       language: clean(course.language).toLowerCase(),
@@ -145,12 +137,10 @@ const course_objective = chapters.map(c => ({
         clean(course.system_requirements || "Basic computer knowledge"),
 
       reference_id: uniqueRef,
-
       course_type: isOnline ? "ONLINE" : "CLASSROOM",
 
-      // 🔥 critical fields
       course_content,
-      course_objective 
+      course_objective
     };
 
 
@@ -162,12 +152,6 @@ const course_objective = chapters.map(c => ({
     }
 
 
-    /* =====================================================
-       DEBUG LOGGING
-    ===================================================== */
-    console.log("\n🌍 REQUEST URL:");
-    console.log(process.env.NM_API_BASE_URL + "/lms/client/course/publish/");
-
     console.log("\n📦 FINAL PAYLOAD >>>");
     console.log(JSON.stringify(payload, null, 2));
 
@@ -177,39 +161,12 @@ const course_objective = chapters.map(c => ({
     ===================================================== */
     const response = await publishCourseToNM(payload);
 
-    console.log("\n✅ NM SUCCESS RESPONSE:");
-    console.log(JSON.stringify(response.data, null, 2));
+    console.log("\n✅ NM SUCCESS:", response);
 
-
-    /* =====================================================
-       UPDATE DB STATUS
-    ===================================================== */
-    await db.execute(
-      `UPDATE courses
-       SET status='sent_to_nm',
-           nm_approval_status='pending',
-           nm_last_sync=NOW()
-       WHERE course_id=?`,
-      [id]
-    );
-
-    res.json(response.data);
-
+    res.json(response);
 
   } catch (err) {
-    console.log("\n❌❌❌ NM ERROR FULL DEBUG ❌❌❌");
-
-    if (err.response) {
-      console.log("\nSTATUS:", err.response.status);
-      console.log("\nNM RESPONSE:", JSON.stringify(err.response.data, null, 2));
-      console.log("\nPAYLOAD SENT:", JSON.stringify(payload, null, 2));
-    } else {
-      console.log("\nNETWORK ERROR:", err.message);
-      console.log(err.stack);
-    }
-
-    res.status(500).json({
-      message: err.response?.data?.message || err.message
-    });
+    console.log("\n❌ NM ERROR:", err.message);
+    res.status(500).json({ message: err.message });
   }
 };
