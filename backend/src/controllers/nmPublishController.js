@@ -113,13 +113,29 @@ export const publishCourse = async (req, res) => {
 
     console.log("📚 Chapters:", course_content.length);
 /* -------------------------------------------------
-   OBJECTIVES (DB ONLY - no defaults)
+   OBJECTIVES (FROM MODULES ONLY)
 ------------------------------------------------- */
-console.log("🔵 Building objectives...");
+console.log("🔵 Building objectives from modules...");
 
-const course_objective = buildObjectives(course.course_outcome);
+const [modules] = await db.query(
+  `SELECT module_name
+   FROM modules
+   WHERE course_id=?
+   ORDER BY order_index`,
+  [id]
+);
+
+const course_objective = modules.map(m => ({
+  objective: clean(m.module_name)
+}));
 
 console.log("🎯 Objectives:", course_objective.length);
+
+if (!course_objective.length) {
+  return res.status(400).json({
+    message: "Add at least one module before publishing"
+  });
+}
 
 
     /* -------------------------------------------------
