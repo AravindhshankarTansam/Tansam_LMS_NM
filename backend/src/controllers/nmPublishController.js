@@ -138,7 +138,7 @@ export const publishCourse = async (req, res) => {
 
       reference_id: uniqueRef,
       course_type: isOnline ? "ONLINE" : "CLASSROOM",
-
+      course_outcomes: clean(course.course_outcome || "contact tansam for no content"),
       course_content,
       course_objective
     };
