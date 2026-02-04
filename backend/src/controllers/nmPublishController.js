@@ -102,10 +102,18 @@ export const publishCourse = async (req, res) => {
       return res.status(400).json({ message: "Add chapters first" });
     }
 
- const course_objective = [
-  { objective: clean(course.course_outcome) }, // your text
+const objectives = [];
+
+if (clean(course.course_outcome)) {
+  objectives.push({ objective: clean(course.course_outcome) });
+}
+
+objectives.push(
   ...chapters.map(c => ({ objective: clean(c.chapter_name) }))
-];
+);
+
+const course_objective = objectives;
+
 
 
 
