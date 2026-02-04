@@ -143,7 +143,6 @@ payload = {
   system_requirements: clean(course.system_requirements),
   reference_id: uniqueRef,
   course_type: isOnline ? "ONLINE" : "CLASSROOM",
-  course_outcomes: clean(course.course_outcome).toLowerCase(),
   course_content,
   course_objective
 };
