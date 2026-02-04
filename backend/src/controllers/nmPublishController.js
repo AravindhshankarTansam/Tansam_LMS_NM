@@ -121,36 +121,32 @@ export const publishCourse = async (req, res) => {
     /* =====================================================
        FINAL PAYLOAD
     ===================================================== */
-    payload = {
-      course_unique_code: clean(course.course_unique_code),
-      course_name: clean(course.course_name),
-      course_description: clean(course.description),
-      course_image_url: imageUrl,
-      instructor: clean(course.instructor),
+payload = {
+  course_unique_code: clean(course.course_unique_code),
+  course_name: clean(course.course_name),
+  course_description: clean(course.description),
+  course_image_url: imageUrl,
+  instructor: clean(course.instructor),
+  duration: String(course.duration_minutes),
+  language: clean(course.language).toLowerCase(),
+  main_stream: clean(course.mainstream).toLowerCase(),
+  sub_stream: clean(course.substream).toLowerCase(),
+  category: clean(course.category_name).toLowerCase(),
+  system_requirements: clean(course.system_requirements),
+  reference_id: uniqueRef,
+  course_type: isOnline ? "ONLINE" : "CLASSROOM",
 
-      duration: String(course.duration_minutes),
+  // REQUIRED (sandbox version)
+  course_content,
+  course_objective
+};
 
-      language: clean(course.language).toLowerCase(),
-      main_stream: clean(course.mainstream).toLowerCase(),
-      sub_stream: clean(course.substream).toLowerCase(),
-      category: clean(course.category_name).toLowerCase(),
-
-      system_requirements:
-        clean(course.system_requirements || "Basic computer knowledge"),
-
-      reference_id: uniqueRef,
-      course_type: isOnline ? "ONLINE" : "CLASSROOM",
-      course_content,
-      course_objective
-    };
-
-
-    if (isOnline) {
-      payload.number_of_videos = String(course.no_of_videos);
-      payload.has_subtitles = course.has_subtitles ? "true" : "false";
-    } else if (course.location) {
-      payload.location = clean(course.location);
-    }
+if (isOnline) {
+  payload.number_of_videos = String(course.no_of_videos);
+  payload.has_subtitles = course.has_subtitles ? "true" : "false";
+} else {
+  payload.location = clean(course.location);
+}
 
 
     console.log("\n📦 FINAL PAYLOAD >>>");
