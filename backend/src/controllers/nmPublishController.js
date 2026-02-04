@@ -143,6 +143,7 @@ payload = {
   system_requirements: clean(course.system_requirements),
   reference_id: uniqueRef,
   course_type: isOnline ? "ONLINE" : "CLASSROOM",
+  course_outcomes: clean(course.course_outcome).toLowerCase(),
   course_content,
   course_objective
 };
@@ -154,6 +155,7 @@ if (isOnline) {
   payload.location = clean(course.location);
 }
 
+console.log(JSON.stringify(payload, null, 2));
 
     console.log("\n📦 FINAL PAYLOAD >>>");
     console.log(JSON.stringify(payload, null, 2));
