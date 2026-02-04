@@ -871,17 +871,48 @@ section h3 {
 .nm-table th {
   background: #f7f7f7;
 }
-
-.nm-table button {
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
 .nm-toast {
   background: #e8f5e9;
   padding: 10px;
   margin-bottom: 10px;
   border-radius: 6px;
   font-weight: 500;
+}
+
+/* ===============================
+   NM ACTION BUTTON (Send / Sending)
+================================ */
+
+.nm-table button {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #fff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+}
+
+/* hover */
+.nm-table button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+}
+
+/* click */
+.nm-table button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+}
+
+/* loading / disabled */
+.nm-table button:disabled {
+  background: #e5e7eb;
+  color: #6b7280;
+  cursor: not-allowed;
+  box-shadow: none;
 }

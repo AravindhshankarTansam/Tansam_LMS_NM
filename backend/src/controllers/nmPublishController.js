@@ -1,16 +1,16 @@
 import { connectDB } from "../config/db.js";
 import { publishCourseToNM } from "../services/nmService.js";
 
-/* =========================================
-   ONLY remove HTML (NOT punctuation)
-========================================= */
+/* =====================================================
+   HELPERS
+===================================================== */
+
 const clean = (t = "") =>
   String(t)
     .replace(/<[^>]*>/g, "")
     .replace(/\s+/g, " ")
     .trim();
 
-/* ========================================= */
 const buildObjectives = (text = "") =>
   clean(text)
     .split(/\n|\.|,/)
@@ -18,16 +18,43 @@ const buildObjectives = (text = "") =>
     .filter(x => x.length > 5 && x.length < 120)
     .map(o => ({ objective: o }));
 
-/* ========================================= */
+const buildPublicUrl = (path = "") => {
+  if (!path) return "";
+
+  if (path.startsWith("http")) return path;
+
+  const base = process.env.PUBLIC_BASE_URL;
+
+  const finalUrl = `${base}/${path.replace(/^\/+/, "")}`;
+
+  console.log("🔗 buildPublicUrl:", finalUrl);
+
+  return finalUrl;
+};
+
+/* =====================================================
+   MAIN
+===================================================== */
 
 export const publishCourse = async (req, res) => {
-  console.log("\n🚀 NM PUBLISH STARTED");
+  console.log("\n==============================");
+  console.log("🚀 NM PUBLISH STARTED");
+  console.log("Course ID:", req.params.id);
+  console.log("==============================\n");
 
   try {
+    /* ------------------------------------------------- */
+    console.log("🔵 Connecting DB...");
     const db = await connectDB();
+    console.log("✅ DB Connected");
+
     const { id } = req.params;
 
-    /* ---------- COURSE ---------- */
+    /* -------------------------------------------------
+       FETCH COURSE
+    ------------------------------------------------- */
+    console.log("🔵 Fetching course...");
+
     const [[course]] = await db.query(
       `SELECT c.*, cat.category_name
        FROM courses c
@@ -36,35 +63,68 @@ export const publishCourse = async (req, res) => {
       [id]
     );
 
-    if (!course)
-      return res.status(404).json({ message: "Course not found" });
+    console.log("📘 Course Data:", course);
 
-    /* ---------- IMAGE (REAL ONLY) ---------- */
-    if (!course.course_image_url) {
+    if (!course) {
+      console.log("❌ Course not found");
+      return res.status(404).json({ message: "Course not found" });
+    }
+
+    /* -------------------------------------------------
+       IMAGE
+    ------------------------------------------------- */
+    console.log("🔵 Checking image...");
+
+    if (!course.course_image_url && !course.course_image) {
+      console.log("❌ No image in DB");
       return res.status(400).json({
-        message: "Upload real course image first"
+        message: "Upload course image first"
       });
     }
 
-    /* ---------- CHAPTERS ---------- */
+    const rawImagePath = course.course_image_url || course.course_image;
+
+    console.log("🖼 Raw path:", rawImagePath);
+
+    const imageUrl = buildPublicUrl(rawImagePath);
+
+    console.log("🖼 Final image URL:", imageUrl);
+
+    /* -------------------------------------------------
+       CHAPTERS
+    ------------------------------------------------- */
+    console.log("🔵 Fetching chapters...");
+
     const [chapters] = await db.query(
       `SELECT ch.chapter_name
        FROM chapters ch
-       JOIN modules m ON ch.module_id=m.module_id
+       JOIN modules m ON ch.module_id = m.module_id
        WHERE m.course_id=?
        ORDER BY m.order_index, ch.order_index`,
       [id]
     );
 
-    if (!chapters.length)
-      return res.status(400).json({ message: "Add chapters first" });
+    console.log("📚 Chapters count:", chapters.length);
+
+    if (!chapters.length) {
+      console.log("❌ No chapters found");
+      return res.status(400).json({
+        message: "Add chapters first"
+      });
+    }
 
     const course_content = chapters.map(c => ({
       content: clean(c.chapter_name)
     }));
 
-    /* ---------- OBJECTIVES ---------- */
+    /* -------------------------------------------------
+       OBJECTIVES
+    ------------------------------------------------- */
+    console.log("🔵 Building objectives...");
+
     let course_objective = buildObjectives(course.course_outcome);
+
+    console.log("🎯 Objectives count:", course_objective.length);
 
     if (!course_objective.length) {
       course_objective = [
@@ -72,16 +132,22 @@ export const publishCourse = async (req, res) => {
       ];
     }
 
+    /* -------------------------------------------------
+       TYPE
+    ------------------------------------------------- */
     const isOnline = Number(course.no_of_videos) > 0;
+    console.log("📡 Course Type:", isOnline ? "ONLINE" : "CLASSROOM");
 
-    /* =====================================
-       FINAL PAYLOAD (NO duplicates, DB only)
-    ===================================== */
+    /* -------------------------------------------------
+       PAYLOAD
+    ------------------------------------------------- */
+    console.log("🔵 Building payload...");
+
     const payload = {
       course_unique_code: clean(course.course_unique_code),
       course_name: clean(course.course_name),
       course_description: clean(course.description),
-      course_image_url: clean(course.course_image_url), // 🔥 DB only
+      course_image_url: imageUrl,
       instructor: clean(course.instructor),
       duration: String(course.duration_minutes),
       language: clean(course.language).toLowerCase(),
@@ -89,7 +155,7 @@ export const publishCourse = async (req, res) => {
       sub_stream: clean(course.substream).toLowerCase(),
       category: clean(course.category_name).toLowerCase(),
       system_requirements: clean(course.system_requirements),
-      reference_id: clean(course.reference_id || String(Date.now())),
+      reference_id: clean(course.reference_id || Date.now()),
       course_type: isOnline ? "ONLINE" : "CLASSROOM",
       course_content,
       course_objective
@@ -102,10 +168,23 @@ export const publishCourse = async (req, res) => {
       payload.location = clean(course.location);
     }
 
-    console.log("\nFINAL PAYLOAD >>>");
+    console.log("\n📦 FINAL PAYLOAD >>>");
     console.log(JSON.stringify(payload, null, 2));
 
+    /* -------------------------------------------------
+       SEND TO NM
+    ------------------------------------------------- */
+    console.log("\n🔵 Sending to NM API...");
+
     const response = await publishCourseToNM(payload);
+
+    console.log("✅ NM API Response:");
+    console.log(response?.data);
+
+    /* -------------------------------------------------
+       UPDATE DB
+    ------------------------------------------------- */
+    console.log("🔵 Updating DB status...");
 
     await db.execute(
       `UPDATE courses
@@ -116,14 +195,25 @@ export const publishCourse = async (req, res) => {
       [id]
     );
 
-    console.log("✅ NM SUCCESS");
+    console.log("✅ DB Updated");
+
+    console.log("\n🎉 NM PUBLISH SUCCESS\n");
+
     res.json(response.data);
 
   } catch (err) {
-    console.error("❌ NM ERROR:", err.response?.data || err.message);
+    console.log("\n❌❌❌ NM ERROR FULL TRACE ❌❌❌");
+
+    console.log("Message:", err.message);
+    console.log("Stack:", err.stack);
+
+    if (err.response) {
+      console.log("NM Status:", err.response.status);
+      console.log("NM Data:", err.response.data);
+    }
 
     res.status(500).json({
-      message: err.response?.data?.message || "NM publish failed"
+      message: err.response?.data?.message || err.message
     });
   }
 };

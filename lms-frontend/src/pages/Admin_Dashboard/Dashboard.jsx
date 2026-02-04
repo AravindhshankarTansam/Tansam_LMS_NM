@@ -146,7 +146,7 @@ export default function Dashboard() {
                   NM PUBLISH TABLE (NEW)
               ===================================================== */}
               <section style={{ marginTop: "40px" }}>
-                <h3>Publish Courses to NM</h3>
+                <h3>Publish Courses to Naan Mudhalvan site</h3>
 
                 {nmMessage && (
                   <div className="nm-toast">{nmMessage}</div>
