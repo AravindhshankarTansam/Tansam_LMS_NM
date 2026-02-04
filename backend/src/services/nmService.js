@@ -5,11 +5,10 @@ const BASE = process.env.NM_API_base_url;
 let cachedToken = null;
 let tokenExpiry = 0;
 
-
 /* =====================================================
    GET TOKEN
 ===================================================== */
-async function getNMToken() {
+export async function getNMToken() {
   if (cachedToken && Date.now() < tokenExpiry) {
     return cachedToken;
   }
@@ -22,26 +21,20 @@ async function getNMToken() {
       client_key: process.env.NM_API_client_key,
       client_secret: process.env.NM_API_client_secret
     },
-    {
-      timeout: 60000
-    }
+    { timeout: 60000 }
   );
 
   cachedToken = res.data.access_token;
-
   tokenExpiry = Date.now() + (50 * 60 * 1000);
 
   return cachedToken;
 }
-
 
 /* =====================================================
    PUBLISH COURSE
 ===================================================== */
 export async function publishCourseToNM(payload) {
   const token = await getNMToken();
-
-  console.log("--> Publishing course...");
 
   return axios.post(
     `${BASE}/courses/publish`,
@@ -51,7 +44,7 @@ export async function publishCourseToNM(payload) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json"
       },
-      timeout: 120000 // ⭐ VERY IMPORTANT (NM slow server)
+      timeout: 120000
     }
   );
 }
